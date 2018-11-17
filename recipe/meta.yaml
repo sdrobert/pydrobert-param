@@ -1,0 +1,56 @@
+{% if environ.get('TRAVIS', False) %}
+  {% set version = environ.get('TRAVIS_BRANCH', '0.0') %}
+  {% set build_num = environ['TRAVIS_BUILD_NUMBER'] %}
+{% elif environ.get('APPVEYOR', False) %}
+  {% set version = environ.get('APPVEYOR_REPO_TAG_NAME', '0.0') %}
+  {% set build_num = environ['APPVEYOR_BUILD_NUMBER'] %}
+{% else %}
+  {% set version = environ.get('GIT_DESCRIBE_TAG', '0.0') %}
+  {% set build_num = environ.get('GIT_DESCRIBE_NUMBER', 0) %}
+{% endif %}
+{% set version = version.replace('v','').replace('untagged', '0.0').split('-')[0] %}
+
+package:
+  name: pydrobert-param
+  version: {{ version }}
+
+source:
+  path: ..
+
+build:
+  noarch: python
+
+requirements:
+  build:
+    - python
+    - setuptools
+    - setuptools_scm
+  run:
+    - param
+
+build:
+  noarch: python
+  number: {{ build_num }}
+  script:
+    - export SETUPTOOLS_SCM_PRETEND_VERSION=${PKG_VERSION}  # [not win]
+    - set SETUPTOOLS_SCM_PRETEND_VERSION=%PKG_VERSION%  # [win]
+    - python setup.py install --single-version-externally-managed --record=record.txt
+
+test:
+  source_files:
+    - tests
+  requires:
+    - pytest
+    - pyyaml
+  imports:
+    - pydrobert
+    - pydrobert.param
+  commands:
+    - pytest
+
+about:
+  home: https://github.com/sdrobert/pydrobert-param
+  license: Apache License 2.0
+  license_family: APACHE
+  license_file: LICENSE
+  summary: Utilities for the python package 'param'
