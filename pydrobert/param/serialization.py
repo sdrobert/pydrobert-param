@@ -35,7 +35,11 @@ class ParamConfigDeserializer(with_metaclass(abc.ABCMeta, object)):
     @classmethod
     def check_if_allow_none_and_set(cls, name, block, parameterized):
         p = parameterized.params()[name]
-        if (block is None or block == 'None') and p.allow_None:
+        if (
+                (
+                    block is None or
+                    (isinstance(block, str) and (block == 'None'))
+                ) and p.allow_None):
             parameterized.param.set_param(name, None)
             return True
         else:
@@ -74,7 +78,7 @@ class DefaultArrayDeserializer(ParamConfigDeserializer):
                 raise_from(ParamConfigTypeError(parameterized, name), e)
         else:
             try:
-                block = np.ndarray(block, sep=self.sep)
+                block = np.array(block)
                 parameterized.param.set_param(name, block)
             except ValueError as e:
                 raise_from(ParamConfigTypeError(parameterized, name), e)
@@ -130,6 +134,12 @@ class DefaultDataFrameDeserializer(ParamConfigDeserializer):
         if self.check_if_allow_none_and_set(name, block, parameterized):
             return
         import pandas
+        if isinstance(block, pandas.DataFrame):
+            try:
+                parameterized.param.set_param(name, block)
+                return
+            except ValueError as e:
+                raise_from(ParamConfigTypeError(parameterized, name), e)
         try:
             block = pandas.DataFrame(data=block, **kwargs)
             parameterized.param.set_param(name, block)
@@ -149,7 +159,7 @@ class DefaultDataFrameDeserializer(ParamConfigDeserializer):
                 pass
         raise ParamConfigTypeError(
             parameterized, name,
-            'cannot convert "{}" to bool'.format(block))
+            'cannot convert "{}" to DataFrame'.format(block))
 
 
 class DefaultDateDeserializer(ParamConfigDeserializer):
