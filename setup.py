@@ -45,9 +45,9 @@ def main():
             'Programming Language :: Python :: 3.6',
             'Programming Language :: Python :: 3.7',
         ],
-        install_requires=['param', 'future'],
+        install_requires=['param>=1.8', 'future'],
         setup_requires=SETUP_REQUIRES,
-        tests_require=['pytest', 'pyyaml'],
+        tests_require=['pytest', 'pyyaml', 'pandas', 'numpy'],
     )
 
 
