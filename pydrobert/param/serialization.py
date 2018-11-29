@@ -126,7 +126,8 @@ class DefaultClassSelector(ParamConfigDeserializer):
 
 class DefaultDataFrameDeserializer(ParamConfigDeserializer):
 
-    def __init__(self, **kwargs):
+    def __init__(self, *args, **kwargs):
+        self.args = args
         self.kwargs = kwargs
         super(DefaultDataFrameDeserializer, self).__init__()
 
@@ -140,26 +141,39 @@ class DefaultDataFrameDeserializer(ParamConfigDeserializer):
                 return
             except ValueError as e:
                 raise_from(ParamConfigTypeError(parameterized, name), e)
+        if isinstance(block, str):
+            for suffix, read_func in (
+                    ('.csv', pandas.read_csv),
+                    ('.json', pandas.read_json),
+                    ('.html', pandas.read_html),
+                    ('.xls', pandas.read_excel),
+                    ('.h5', pandas.read_hdf),
+                    ('.feather', pandas.read_feather),
+                    ('.parquet', pandas.read_parquet),
+                    ('.msg', pandas.read_msgpack),
+                    ('.dta', pandas.read_stata),
+                    ('.sas7bdat', pandas.read_sas),
+                    ('.pkl', pandas.read_pickle)):
+                if block.endswith(suffix):
+                    try:
+                        block = read_func(block, *self.args, **self.kwargs)
+                        parameterized.param.set_param(name, block)
+                        return
+                    except Exception as e:
+                        raise_from(ParamConfigTypeError(
+                            parameterized, name), e)
+            try:
+                block = pandas.read_table(block, *self.args, **self.kwargs)
+                parameterized.param.set_param(name, block)
+                return
+            except Exception as e:
+                raise_from(ParamConfigTypeError(parameterized, name), e)
         try:
             block = pandas.DataFrame(data=block, **kwargs)
             parameterized.param.set_param(name, block)
             return
-        except Exception:
-            pass
-        for f in (
-                pandas.read_table, pandas.read_csv, pandas.read_fwf,
-                pandas.read_msgpack, pandas.read_excel, pandas.read_json,
-                pandas.read_html, pandas.read_hdf, pandas.read_feather,
-                pandas.read_parquet, pandas.read_sas, pandas.read_stata,):
-            try:
-                block = f(block, **self.kwargs)
-                parameterized.param.set_param(name, block)
-                return
-            except Exception:
-                pass
-        raise ParamConfigTypeError(
-            parameterized, name,
-            'cannot convert "{}" to DataFrame'.format(block))
+        except Exception as e:
+            raise_from(ParamConfigTypeError(parameterized, name), e)
 
 
 class DefaultDateDeserializer(ParamConfigDeserializer):
@@ -184,7 +198,7 @@ class DefaultDateDeserializer(ParamConfigDeserializer):
                 raise_from(ParamConfigTypeError(parameterized, name), e)
         try:
             float_block = float(block)
-            if float_block % 1:
+            if float_block % 1 or float_block > datetime.max.toordinal():
                 block = datetime.fromtimestamp(float_block)
             else:
                 block = datetime.fromordinal(int(float_block))
@@ -314,10 +328,10 @@ class DefaultObjectSelectorDeserializer(ParamConfigDeserializer):
 
 class DefaultSeriesDeserializer(_CastDeserializer):
 
-    @classmethod
-    def class_(cls, *args, **kwargs):
+    @property
+    def class_(self):
         import pandas
-        return pd.Series(*args, **kwargs)
+        return pandas.Series
 
 
 class DefaultTupleDeserializer(_CastDeserializer):
