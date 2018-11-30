@@ -176,7 +176,7 @@ def test_can_deserialize_none(block):
     ('x_y_coordinates', (0, float('inf')), (0, float('inf'))),
 ])
 def test_can_deserialize_with_defaults(name, block, expected):
-    parameterized = BigDumbParams(name='test_can_deserialize')
+    parameterized = BigDumbParams(name='test_can_deserialize_with_defaults')
     p = parameterized.params()[name]
     if type(p) in serial.DEFAULT_DESERIALIZER_DICT:
         deserializer = serial.DEFAULT_DESERIALIZER_DICT[type(p)]
@@ -187,3 +187,46 @@ def test_can_deserialize_with_defaults(name, block, expected):
         assert all(expected == getattr(parameterized, name))
     else:
         assert expected == getattr(parameterized, name)
+
+
+def test_deserialize_dict():
+    parameterized = BigDumbParams(name='test_deserialize_dict')
+    dict_ = {
+        'array': [1, 2, 3],
+        'filename': os.path.join(FILE_DIR, 'test_serialization.py'),
+        'list_': [3, 4, 5],
+        'x_y_coordinates': ('3.4', '5'),
+    }
+    serial.deserialize_from_dict(dict_, parameterized)
+    assert np.allclose(parameterized.array, [1, 2, 3])
+    assert parameterized.filename == os.path.join(
+        FILE_DIR, 'test_serialization.py')
+    assert np.allclose(parameterized.list_, [3, 4, 5])
+    assert np.allclose(parameterized.x_y_coordinates, (3.4, 5.))
+
+    class _DontCallThis(object):
+
+        def deserialize(self, *args):
+            assert False
+
+    class _ThisIsFine(object):
+
+        def deserialize(self, name, block, parameterized):
+            parameterized.param.set_param(name, another_action)
+
+    class _AlsoFine(object):
+
+        def deserialize(self, name, block, parameterized):
+            parameterized.param.set_param(name, datetime.min)
+    type_dict = {
+        param.Dynamic: _DontCallThis(),
+        param.Date: _AlsoFine(),
+    }
+    name_dict = {
+        'dynamic': _ThisIsFine(),
+    }
+    dict_['dynamic'] = lambda: -4
+    dict_['date'] = datetime.max
+    serial.deserialize_from_dict(dict_, parameterized, name_dict, type_dict)
+    assert parameterized.dynamic == another_action()
+    assert parameterized.date == datetime.min

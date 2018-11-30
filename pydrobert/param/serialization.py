@@ -365,3 +365,63 @@ DEFAULT_DESERIALIZER_DICT = {
 }
 
 DEFAULT_BACKUP_DESERIALIZER = DefaultDeserializer()
+
+
+def deserialize_from_dict(
+        dict_, parameterized,
+        deserializer_name_dict=None,
+        deserializer_type_dict=None):
+    '''Deserialize a dictionary into a parameterized object
+
+    This function is suitable for deserializing the results of parsing
+    a data storage file such as a YAML, JSON, or a section of an INI file
+    (using the `yaml`, `json`, and `configparser` python modules, resp.)
+    into a `param.Parameterized` object. Each key in `dict_` should match
+    the name of a parameter in `parameterized`. The parameter will be
+    deserialized into `parameterized` using a `ParamConfigDeserializer` object
+    matched with the following precedent:
+
+     1. If `deserializer_name_dict` is specified and contains the same key,
+        the value of the item in `deserializer_name_dict` will be used.
+     2. If `deserializer_type_dict` and the type of the parameter in question
+        *exactly matches* a key in `deserializer_type_dict`, the value of the
+        item in `deserializer_type_dict` will be used.
+     3. If the type of the parameter in question *exactly matches* a key in
+        `DEFAULT_DESERIALIZER_DICT`, the value of the item in
+        `DEFAULT_DESERIALIZER_DICT` will be used.
+     4. `DEFAULT_BACKUP_DESERIALIZER` will be used.
+
+    Default deserializers are likely appropriate for basic types like strings,
+    ints, bools, floats, and numeric tuples. For more complex data types,
+    including recursive `param.Parameterized` instances, custom deserializers
+    are recommended.
+
+    Parameters
+    ----------
+    dict_ : dict
+    parameterized : param.Parameterized
+    deserializer_name_dict : dict, optional
+    deserializer_type_dict : dict, optional
+
+    Raises
+    ------
+    ParamConfigTypeError : if deserialization of a value fails
+    '''
+    if deserializer_type_dict is not None:
+        deserializer_type_dict2 = dict(DEFAULT_DESERIALIZER_DICT)
+        deserializer_type_dict2.update(deserializer_type_dict)
+        deserializer_type_dict = deserializer_type_dict2
+    else:
+        deserializer_type_dict = DEFAULT_DESERIALIZER_DICT
+    if deserializer_name_dict is None:
+        deserializer_name_dict = dict()
+    for name, block in dict_.items():
+        if name in deserializer_name_dict:
+            deserializer = deserializer_name_dict[name]
+        else:
+            type_ = type(parameterized.params()[name])
+            if type_ in deserializer_type_dict:
+                deserializer = deserializer_type_dict[type_]
+            else:
+                deserializer = DEFAULT_BACKUP_DESERIALIZER
+        deserializer.deserialize(name, block, parameterized)
