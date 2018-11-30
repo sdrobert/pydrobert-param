@@ -369,8 +369,8 @@ DEFAULT_BACKUP_DESERIALIZER = DefaultDeserializer()
 
 def deserialize_from_dict(
         dict_, parameterized,
-        deserializer_name_dict=None,
-        deserializer_type_dict=None):
+        deserializer_name_dict=None, deserializer_type_dict=None,
+        on_missing='warn'):
     '''Deserialize a dictionary into a parameterized object
 
     This function is suitable for deserializing the results of parsing
@@ -402,10 +402,14 @@ def deserialize_from_dict(
     parameterized : param.Parameterized
     deserializer_name_dict : dict, optional
     deserializer_type_dict : dict, optional
+    on_missing : {'ignore', 'warn', 'raise'}, optional
+        What to do if the parameterized instance does not have a parameter
+        listed in `dict_`
 
     Raises
     ------
-    ParamConfigTypeError : if deserialization of a value fails
+    ParamConfigTypeError
+        If deserialization of a value fails
     '''
     if deserializer_type_dict is not None:
         deserializer_type_dict2 = dict(DEFAULT_DESERIALIZER_DICT)
@@ -416,6 +420,14 @@ def deserialize_from_dict(
     if deserializer_name_dict is None:
         deserializer_name_dict = dict()
     for name, block in dict_.items():
+        if name not in parameterized.params():
+            msg = 'No param "{}" to set in "{}"'.format(
+                name, parameterized.name)
+            if on_missing == 'warn':
+                parameterized.warning(msg)
+            elif on_missing == 'raise':
+                raise ValueError(msg)
+            continue
         if name in deserializer_name_dict:
             deserializer = deserializer_name_dict[name]
         else:
