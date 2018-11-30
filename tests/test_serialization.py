@@ -85,6 +85,7 @@ class BigDumbParams(param.Parameterized):
     path = param.Path(FILE_DIR + "/../LICENSE", allow_None=True)
     range_ = param.Range((-1., 2.), allow_None=True)
     series = param.Series(pd.Series(range(5)))
+    string = param.String("foo", allow_None=True)
     tuple_ = param.Tuple((3, 4, 'fi'), allow_None=True)
     x_y_coordinates = param.XYCoordinates((1., 2.), allow_None=True)
 
@@ -170,6 +171,7 @@ def test_can_deserialize_none(block):
     ),
     ('range_', ('-10', 4), (-10., 4.)),
     ('series', pd.Series([1, 2, 3]), pd.Series([1, 2, 3])),
+    ('string', 1, '1'),
     ('tuple_', [another_action, True, 1], (another_action, True, 1)),
     ('x_y_coordinates', (0, float('inf')), (0, float('inf'))),
 ])

@@ -334,8 +334,11 @@ class DefaultSeriesDeserializer(_CastDeserializer):
         return pandas.Series
 
 
-class DefaultTupleDeserializer(_CastDeserializer):
+class DefaultStringDeserializer(_CastDeserializer):
+    class_ = str
 
+
+class DefaultTupleDeserializer(_CastDeserializer):
     class_ = tuple
 
 
@@ -356,6 +359,7 @@ DEFAULT_DESERIALIZER_DICT = {
     param.ObjectSelector: DefaultObjectSelectorDeserializer(),
     param.Range: DefaultNumericTupleDeserializer(),
     param.Series: DefaultSeriesDeserializer(),
+    param.String: DefaultStringDeserializer(),
     param.Tuple: DefaultTupleDeserializer(),
     param.XYCoordinates: DefaultNumericTupleDeserializer(),
 }
