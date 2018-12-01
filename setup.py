@@ -47,7 +47,7 @@ def main():
         ],
         install_requires=['param>=1.8', 'future'],
         setup_requires=SETUP_REQUIRES,
-        tests_require=['pytest', 'pyyaml', 'pandas', 'numpy'],
+        tests_require=['pytest', 'ruamel.yaml', 'pandas', 'numpy'],
     )
 
 

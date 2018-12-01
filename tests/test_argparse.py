@@ -32,11 +32,11 @@ class CommaListDeserializer(object):
         parameterized.param.set_param(name, block)
 
 
-def test_ini_action():
+def test_ini_read_action():
     parser = ArgumentParser()
     parser.add_argument(
         'zoo',
-        action=pargparse.ParameterizedIniConfigAction,
+        action=pargparse.ParameterizedIniReadAction,
         type=ParamsA,
         deserializer_type_dict={param.List: CommaListDeserializer()},
     )
@@ -47,9 +47,30 @@ def test_ini_action():
     parser = ArgumentParser()
     parser.add_argument(
         'zoo',
-        action=pargparse.ParameterizedIniConfigAction,
+        action=pargparse.ParameterizedIniReadAction,
         parameterized={'params_b': ParamsB()},
         deserializer_type_dict={param.List: CommaListDeserializer()},
     )
     parsed = parser.parse_args([os.path.join(FILE_DIR, 'param.ini')])
     assert parsed.zoo['params_b'].object_selector == 1
+
+
+def test_yaml_read_action():
+    parser = ArgumentParser()
+    parser.add_argument(
+        'zoo',
+        action=pargparse.ParameterizedYamlReadAction,
+        type=ParamsA,
+    )
+    parsed = parser.parse_args([os.path.join(FILE_DIR, 'param.yaml')])
+    assert parsed.zoo.bingo == 'a'
+    assert parsed.zoo.bango == 1
+    assert parsed.zoo.bongo == ['b', 1, False]
+    parser = ArgumentParser()
+    parser.add_argument(
+        'zoo',
+        action=pargparse.ParameterizedYamlReadAction,
+        parameterized={'params_b': ParamsB()},
+    )
+    parsed = parser.parse_args([os.path.join(FILE_DIR, 'param.yaml')])
+    assert parsed.zoo['params_b'].object_selector == '2'

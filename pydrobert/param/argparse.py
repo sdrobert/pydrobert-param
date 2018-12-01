@@ -18,7 +18,7 @@ __license__ = "Apache 2.0"
 __copyright__ = "Copyright 2018 Sean Robertson"
 
 
-class ParameterizedFileConfigAction(
+class ParameterizedFileReadAction(
         with_metaclass(abc.ABCMeta, argparse.Action)):
     '''Base class for deserializing files into a param.Parameterized object
 
@@ -97,7 +97,7 @@ class ParameterizedFileConfigAction(
         self.deserializer_name_dict = deserializer_name_dict
         self.deserializer_type_dict = deserializer_type_dict
         self.on_missing = on_missing
-        super(ParameterizedFileConfigAction, self).__init__(
+        super(ParameterizedFileReadAction, self).__init__(
             option_strings, dest,
             type=argparse.FileType('r'), default=self.parameterized,
             required=required, help=help, metavar=metavar,
@@ -128,7 +128,7 @@ class ParameterizedFileConfigAction(
                     param_stack.append(value)
 
 
-class ParameterizedIniConfigAction(ParameterizedFileConfigAction):
+class ParameterizedIniReadAction(ParameterizedFileReadAction):
     '''Deserialize a .INI file into a parameterized object
 
     `.INI syntax <https://en.wikipedia.org/wiki/INI_file>`, also including
@@ -141,24 +141,83 @@ class ParameterizedIniConfigAction(ParameterizedFileConfigAction):
     ---------------------
     defaults : dict, optional
         Intrinsic defaults used in interpolation
+    comment_prefixes : tuple, optional
+        In Python 3.x, this controls which characters indicate an inline
+        comment. Ignored in 2.7
+    inline_comment_prefixes : tuple, optional
+        In Python 3.x, this controls which characters indicate an inline
+        comment. Ignored in 2.7
 
     See Also
     --------
-    ParameterizedFileConfigAction
+    ParameterizedFileReadAction
         A full description of the parameters and behaviour of like actions.
     configparser.ConfigParser
         Description of .INI file parsing and interpolation
     '''
 
-    def __init__(self, option_strings, dest, defaults=None, **kwargs):
+    def __init__(
+            self, option_strings, dest,
+            defaults=None,
+            comment_prefixes=('#', ';'),
+            inline_comment_prefixes=(';',),
+            **kwargs):
         self.defaults = defaults
-        super(ParameterizedIniConfigAction, self).__init__(
+        self.comment_prefixes = comment_prefixes
+        self.inline_comment_prefixes = inline_comment_prefixes
+        super(ParameterizedIniReadAction, self).__init__(
             option_strings, dest, **kwargs)
 
     def fp_to_dict(self, fp):
-        from configparser import ConfigParser
-        parser = ConfigParser(defaults=self.defaults)
+        from configparser import SafeConfigParser
+        try:
+            parser = SafeConfigParser(
+                defaults=self.defaults,
+                comment_prefixes=self.comment_prefixes,
+                inline_comment_prefixes=self.inline_comment_prefixes,
+            )
+        except TypeError:  # probably py2.7
+            parser = SafeConfigParser(defaults=self.defaults)
         parser.read_file(fp)
         if isinstance(self.parameterized, param.Parameterized):
             parser = parser[parser.default_section]
         return parser
+
+
+class ParameterizedYamlReadAction(ParameterizedFileReadAction):
+    '''Deserialize a .yaml file into a parameterized object
+
+    `YAML syntax <https://en.wikipedia.org/wiki/YAML>`. This action tries
+    to load the python module `ruamel.yaml` to parse the file. If that
+    cannot be loaded, `yaml` is attempted.
+
+    See Also
+    --------
+    ParameterizedFileReadAction
+        A full description of the parameters and behaviour of like actions.
+    '''
+
+    def fp_to_dict(self, fp):
+        yaml = None
+        try:
+            from ruamel.yaml import YAML
+            yaml = YAML()
+        except ImportError:
+            pass
+        if yaml is None:
+            try:
+                # conda?
+                from ruamel_yaml import YAML
+                yaml = YAML()
+            except ImportError:
+                pass
+        if yaml is None:
+            try:
+                import yaml
+            except ImportError:
+                pass
+        if yaml is None:
+            raise ImportError(
+                "One of ruamel.yaml, ruamel_yaml or pyyaml is needed to "
+                "parse a YAML config")
+        return yaml.load(fp)

@@ -1,0 +1,6 @@
+bingo: a # woah a comment
+bango: 1
+bongo: ["b", 1, False]
+
+params_b:
+  object_selector: "2"
