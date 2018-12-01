@@ -1,0 +1,8 @@
+{
+  "bingo": "",
+  "bango": 12,
+  "bongo": [4, "2", false],
+  "params_b": {
+    "object_selector": "1"
+  }
+}

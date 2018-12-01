@@ -74,3 +74,24 @@ def test_yaml_read_action():
     )
     parsed = parser.parse_args([os.path.join(FILE_DIR, 'param.yaml')])
     assert parsed.zoo['params_b'].object_selector == '2'
+
+
+def test_json_read_action():
+    parser = ArgumentParser()
+    parser.add_argument(
+        'zoo',
+        action=pargparse.ParameterizedJsonReadAction,
+        type=ParamsA,
+    )
+    parsed = parser.parse_args([os.path.join(FILE_DIR, 'param.json')])
+    assert parsed.zoo.bingo == ""
+    assert parsed.zoo.bango == 12
+    assert parsed.zoo.bongo == [4, '2', False]
+    parser = ArgumentParser()
+    parser.add_argument(
+        'zoo',
+        action=pargparse.ParameterizedJsonReadAction,
+        parameterized={'params_b': ParamsB()}
+    )
+    parsed = parser.parse_args([os.path.join(FILE_DIR, 'param.json')])
+    assert parsed.zoo['params_b'].object_selector == 1

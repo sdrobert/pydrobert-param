@@ -221,3 +221,21 @@ class ParameterizedYamlReadAction(ParameterizedFileReadAction):
                 "One of ruamel.yaml, ruamel_yaml or pyyaml is needed to "
                 "parse a YAML config")
         return yaml.load(fp)
+
+
+class ParameterizedJsonReadAction(ParameterizedFileReadAction):
+    '''Deserialize a .JSON file into a parameterized object
+
+    `JSON syntax <https://en.wikipedia.org/wiki/JSON>`
+
+    See Also
+    --------
+    ParameterizedFileReadAction
+        A full description of the parameters and behaviour of like actions.
+    json
+        The module used in json reading.
+    '''
+
+    def fp_to_dict(self, fp):
+        import json
+        return json.load(fp)
