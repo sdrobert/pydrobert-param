@@ -169,15 +169,15 @@ class ParameterizedIniReadAction(ParameterizedFileReadAction):
             option_strings, dest, **kwargs)
 
     def fp_to_dict(self, fp):
-        from configparser import SafeConfigParser
+        from configparser import ConfigParser
         try:
-            parser = SafeConfigParser(
+            parser = ConfigParser(
                 defaults=self.defaults,
                 comment_prefixes=self.comment_prefixes,
                 inline_comment_prefixes=self.inline_comment_prefixes,
             )
         except TypeError:  # probably py2.7
-            parser = SafeConfigParser(defaults=self.defaults)
+            parser = ConfigParser(defaults=self.defaults)
         parser.read_file(fp)
         if isinstance(self.parameterized, param.Parameterized):
             parser = parser[parser.default_section]

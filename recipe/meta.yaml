@@ -41,9 +41,14 @@ build:
 test:
   source_files:
     - tests
+    - LICENSE
+    - README.md
+    - setup.py
   requires:
     - pytest
-    - pyyaml
+    - ruamel_yaml
+    - pandas
+    - numpy
   imports:
     - pydrobert
     - pydrobert.param
