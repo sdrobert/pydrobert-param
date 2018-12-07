@@ -111,11 +111,13 @@ def BigDumbParams(name=None):
         pd.DataFrame({'a': 'foo', 'b': [1, 2, 3]}),
         [['foo', 1], ['foo', 2], ['foo', 3]],
     ),
-    ('date', datetime(1945, 8, 15), '1945-08-15T00:00:00.000000'),
+    ('date', datetime(1945, 8, 15), '1945-08-15'),
+    ('date', datetime(1945, 8, 15, 0, 1), '1945-08-15T00:01:00'),
+    ('date', datetime(1945, 8, 15, 0, 0, 0, 1), '1945-08-15T00:00:00.000001'),
     (
         'date_range',
         (datetime(11, 11, 11, 11), datetime(12, 12, 12, 12)),
-        (datetime(11, 11, 11, 11), datetime(12, 12, 12, 12)),
+        ['0011-11-11T11:00:00', '0012-12-12T12:00:00'],
     ),
     ('dict_', {'a': {'a': 1}}, {'a': {'a': 1}}),
     # FIXME(sdrobert): what to do with dynamic?
@@ -201,10 +203,34 @@ def test_can_deserialize_none(block):
     ),
     ('date', datetime(2020, 10, 2).timestamp(), datetime(2020, 10, 2)),
     ('date', datetime(2030, 1, 8).toordinal(), datetime(2030, 1, 8)),
+    ('date', '2040-10-04', datetime(2040, 10, 4)),
+    ('date', '2050-11-05T06:07:08', datetime(2050, 11, 5, 6, 7, 8)),
+    ('date', '2060-01-01T00:00:00.000000', datetime(2060, 1, 1)),
     (
         'date_range',
         (datetime(1914, 7, 14), datetime(1918, 11, 11)),
         (datetime(1914, 7, 14), datetime(1918, 11, 11)),
+    ),
+    (
+        'date_range',
+        ('1968-01-01', '2001-05-12'),
+        (datetime(1968, 1, 1), datetime(2001, 5, 12)),
+    ),
+    (
+        'date_range',
+        (1, datetime(9999, 12, 31).toordinal()),
+        (datetime.min, datetime(9999, 12, 31)),
+    ),
+    (
+        'date_range',
+        (
+            datetime(2018, 12, 7, 18, 16, 28, 610366).timestamp(),
+            datetime(2018, 12, 7, 18, 16, 38, 466311).timestamp(),
+        ),
+        (
+            datetime(2018, 12, 7, 18, 16, 28, 610366),
+            datetime(2018, 12, 7, 18, 16, 38, 466311),
+        ),
     ),
     ('dict_', {'a': 1, 'b': 'howdy'}, {'a': 1, 'b': 'howdy'}),
     ('dynamic', another_action, another_action()),

@@ -192,20 +192,46 @@ class DefaultDataFrameSerializer(ParamConfigSerializer):
         return val.values.tolist()
 
 
+def _datetime_to_formatted(parameterized, name, dt, formats):
+    if isinstance(formats, str):
+        formats = (formats,)
+    s = None
+    try:
+        for format in formats:
+            s = dt.strftime(format)
+            dt2 = dt.strptime(s, format)
+            if dt == dt2:
+                return s, format
+    except ValueError as e:
+        raise_from(ParamConfigTypeError(parameterized, name), e)
+    parameterized.warning(
+        'Loss of info for datetime {} in serialized format string'.format(
+            dt, s))
+    return s, format
+
+
 class DefaultDateSerializer(ParamConfigSerializer):
     '''Default date serializer
 
     The process:
     1. If None, return
     2. If a ``datetime.datetime`` instance
-       1. If the `format` keyword argument of the serializer is not None,
-          return the result of the value's ``strftime(format)`` call
+       1. If the `format` keyword argument of the serializer is not None:
+          1. If `format` is a string, return the result of the value's
+             ``strftime(format)`` call
+          2. If `format` is list-like, iterate through it, formatting with
+             ```strftime(element)``. Whichever string which, when deserialized
+             with ``strptime(element)``, produces an equivalent ``datetime``
+             object as the value is returned. If no such string exists, the
+             last string is returned.
        2. Return the result of the value's ``timestamp()`` call
     3. If a ``numpy.datetime64`` instance, return the value cast to a
        string
     '''
 
-    def __init__(self, format='%Y-%m-%dT%H:%M:%S.%f'):
+    def __init__(
+            self,
+            format=('%Y-%m-%d', '%Y-%m-%dT%H:%M:%S', '%Y-%m-%dT%H:%M:%S.%f')):
         super(DefaultDateSerializer, self).__init__()
         self.format = format
 
@@ -218,7 +244,8 @@ class DefaultDateSerializer(ParamConfigSerializer):
             if self.format is None:
                 return "Timestamp"
             else:
-                return "Date format string: " + self.format
+                return "Date format string: " + _datetime_to_formatted(
+                    parameterized, name, val, self.format)[1]
         else:
             return "ISO 8601 format string"
 
@@ -229,14 +256,58 @@ class DefaultDateSerializer(ParamConfigSerializer):
         from datetime import datetime
         if isinstance(val, datetime):
             if self.format is None:
-                return datetime.timestamp()
+                return val.timestamp()
             else:
-                try:
-                    return val.strftime(self.format)
-                except ValueError as e:
-                    raise_from(ParamConfigTypeError(
-                        parameterized, name), e)
+                val = _datetime_to_formatted(
+                    parameterized, name, val, self.format)[0]
         return str(val)
+
+
+class DefaultDateRangeSerializer(ParamConfigSerializer):
+    '''Default date range serializer
+
+    Similar to serializing a single `datetime`, but applied to each element
+    separately. Also cast to a list
+    '''
+
+    def __init__(
+            self,
+            format=('%Y-%m-%d', '%Y-%m-%dT%H:%M:%S', '%Y-%m-%dT%H:%M:%S.%f')):
+        super(DefaultDateRangeSerializer, self).__init__()
+        self.format = format
+
+    def help_string(self, name, parameterized):
+        val = getattr(parameterized, name)
+        if val is None:
+            return val
+        val = val[0]  # assuming they're of the same granularity
+        from datetime import datetime
+        if isinstance(val, datetime):
+            if self.format is None:
+                return "Timestamp"
+            else:
+                return "Date format string: " + _datetime_to_formatted(
+                    parameterized, name, val, self.format)[1]
+        else:
+            return "ISO 8601 format string"
+
+    def serialize(self, name, parameterized):
+        vals = getattr(parameterized, name)
+        if vals is None:
+            return vals
+        from datetime import datetime
+        ret = []
+        for val in vals:
+            if isinstance(val, datetime):
+                if self.format is None:
+                    val = val.timestamp()
+                else:
+                    val = _datetime_to_formatted(
+                        parameterized, name, val, self.format)[0]
+            else:
+                val = str(val)
+            ret.append(val)
+        return ret
 
 
 class DefaultListSelectorSerializer(ParamConfigSerializer):
@@ -332,6 +403,7 @@ DEFAULT_SERIALIZER_DICT = {
     param.ClassSelector: DefaultClassSelectorSerializer(),
     param.DataFrame: DefaultDataFrameSerializer(),
     param.Date: DefaultDateSerializer(),
+    param.DateRange: DefaultDateRangeSerializer(),
     param.ListSelector: DefaultListSelectorSerializer(),
     param.MultiFileSelector: DefaultListSelectorSerializer(),
     param.NumericTuple: DefaultTupleSerializer(),
@@ -644,18 +716,31 @@ class DefaultDataFrameDeserializer(ParamConfigDeserializer):
             raise_from(ParamConfigTypeError(parameterized, name), e)
 
 
+def _get_datetime_from_formats(block, formats):
+    if isinstance(formats, str):
+        formats = (formats,)
+    from datetime import datetime
+    for format in formats:
+        try:
+            return datetime.strptime(block, format)
+        except ValueError:
+            pass
+    return None
+
+
 class DefaultDateDeserializer(ParamConfigDeserializer):
     '''Default datetime deserializer
-
-    This deserializer accepts a format string as a keyword argument to the
-    constructor.
 
     The process:
     1. None check
     2. If `block` is a ``datetime.datetime``, set it
-    3. If the deserializer's `format` string is not none and `block` is a
-       string, try to convert `block` to a datetime using
-       ``datetime.datetime.strptime()``
+    3. If the deserializer's `format` argument is not None and `block` is a
+       string:
+       1. If `format` is a string, try to convert `block` to a datetime using
+          ``datetime.datetime.strptime()``
+       2. If `format` is list-like, parse a ``datetime.datetime`` object
+          with ``datetime.datetime.strptime(element, format)``. If the parse
+          is successful, use that parsed datetime.
     4. Try casting `block` to a float
        1. If the float has a remainder or the value exceeds the maximum
           ordinal value, treat as a timestamp
@@ -666,7 +751,9 @@ class DefaultDateDeserializer(ParamConfigDeserializer):
        with `block` as an argument to the constructor.
     '''
 
-    def __init__(self, format='%Y-%m-%dT%H:%M%S.%f'):
+    def __init__(
+            self,
+            format=('%Y-%m-%dT%H:%M:%S.%f', '%Y-%m-%dT%H:%M:%S', '%Y-%m-%d')):
         super(DefaultDateDeserializer, self).__init__()
         self.format = format
 
@@ -678,12 +765,10 @@ class DefaultDateDeserializer(ParamConfigDeserializer):
             parameterized.param.set_param(name, block)
             return
         if self.format is not None and isinstance(block, str):
-            try:
-                block = datetime.strptime(block, self.format)
-                parameterized.param.set_param(name, block)
+            v = _get_datetime_from_formats(block, self.format)
+            if v is not None:
+                parameterized.param.set_param(name, v)
                 return
-            except ValueError as e:
-                raise_from(ParamConfigTypeError(parameterized, name), e)
         try:
             float_block = float(block)
             if float_block % 1 or float_block > datetime.max.toordinal():
@@ -704,6 +789,61 @@ class DefaultDateDeserializer(ParamConfigDeserializer):
         raise ParamConfigTypeError(
             parameterized, name,
             'cannot convert "{}" to datetime'.format(block))
+
+
+class DefaultDateRangeDeserializer(ParamConfigDeserializer):
+    '''Default date range deserializer
+
+    Similar to deserializing a single `datetime`, but applied to each element
+    separately. Cast to a tuple.
+    '''
+
+    def __init__(
+            self,
+            format=('%Y-%m-%dT%H:%M:%S.%f', '%Y-%m-%dT%H:%M:%S', '%Y-%m-%d')):
+        super(DefaultDateRangeDeserializer, self).__init__()
+        self.format = format
+
+    def deserialize(self, name, block, parameterized):
+        if self.check_if_allow_none_and_set(name, block, parameterized):
+            return
+        from datetime import datetime
+        val = []
+        for elem in block:
+            if isinstance(elem, datetime):
+                val.append(elem)
+                continue
+            if self.format is not None and isinstance(elem, str):
+                v = _get_datetime_from_formats(elem, self.format)
+                if v is not None:
+                    val.append(v)
+                    continue
+            try:
+                float_elem = float(elem)
+                if float_elem % 1 or float_elem > datetime.max.toordinal():
+                    elem = datetime.fromtimestamp(float_elem)
+                else:
+                    elem = datetime.fromordinal(int(float_elem))
+                val.append(elem)
+                continue
+            except Exception:
+                pass
+            for dt_type in param.dt_types:
+                try:
+                    elem = dt_type(elem)
+                    val.append(elem)
+                    continue
+                except Exception:
+                    pass
+            raise ParamConfigTypeError(
+                parameterized, name,
+                'cannot convert "{}" from "{}" to datetime'.format(
+                    elem, block))
+        val = tuple(val)
+        try:
+            parameterized.param.set_param(name, val)
+        except ValueError:
+            raise_from(ParamConfigTypeError(parameterized, name), e)
 
 
 class DefaultListDeserializer(ParamConfigDeserializer):
@@ -867,6 +1007,7 @@ DEFAULT_DESERIALIZER_DICT = {
     param.ClassSelector: DefaultClassSelectorDeserializer(),
     param.DataFrame: DefaultDataFrameDeserializer(),
     param.Date: DefaultDateDeserializer(),
+    param.DateRange: DefaultDateRangeDeserializer(),
     param.HookList: DefaultListDeserializer(),
     param.Integer: DefaultIntegerDeserializer(),
     param.List: DefaultListDeserializer(),
