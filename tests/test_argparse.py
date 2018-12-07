@@ -15,15 +15,19 @@ import pydrobert.param.argparse as pargparse
 FILE_DIR = os.path.dirname(os.path.realpath(__file__))
 
 
-class ParamsA(param.Parameterized):
-    bingo = param.String(None)
-    bango = param.Number(None)
-    bongo = param.List(None)
+def ParamsA(name=None):
+    class _ParamsA(param.Parameterized):
+        bingo = param.String(None)
+        bango = param.Number(None)
+        bongo = param.List(None)
+    return _ParamsA(name=name)
 
 
-class ParamsB(param.Parameterized):
-    object_selector = param.ObjectSelector(None, objects=[1, '2'])
-    dont_try_this = param.Callable(None)
+def ParamsB(name=None):
+    class _ParamsB(param.Parameterized):
+        object_selector = param.ObjectSelector(None, objects=[1, '2'])
+        dont_try_this = param.Callable(None)
+    return _ParamsB(name=name)
 
 
 class CommaListDeserializer(object):

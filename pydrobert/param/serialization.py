@@ -18,6 +18,31 @@ __license__ = "Apache 2.0"
 __copyright__ = "Copyright 2018 Sean Robertson"
 
 
+try:
+    import numpy as np
+
+    def _equal_array(a, b):
+        try:
+            a = np.array(a, copy=False)
+            b = np.array(b, copy=False)
+            return a.size() == b.size() and np.allclose(a, b)
+        except Exception:
+            return 0
+except ImportError:
+    def _equal_array(a, b):
+        try:
+            return all(c == d for c, d in zip(a, b))
+        except Exception:
+            return 0
+
+
+def _equal(a, b):
+    r = _equal_array(a, b)
+    if r == 0:
+        r = a == b
+    return r
+
+
 class ParamConfigTypeError(TypeError):
     '''Raised when failed to (de)serialize Parameterized object'''
 
@@ -27,8 +52,301 @@ class ParamConfigTypeError(TypeError):
         )
 
 
+class ParamConfigSerializer(with_metaclass(abc.ABCMeta, object)):
+    '''Serialize a parameter value from a parameterized object
+
+    Subclasses of ``ParamConfigSerializer`` are expected to implement
+    `serialize`. Instances of the subclass can be passed into
+    ``pydrobert.param.serialization.serialize_to_dict``. The goal of a
+    serializer is to convert a parameter value from a
+    ``param.Parameterized`` object into something that can be handled
+    by a dict-like data store. The format of the outgoing data should
+    reflect where the dict-like data are going. For example, a JSON
+    serializer can handle lists, but not an INI serializer. In
+    ``pydrobert.param.serialization``, there are a number of default
+    serializers (matching the pattern ``Default*Serializer``) that are
+    best guesses on how to serialize data from a variety of sources
+    '''
+
+    def help_string(self, name, parameterized):
+        '''A string that helps explain this serialization
+
+        The return string will be included in the second element of
+        the pair returned by
+        ``pydrobert.param.serialization.serialize_to_dict``. Helps
+        explain the serialized value to the user.
+        '''
+        return None
+
+    @abc.abstractmethod
+    def serialize(self, name, parameterized):
+        '''Serialize data from a parameterized object and return it
+
+        Parameters
+        ----------
+        name : str
+            The name of the parameter in `parameterized` to retrieve the
+            value from
+        parameterized : param.Parameterized
+            The parameterized instance containing a parameter with the
+            name `name`
+
+        Returns
+        -------
+        val : obj
+            The serialized value of the parameter
+
+        Raises
+        ------
+        ParamConfigTypeError
+            If serialization could not be performed
+        '''
+        raise NotImplementedError()
+
+
+class DefaultSerializer(ParamConfigSerializer):
+    '''Default catch-all serializer. Returns value verbatim'''
+
+    def serialize(self, name, parameterized):
+        return getattr(parameterized, name)
+
+
+class DefaultArraySerializer(ParamConfigSerializer):
+    '''Default numpy array serializer
+
+    The process:
+    1. If None, return
+    2. Call value's ``tolist()`` method
+    '''
+
+    def serialize(self, name, parameterized):
+        val = getattr(parameterized, name)
+        if val is None:
+            return val
+        return val.tolist()
+
+
+def _get_name_from_param_range(name, parameterized, val):
+    p = parameterized.params()[name]
+    val_type = type(val)
+    for n, v in p.get_range().items():
+        if isinstance(v, val_type) and _equal(v, val):
+            return n
+    parameterized.warning(
+        "Could not find value of {} in get_range(), so serializing value "
+        "directly".format(name))
+    return val
+
+
+class DefaultClassSelectorSerializer(ParamConfigSerializer):
+    '''Default ClassSelector serializer
+
+    The process:
+    1. If None, return
+    2. If parameter's ``is_instance`` attribute is ``True``, return value
+       verbatim
+    3. Search for the corresponding name in the selector's ``get_range()``
+       dictionary and return that name, if possibile
+    4. Return the value
+    '''
+
+    def help_string(self, name, parameterized):
+        p = parameterized.params()[name]
+        hashes = tuple(p.get_range())
+        if p.is_instance and len(hashes):
+            s = 'Choices: '
+            s += ', '.join(('"' + x + '"' for x in hashes))
+            return s
+        else:
+            return None
+
+    def serialize(self, name, parameterized):
+        val = getattr(parameterized, name)
+        p = parameterized.params()[name]
+        if val is None or p.is_instance:
+            return val
+        else:
+            return _get_name_from_param_range(name, parameterized, val)
+
+
+class DefaultDataFrameSerializer(ParamConfigSerializer):
+    '''Default pandas.DataFrame serializer
+
+    The process:
+    1. If None, return
+    2. Call ``tolist()`` on the ``values`` property of the parameter's
+       value and return
+    '''
+
+    def help_string(self, name, parameterized):
+        val = getattr(parameterized, name)
+        if val is not None:
+            return "DataFrame axes: {}".format(val.axes)
+        else:
+            return None
+
+    def serialize(self, name, parameterized):
+        val = getattr(parameterized, name)
+        if val is None:
+            return None
+        return val.values.tolist()
+
+
+class DefaultDateSerializer(ParamConfigSerializer):
+    '''Default date serializer
+
+    The process:
+    1. If None, return
+    2. If a ``datetime.datetime`` instance
+       1. If the `format` keyword argument of the serializer is not None,
+          return the result of the value's ``strftime(format)`` call
+       2. Return the result of the value's ``timestamp()`` call
+    3. If a ``numpy.datetime64`` instance, return the value cast to a
+       string
+    '''
+
+    def __init__(self, format='%Y-%m-%dT%H:%M:%S.%f'):
+        super(DefaultDateSerializer, self).__init__()
+        self.format = format
+
+    def help_string(self, name, parameterized):
+        val = getattr(parameterized, name)
+        if val is None:
+            return val
+        from datetime import datetime
+        if isinstance(val, datetime):
+            if self.format is None:
+                return "Timestamp"
+            else:
+                return "Date format string: " + self.format
+        else:
+            return "ISO 8601 format string"
+
+    def serialize(self, name, parameterized):
+        val = getattr(parameterized, name)
+        if val is None:
+            return val
+        from datetime import datetime
+        if isinstance(val, datetime):
+            if self.format is None:
+                return datetime.timestamp()
+            else:
+                try:
+                    return val.strftime(self.format)
+                except ValueError as e:
+                    raise_from(ParamConfigTypeError(
+                        parameterized, name), e)
+        return str(val)
+
+
+class DefaultListSelectorSerializer(ParamConfigSerializer):
+    '''Default ListSelector serializer
+
+    For each element in the value:
+    1. Search for its name in the selector's ``get_range()`` dict and
+       swap if for the name, if possible
+    2. Otherwise, use that element verbatim
+    '''
+
+    def help_string(self, name, parameterized):
+        p = parameterized.params()[name]
+        hashes = tuple(p.get_range())
+        if len(hashes):
+            s = 'Element choices: '
+            s += ', '.join(('"' + x + '"' for x in hashes))
+            return s
+        else:
+            return None
+
+    def serialize(self, name, parameterized):
+        return [
+            _get_name_from_param_range(name, parameterized, x)
+            for x in getattr(parameterized, name)
+        ]
+
+
+class DefaultObjectSelectorSerializer(ParamConfigSerializer):
+    '''Default ObjectSelector serializer
+
+    The process:
+    1. If None, return
+    2. Search for the name of the value in the selector's ``get_range()``
+       dictionary and return, if possible
+    3. Return value verbatim
+    '''
+
+    def help_string(self, name, parameterized):
+        p = parameterized.params()[name]
+        hashes = tuple(p.get_range())
+        if len(hashes):
+            s = 'Choices: '
+            s += ', '.join(('"' + x + '"' for x in hashes))
+            return s
+        else:
+            return None
+
+    def serialize(self, name, parameterized):
+        val = getattr(parameterized, name)
+        if val is None:
+            return val
+        return _get_name_from_param_range(name, parameterized, val)
+
+
+class DefaultSeriesSerializer(ParamConfigSerializer):
+    '''Default pandas.Series serializer
+
+    The process:
+    1. If None, return
+    2. Call ``tolist()`` on the ``values`` property of the parameter's
+       value and return
+    '''
+
+    def help_string(self, name, parameterized):
+        val = getattr(parameterized, name)
+        if val is not None:
+            return "Series axes: {}".format(val.axes)
+        return None
+
+    def serialize(self, name, parameterized):
+        val = getattr(parameterized, name)
+        if val is None:
+            return
+        return val.values.tolist()
+
+
+class DefaultTupleSerializer(ParamConfigSerializer):
+    '''Default tuple serializer
+
+    The process:
+    1. If None, return
+    2. Casts the value to a list
+    '''
+
+    def serialize(self, name, parameterized):
+        val = getattr(parameterized, name)
+        return val if val is None else list(val)
+
+
+DEFAULT_SERIALIZER_DICT = {
+    param.Array: DefaultArraySerializer(),
+    param.ClassSelector: DefaultClassSelectorSerializer(),
+    param.DataFrame: DefaultDataFrameSerializer(),
+    param.Date: DefaultDateSerializer(),
+    param.ListSelector: DefaultListSelectorSerializer(),
+    param.MultiFileSelector: DefaultListSelectorSerializer(),
+    param.NumericTuple: DefaultTupleSerializer(),
+    param.ObjectSelector: DefaultObjectSelectorSerializer(),
+    param.Range: DefaultTupleSerializer(),
+    param.Series: DefaultSeriesSerializer(),
+    param.Tuple: DefaultTupleSerializer(),
+    param.XYCoordinates: DefaultTupleSerializer(),
+}
+
+DEFAULT_BACKUP_SERIALIZER = DefaultSerializer()
+
+
 class ParamConfigDeserializer(with_metaclass(abc.ABCMeta, object)):
-    '''Deserialize part of a configuration into a parameter object
+    '''Deserialize part of a configuration into a parameterized object
 
     Subclasses of ``ParamConfigDeserializer`` are expected to implement
     `deserialize`. Instances of the subclass can be passed into
@@ -50,39 +368,40 @@ class ParamConfigDeserializer(with_metaclass(abc.ABCMeta, object)):
         Parameters
         ----------
         name : str
-            The name of the parameter in `parameterized` to store the value
-            under
+            The name of the parameter in `parameterized` to store the
+            value under
         block : object
             The data to deserialize into the parameter value
         parameterized : param.Parameterized
-            The parameterized instance containing a parameter with the name
-            `name`. On completion of this method, that parameter will be set
-            with the deserialized contents of `block`
+            The parameterized instance containing a parameter with the
+            name `name`. On completion of this method, that parameter will
+            be set with the deserialized contents of `block`
 
         Raises
         ------
         ParamConfigTypeError
             If deserialization could not be performed
         '''
-        pass
+        raise NotImplementedError()
 
     @classmethod
     def check_if_allow_none_and_set(cls, name, block, parameterized):
-        '''Check if block can be made none and set it if parameter allows it
+        '''Check if block can be made none and set it if allowed
 
-        Many ```param.Param`` parameters allow ``None`` as a value. This is a
-        convenience method that deserializers can use to quickly check for
-        a ``None`` value and set it in that case. This method sets the
-        parameter and returns ``True`` in the following conditions
+        Many ```param.Param`` parameters allow ``None`` as a value. This
+        is a convenience method that deserializers can use to quickly
+        check for a ``None`` value and set it in that case. This method
+        sets the parameter and returns ``True`` in the following
+        conditions
 
-        1. The parameter allows ``None`` values (the ``allow_None`` attribute
-           is ``True``)
+        1. The parameter allows ``None`` values (the ``allow_None``
+           attribute is ``True``)
         2. One of:
            1. `block` is ``None``
            2. `block` is a string matching ``"None"`` or ``"none"``
 
-        If one of these conditions wasn't met, the parameter remains unset and
-        the method returns ``False``.
+        If one of these conditions wasn't met, the parameter remains unset
+        and the method returns ``False``.
 
         In ``Default*Deseriazer`` documentation, a call to this method is
         referred to as a "none check".
@@ -205,14 +524,17 @@ class DefaultBooleanDeserializer(ParamConfigDeserializer):
 def _find_object_in_object_selector(name, block, parameterized):
     p = parameterized.params()[name]
     named_objs = p.get_range()
-    if block in named_objs.values():
-        return block
-    elif block in named_objs:
-        return named_objs[block]
-    else:
-        raise ParamConfigTypeError(
-            parameterized, name,
-            'Cannot find {} in {}'.format(block, named_objs.keys()))
+    for val in named_objs.values():
+        if _equal(val, block):
+            return val
+    try:
+        return named_objs[str(block)]
+    except Exception:
+        pass
+    try:
+        parameterized.param.set_param(name, block)
+    except ValueError as e:
+        raise_from(ParamConfigTypeError(parameterized, name), e)
 
 
 class DefaultClassSelectorDeserializer(ParamConfigDeserializer):
@@ -344,7 +666,7 @@ class DefaultDateDeserializer(ParamConfigDeserializer):
        with `block` as an argument to the constructor.
     '''
 
-    def __init__(self, format='%m-%d-%y %H:%M:%S'):
+    def __init__(self, format='%Y-%m-%dT%H:%M%S.%f'):
         super(DefaultDateDeserializer, self).__init__()
         self.format = format
 
@@ -424,10 +746,8 @@ class DefaultListDeserializer(ParamConfigDeserializer):
 class DefaultListSelectorDeserializer(ParamConfigDeserializer):
     '''Default ListSelector deserializer
 
-    The process:
-    1. None check
-    2. For each element in `block` (we assume `block` is iterable),
-       match a value or name in the selector's ``get_range()`` method
+    For each element in `block` (we assume `block` is iterable), match a
+    value or name in the selector's ``get_range()`` method
     '''
 
     def deserialize(self, name, block, parameterized):

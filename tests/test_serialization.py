@@ -44,50 +44,119 @@ class SpecialInt(int):
     pass
 
 
-class BigDumbParams(param.Parameterized):
-    action = param.Action(default_action, allow_None=True)
-    array = param.Array(np.array([1., 2.]))
-    boolean = param.Boolean(True, allow_None=True)
-    callable = param.Callable(default_action, allow_None=True)
-    class_selector = param.ClassSelector(
-        int, is_instance=False, allow_None=True)
-    color = param.Color('#FFFFFF', allow_None=True)
-    composite = param.Composite(['action', 'array'], allow_None=True)
-    data_frame = param.DataFrame(pd.DataFrame({'A': 1., 'B': np.arange(5)}))
-    date = param.Date(datetime.now(), allow_None=True)
-    date_range = param.DateRange((datetime.min, datetime.max), allow_None=True)
-    dict_ = param.Dict({'foo': 'bar'}, allow_None=True)
-    dynamic = param.Dynamic(default=default_action, allow_None=True)
-    file_selector = param.FileSelector(
-        "LICENSE",
-        path=os.path.join(os.path.dirname(FILE_DIR), '*'),
-        allow_None=True,
-    )
-    filename = param.Filename(FILE_DIR + "/../LICENSE", allow_None=True)
-    foldername = param.Foldername(FILE_DIR + "/..", allow_None=True)
-    hook_list = param.HookList(
-        [CallableObject(), CallableObject()], class_=CallableObject,
-        allow_None=True)
-    integer = param.Integer(10, allow_None=True)
-    list_ = param.List([1, 2, 3], allow_None=True, class_=int)
-    list_selector = param.ListSelector(
-        [2, 2], objects=[1, 2, 3], allow_None=True)
-    magnitude = param.Magnitude(.5, allow_None=True)
-    multi_file_selector = param.MultiFileSelector(
-        ["LICENSE", "README.md"],
-        path=os.path.join(os.path.dirname(FILE_DIR), '*'),
-        allow_None=True
-    )
-    number = param.Number(-10., allow_None=True)
-    numeric_tuple = param.NumericTuple((5., 10.), allow_None=True)
-    object_selector = param.ObjectSelector(
-        False, objects={'False': False, 'True': 1}, allow_None=True)
-    path = param.Path(FILE_DIR + "/../LICENSE", allow_None=True)
-    range_ = param.Range((-1., 2.), allow_None=True)
-    series = param.Series(pd.Series(range(5)))
-    string = param.String("foo", allow_None=True)
-    tuple_ = param.Tuple((3, 4, 'fi'), allow_None=True)
-    x_y_coordinates = param.XYCoordinates((1., 2.), allow_None=True)
+def BigDumbParams(name=None):
+    # why this layer of indirection? Setting some values improperly can change
+    # the behaviour of the parameters (which belong to the class). This
+    # ensures they reset each initialization.
+    class _BigDumbParams(param.Parameterized):
+        action = param.Action(default_action, allow_None=True)
+        array = param.Array(np.array([1., 2.]))
+        boolean = param.Boolean(True, allow_None=True)
+        callable = param.Callable(default_action, allow_None=True)
+        class_selector = param.ClassSelector(
+            int, is_instance=False, allow_None=True)
+        color = param.Color('#FFFFFF', allow_None=True)
+        composite = param.Composite(['action', 'array'], allow_None=True)
+        data_frame = param.DataFrame(
+            pd.DataFrame({'A': 1., 'B': np.arange(5)}))
+        date = param.Date(datetime.now(), allow_None=True)
+        date_range = param.DateRange(
+            (datetime.min, datetime.max), allow_None=True)
+        dict_ = param.Dict({'foo': 'bar'}, allow_None=True)
+        dynamic = param.Dynamic(default=default_action, allow_None=True)
+        file_selector = param.FileSelector(
+            "LICENSE",
+            path=os.path.join(os.path.dirname(FILE_DIR), '*'),
+            allow_None=True,
+        )
+        filename = param.Filename(FILE_DIR + "/../LICENSE", allow_None=True)
+        foldername = param.Foldername(FILE_DIR + "/..", allow_None=True)
+        hook_list = param.HookList(
+            [CallableObject(), CallableObject()], class_=CallableObject,
+            allow_None=True)
+        integer = param.Integer(10, allow_None=True)
+        list_ = param.List([1, 2, 3], allow_None=True, class_=int)
+        list_selector = param.ListSelector(
+            [2, 2], objects=[1, 2, 3], allow_None=True)
+        magnitude = param.Magnitude(.5, allow_None=True)
+        multi_file_selector = param.MultiFileSelector(
+            [],
+            path=os.path.join(os.path.dirname(FILE_DIR), '*'),
+            allow_None=True,
+            check_on_set=True,
+        )
+        number = param.Number(-10., allow_None=True)
+        numeric_tuple = param.NumericTuple((5., 10.), allow_None=True)
+        object_selector = param.ObjectSelector(
+            False, objects={'False': False, 'True': 1}, allow_None=True)
+        path = param.Path(FILE_DIR + "/../LICENSE", allow_None=True)
+        range_ = param.Range((-1., 2.), allow_None=True)
+        series = param.Series(pd.Series(range(5)))
+        string = param.String("foo", allow_None=True)
+        tuple_ = param.Tuple((3, 4, 'fi'), allow_None=True)
+        x_y_coordinates = param.XYCoordinates((1., 2.), allow_None=True)
+    return _BigDumbParams(name=name)
+
+
+@pytest.mark.parametrize('name,set_to,expected', [
+    ('action', another_action, another_action),
+    ('array', np.array([[1, 2], [3, 4]]), [[1, 2], [3, 4]]),
+    ('boolean', True, True),
+    ('callable', another_action, another_action),
+    ('class_selector', SpecialInt, "SpecialInt"),
+    ('class_selector', int, 'int'),
+    ('color', '000000', '000000'),
+    (
+        'data_frame',
+        pd.DataFrame({'a': 'foo', 'b': [1, 2, 3]}),
+        [['foo', 1], ['foo', 2], ['foo', 3]],
+    ),
+    ('date', datetime(1945, 8, 15), '1945-08-15T00:00:00.000000'),
+    (
+        'date_range',
+        (datetime(11, 11, 11, 11), datetime(12, 12, 12, 12)),
+        (datetime(11, 11, 11, 11), datetime(12, 12, 12, 12)),
+    ),
+    ('dict_', {'a': {'a': 1}}, {'a': {'a': 1}}),
+    # FIXME(sdrobert): what to do with dynamic?
+    ('file_selector', 'README.md', 'README.md'),
+    (
+        'filename',
+        os.path.join(FILE_DIR, 'test_argparse.py'),
+        os.path.join(FILE_DIR, 'test_argparse.py'),
+    ),
+    ('foldername', FILE_DIR, FILE_DIR),
+    ('hook_list', [CallableObject(4)], [CallableObject(4)]),
+    ('integer', 5, 5),
+    ('list_', [1, 2, 3], [1, 2, 3]),
+    ('list_selector', [2, 1, 2], ['2', '1', '2']),
+    ('magnitude', 0.33, 0.33),
+    (
+        'multi_file_selector',
+        [os.path.join(os.path.dirname(FILE_DIR), 'README.md')],
+        ['README.md']
+    ),
+    ('number', 1.2, 1.2),
+    ('numeric_tuple', (1., 2.), [1., 2.]),
+    ('object_selector', 1, 'True'),
+    ('range_', (-1, 1), [-1., 1.]),
+    ('string', 'foo', 'foo'),
+    ('tuple_', (None, None, None), [None, None, None]),
+    ('x_y_coordinates', (10., 4.), [10., 4.]),
+])
+def test_can_serialize_with_defaults(name, set_to, expected):
+    parameterized = BigDumbParams(name='test_can_serialize_with_defaults')
+    parameterized.param.set_param(name, set_to)
+    p = parameterized.params()[name]
+    if type(p) in serial.DEFAULT_SERIALIZER_DICT:
+        serializer = serial.DEFAULT_SERIALIZER_DICT[type(p)]
+    else:
+        serializer = serial.DEFAULT_BACKUP_SERIALIZER
+    actual = serializer.serialize(name, parameterized)
+    if type(expected) in {np.ndarray, pd.DataFrame, pd.Series}:
+        assert all(expected == actual)
+    else:
+        assert expected == actual
 
 
 @pytest.mark.parametrize('block', [None, 'None'])
