@@ -1175,50 +1175,9 @@ DEFAULT_DESERIALIZER_DICT = {
 DEFAULT_BACKUP_DESERIALIZER = DefaultDeserializer()
 
 
-def deserialize_from_dict(
-        dict_, parameterized,
-        deserializer_name_dict=None, deserializer_type_dict=None,
-        on_missing='warn'):
-    '''Deserialize a dictionary into a parameterized object
-
-    This function is suitable for deserializing the results of parsing
-    a data storage file such as a YAML, JSON, or a section of an INI file
-    (using the `yaml`, `json`, and `configparser` python modules, resp.)
-    into a `param.Parameterized` object. Each key in `dict_` should match
-    the name of a parameter in `parameterized`. The parameter will be
-    deserialized into `parameterized` using a `ParamConfigDeserializer` object
-    matched with the following precedent:
-
-     1. If `deserializer_name_dict` is specified and contains the same key,
-        the value of the item in `deserializer_name_dict` will be used.
-     2. If `deserializer_type_dict` and the type of the parameter in question
-        *exactly matches* a key in `deserializer_type_dict`, the value of the
-        item in `deserializer_type_dict` will be used.
-     3. If the type of the parameter in question *exactly matches* a key in
-        `DEFAULT_DESERIALIZER_DICT`, the value of the item in
-        `DEFAULT_DESERIALIZER_DICT` will be used.
-     4. `DEFAULT_BACKUP_DESERIALIZER` will be used.
-
-    Default deserializers are likely appropriate for basic types like strings,
-    ints, bools, floats, and numeric tuples. For more complex data types,
-    including recursive `param.Parameterized` instances, custom deserializers
-    are recommended.
-
-    Parameters
-    ----------
-    dict_ : dict
-    parameterized : param.Parameterized
-    deserializer_name_dict : dict, optional
-    deserializer_type_dict : dict, optional
-    on_missing : {'ignore', 'warn', 'raise'}, optional
-        What to do if the parameterized instance does not have a parameter
-        listed in `dict_`
-
-    Raises
-    ------
-    ParamConfigTypeError
-        If deserialization of a value fails
-    '''
+def _deserialize_from_dict_flat(
+        dict_, parameterized, deserializer_name_dict,
+        deserializer_type_dict, on_missing):
     if deserializer_type_dict is not None:
         deserializer_type_dict2 = dict(DEFAULT_DESERIALIZER_DICT)
         deserializer_type_dict2.update(deserializer_type_dict)
@@ -1245,3 +1204,102 @@ def deserialize_from_dict(
             else:
                 deserializer = DEFAULT_BACKUP_DESERIALIZER
         deserializer.deserialize(name, block, parameterized)
+
+
+def deserialize_from_dict(
+        dict_, parameterized,
+        deserializer_name_dict=None, deserializer_type_dict=None,
+        on_missing='warn'):
+    '''Deserialize a dictionary into a parameterized object
+
+    This function is suitable for deserializing the results of parsing
+    a data storage file such as a YAML, JSON, or a section of an INI file
+    (using the `yaml`, `json`, and `configparser` python modules, resp.)
+    into a `param.Parameterized` object. Each key in `dict_` should match
+    the name of a parameter in `parameterized`. The parameter will be
+    deserialized into `parameterized` using a `ParamConfigDeserializer` object
+    matched with the following precedent:
+
+     1. If `deserializer_name_dict` is specified and contains the same key,
+        the value of the item in `deserializer_name_dict` will be used.
+     2. If `deserializer_type_dict` and the type of the parameter in question
+        *exactly matches* a key in `deserializer_type_dict`, the value of the
+        item in `deserializer_type_dict` will be used.
+     3. If the type of the parameter in question *exactly matches* a key in
+        `DEFAULT_DESERIALIZER_DICT`, the value of the item in
+        `DEFAULT_DESERIALIZER_DICT` will be used.
+     4. `DEFAULT_BACKUP_DESERIALIZER` will be used.
+
+    It is possible to pass a dictionary as `parameterized` instead of a
+    ``param.Parameterized`` instance to this function. This is "hierarchical
+    mode". The values of `parameterized` can be ``param.Parameterized`` objects
+    or nested dictionaries. In this case, `dict_`, `deserializer_name_dict`,
+    and `deserializer_type_dict` are expected to be dictionaries with the same
+    hierarchical structure (though the latter two can still be ``None``,
+    which propagates to children). The leaves of `dict_` deserialize into the
+    leaves of `parameterized`, using the leaves of `deserializer_name_dict` and
+    `deserializer_type_dict` as arguments. If no leaf of `dict_` exists for
+    a given `parameterized` leaf, that parameterized object will not be
+    updated.
+
+    Default deserializers are likely appropriate for basic types like strings,
+    ints, bools, floats, and numeric tuples. For more complex data types,
+    including recursive `param.Parameterized` instances, custom deserializers
+    are recommended.
+
+    Parameters
+    ----------
+    dict_ : dict
+    parameterized : param.Parameterized or dict
+    deserializer_name_dict : dict, optional
+    deserializer_type_dict : dict, optional
+    on_missing : {'ignore', 'warn', 'raise'}, optional
+        What to do if the parameterized instance does not have a parameter
+        listed in `dict_`, or, in the case of "hierarchical mode", if
+        `dict_` contains a key with no matching parameterized object to
+        populate
+
+    Raises
+    ------
+    ParamConfigTypeError
+        If deserialization of a value fails
+    '''
+    d_stack = [dict_]
+    p_stack = [parameterized]
+    dnd_stack = [deserializer_name_dict]
+    dtd_stack = [deserializer_type_dict]
+    n_stack = [tuple()]
+    while len(d_stack):
+        d = d_stack.pop()
+        p = p_stack.pop()
+        dnd = dnd_stack.pop()
+        dtd = dtd_stack.pop()
+        n = n_stack.pop()
+        if isinstance(p, param.Parameterized):
+            _deserialize_from_dict_flat(d, p, dnd, dtd, on_missing)
+        else:
+            for name in d:
+                p_name = p.get(name, None)
+                n_stack.append(n + (name,))
+                if p_name is None:
+                    msg = (
+                        'dict_ contains hierarchical key chain {} but no '
+                        'parameterized instance to match it'
+                    ).format(nn)
+                    if on_missing == 'raise':
+                        raise ValueErro(msg)
+                    elif on_missing == 'warn':
+                        # FIXME(sdrobert): do something involving param
+                        import warnings
+                        warnings.warn(msg)
+                    continue
+                d_stack.append(d[name])
+                p_stack.append(p_name)
+                if dnd is None:
+                    dnd_stack.append(None)
+                else:
+                    dnd_stack.append(dnd[name])
+                if dtd is None:
+                    dtd_stack.append(None)
+                else:
+                    dtd_stack.append(dtd[name])

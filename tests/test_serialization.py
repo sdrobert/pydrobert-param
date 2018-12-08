@@ -330,33 +330,30 @@ def test_can_deserialize_with_defaults(name, block, expected):
         assert expected == getattr(parameterized, name)
 
 
-def test_deserialize_dict():
-    parameterized = BigDumbParams(name='test_deserialize_dict')
+def test_deserialize_from_dict():
+    parameterized_a = BigDumbParams(name='test_deserialize_from_dict_a')
     dict_ = {
         'array': [1, 2, 3],
         'filename': os.path.join(FILE_DIR, 'test_serialization.py'),
         'list_': [3, 4, 5],
         'x_y_coordinates': ('3.4', '5'),
     }
-    serial.deserialize_from_dict(dict_, parameterized)
-    assert np.allclose(parameterized.array, [1, 2, 3])
-    assert parameterized.filename == os.path.join(
+    serial.deserialize_from_dict(dict_, parameterized_a)
+    assert np.allclose(parameterized_a.array, [1, 2, 3])
+    assert parameterized_a.filename == os.path.join(
         FILE_DIR, 'test_serialization.py')
-    assert np.allclose(parameterized.list_, [3, 4, 5])
-    assert np.allclose(parameterized.x_y_coordinates, (3.4, 5.))
+    assert np.allclose(parameterized_a.list_, [3, 4, 5])
+    assert np.allclose(parameterized_a.x_y_coordinates, (3.4, 5.))
 
     class _DontCallThis(object):
-
         def deserialize(self, *args):
             assert False
 
     class _ThisIsFine(object):
-
         def deserialize(self, name, block, parameterized):
             parameterized.param.set_param(name, another_action)
 
     class _AlsoFine(object):
-
         def deserialize(self, name, block, parameterized):
             parameterized.param.set_param(name, datetime.min)
     type_dict = {
@@ -368,6 +365,38 @@ def test_deserialize_dict():
     }
     dict_['dynamic'] = lambda: -4
     dict_['date'] = datetime.max
-    serial.deserialize_from_dict(dict_, parameterized, name_dict, type_dict)
-    assert parameterized.dynamic == another_action()
-    assert parameterized.date == datetime.min
+    serial.deserialize_from_dict(dict_, parameterized_a, name_dict, type_dict)
+    assert parameterized_a.dynamic == another_action()
+    assert parameterized_a.date == datetime.min
+
+    class _HereAreSomeCoordinates(object):
+        def deserialize(self, name, block, parameterized):
+            parameterized.param.set_param(name, (1., 2.))
+    parameterized_b = BigDumbParams(name='test_deserialize_from_dict_b')
+    dict_ = {
+        'a': {'A': {
+            'number': -420.,
+            'date': '2018-04-20',
+            'x_y_coordinates': 10
+        }},
+        'b': {'B': dict_},
+    }
+    name_dict = {
+        'a': {'A': {'x_y_coordinates': _HereAreSomeCoordinates()}},
+        'b': {'B': name_dict},
+    }
+    type_dict = {
+        'a': None,
+        'b': {'B': type_dict},
+    }
+    serial.deserialize_from_dict(
+        dict_,
+        {'a': {'A': parameterized_a}, 'b': {'B': parameterized_b}},
+        deserializer_name_dict=name_dict,
+        deserializer_type_dict=type_dict,
+    )
+    assert parameterized_b.dynamic == another_action()
+    assert parameterized_b.date == datetime.min
+    assert parameterized_a.number == -420.
+    assert parameterized_a.date == datetime(2018, 4, 20)
+    assert parameterized_a.x_y_coordinates == (1., 2.)
