@@ -417,6 +417,154 @@ DEFAULT_SERIALIZER_DICT = {
 DEFAULT_BACKUP_SERIALIZER = DefaultSerializer()
 
 
+def _serialize_to_dict_flat(
+        parameterized, only, serializer_name_dict, serializer_type_dict,
+        on_missing):
+    if serializer_type_dict is not None:
+        serializer_type_dict2 = dict(DEFAULT_SERIALIZER_DICT)
+        serializer_type_dict2.update(serializer_type_dict)
+        serializer_type_dict = serializer_type_dict2
+    else:
+        serializer_type_dict = DEFAULT_SERIALIZER_DICT
+    if serializer_name_dict is None:
+        serializer_name_dict = dict()
+    if only is None:
+        only = set(parameterized.params())
+    dict_ = dict()
+    help_dict = dict()
+    for name in only:
+        if name not in parameterized.params():
+            msg = 'No param "{}" to read in "{}"'.format(
+                name, parameterized.name)
+            if on_missing == 'warn':
+                parameterized.warning(msg)
+            elif on_missing == 'raise':
+                raise ValueError(msg)
+            continue
+        if name in serializer_name_dict:
+            serializer = serializer_name_dict[name]
+        else:
+            type_ = type(parameterized.params()[name])
+            if type_ in serializer_type_dict:
+                serializer = serializer_type_dict[type_]
+            else:
+                serializer = DEFAULT_BACKUP_SERIALIZER
+        dict_[name] = serializer.serialize(name, parameterized)
+        help_string = serializer.help_string(name, parameterized)
+        if help_string is not None:
+            help_dict[name] = help_string
+    return dict_, help_dict
+
+
+def serialize_to_dict(
+        parameterized,
+        only=None,
+        serializer_name_dict=None,
+        serializer_type_dict=None,
+        on_missing='raise',
+        include_help=False):
+    '''Serialize a parameterized object into a dictionary
+
+    This function serializes data into a dictionary format, suitable for
+    storage in a dict-like file format such as YAML or JSON. Each parameter
+    will be serialized into the dictionary using a `ParamConfigSerializer`
+    object, matched with the following precedent:
+    1. If `serializer_name_dict` is specified and contains the parameter
+       name as a key, the value will be used.
+    2. If `serializer_type_dict` and the type of the parameter in question
+       *exactly matches* a key in `serializer_type_dict`, the value of the
+       item in `serializer_type_dict` will be used.
+    3. If the type of the parameter in question *exactly matches* a key in
+       `DEFAULT_SERIALIZER_DICT`, the value of the item in
+       `DEFAULT_SERIALIZER_DICT` will be used.
+    4. `DEFAULT_BACKUP_SERIALIZER` will be used.
+
+    Default serializers are likely appropriate for basic types like strings,
+    ints, bools, floats, and numeric tuples. For more complex data types,
+    including recursive `param.Parameterized` instances, custom serializers
+    are recommended.
+
+    It is possible to pass a dictionary as `parameterized` instead of a
+    ``param.Parameterized`` instance to this function. This is "hierarchical
+    mode". The values of `parameterized` can be ``param.Parameterized`` objects
+    or nested dictionaries. The returned dictionary will have the same
+    hierarchical dictionary structure as `parameterized`, but with the
+    ``param.Parameterized`` values replaced with serialized dictionaries. In
+    this case, `only`, `deserializer_name_dict`, and `deserializer_type_dict`
+    are expected to be dictionaries with the same hierarchical structure
+    (though they can still be ``None``, which propagates to children), whose
+    leaves correspond to the arguments used to serialize the leaves of
+    `parameterized`.
+
+    Parameters
+    ----------
+    parameterized : param.Parameterized or dict
+    only : set or dict, optional
+        If specified, only the parameters with their names in this set will
+        be serialized into the return dictionary
+    deserializer_name_dict : dict, optional
+    deserializer_type_dict : dict, optional
+    on_missing : {'ignore', 'warn', 'raise'}, optional
+        What to do if the parameterized instance does not have a parameter
+        listed in `only`
+    include_help : bool, optional
+        If ``True``, the return value will be a pair of dictionaries instead
+        of a single dictionary. This dictionary will contain any help strings
+        any serializers make available through a call to ``help_string`` (or
+        ``None`` if none is available).
+
+    Returns
+    -------
+    dict or tuple
+        A dictionary of serialized parameters or a pair of dictionaries if
+        `include_help` was ``True`` (the latter is the help dictionary).
+
+    Raises
+    ------
+    ParamConfigTypeError
+        If serialization of a value fails
+    '''
+    dict_ = dict()
+    help_dict = dict()
+    p_stack = [parameterized]
+    o_stack = [only]
+    snd_stack = [serializer_name_dict]
+    std_stack = [serializer_type_dict]
+    d_stack = [dict_]
+    h_stack = [help_dict]
+    while len(p_stack):
+        p = p_stack.pop()
+        o = o_stack.pop()
+        snd = snd_stack.pop()
+        std = std_stack.pop()
+        d = d_stack.pop()
+        h = h_stack.pop()
+        if isinstance(p, param.Parameterized):
+            dp, hp = _serialize_to_dict_flat(p, o, snd, std, on_missing)
+            d.update(dp)
+            h.update(hp)
+        else:
+            for name in p:
+                p_stack.append(p[name])
+                if o is None:
+                    o_stack.append(None)
+                else:
+                    o_stack.append(o[name])
+                if snd is None:
+                    snd_stack.append(None)
+                else:
+                    snd_stack.append(snd[name])
+                if std is None:
+                    std_stack.append(None)
+                else:
+                    std_stack.append(std[name])
+                d_stack.append(dict())
+                d[name] = d_stack[-1]
+                h_stack.append(dict())
+                h[name] = h_stack[-1]
+    return (dict_, help_dict) if include_help else dict_
+
+
 class ParamConfigDeserializer(with_metaclass(abc.ABCMeta, object)):
     '''Deserialize part of a configuration into a parameterized object
 

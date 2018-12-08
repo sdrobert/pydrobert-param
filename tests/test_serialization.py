@@ -161,6 +161,52 @@ def test_can_serialize_with_defaults(name, set_to, expected):
         assert expected == actual
 
 
+def test_serialize_to_dict():
+    parameterized_a = BigDumbParams(name='test_serialize_to_dict_a')
+    parameterized_a.number = 5.
+    parameterized_a.date = datetime(1, 2, 3, 4, 5)
+    parameterized_b = BigDumbParams(name='test_serialize_to_dict_b')
+    dict_ = serial.serialize_to_dict(parameterized_a, only={'number', 'date'})
+    assert dict_ == {'number': 5., 'date': '0001-02-03T04:05:00'}
+    parameterized_b.number = 4.
+
+    class _StupidNumberSerializer(serial.ParamConfigSerializer):
+        def serialize(self, name, parameterized):
+            val = getattr(parameterized, name)
+            return val - 2.
+
+    class _MyLittleDynamicSerializer(serial.ParamConfigSerializer):
+        def serialize(self, name, parameterized):
+            return 'electric six'
+    dict_ = serial.serialize_to_dict(
+        parameterized_b,
+        only={'number', 'dynamic'},
+        serializer_name_dict={'number': _StupidNumberSerializer()},
+        serializer_type_dict={param.Dynamic: _MyLittleDynamicSerializer()},
+    )
+    assert dict_ == {'number': 2., 'dynamic': 'electric six'}
+    dict_ = serial.serialize_to_dict(
+        {'a': {'A': parameterized_a}, 'b': {'B': parameterized_b}},
+        only={
+            'a': {'A': {'number', 'dynamic'}},
+            'b': {'B': {'number', 'dynamic'}},
+        },
+        serializer_name_dict={
+            'a': {'A': {'number': _StupidNumberSerializer()}},
+            'b': None,
+        },
+        serializer_type_dict={
+            'a': {'A': {
+                param.Number: _MyLittleDynamicSerializer(),
+                param.Dynamic: _MyLittleDynamicSerializer()
+            }},
+            'b': {'B': {param.Dynamic: _MyLittleDynamicSerializer()}},
+        }
+    )
+    assert dict_['a']['A'] == {'number': 3., 'dynamic': 'electric six'}
+    assert dict_['b']['B'] == {'number': 4., 'dynamic': 'electric six'}
+
+
 @pytest.mark.parametrize('block', [None, 'None'])
 def test_can_deserialize_none(block):
     parameterized = BigDumbParams(name='test_can_deserialize_none')
