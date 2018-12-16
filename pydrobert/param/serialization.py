@@ -1285,7 +1285,7 @@ def deserialize_from_dict(
                     msg = (
                         'dict_ contains hierarchical key chain {} but no '
                         'parameterized instance to match it'
-                    ).format(nn)
+                    ).format(n_stack[-1])
                     if on_missing == 'raise':
                         raise ValueErro(msg)
                     elif on_missing == 'warn':
@@ -1303,3 +1303,228 @@ def deserialize_from_dict(
                     dtd_stack.append(None)
                 else:
                     dtd_stack.append(dtd[name])
+
+
+YAML_MODULE_PRIORITIES = ('ruamel.yaml', 'ruamel_yaml', 'pyyaml')
+
+
+def _deserialize_from_ini_fp(
+        fp, parameterized,
+        deserializer_name_dict, deserializer_type_dict, on_missing,
+        defaults, comment_prefixes, inline_comment_prefixes,
+        one_param_section):
+    try:
+        from ConfigParser import SafeConfigParser
+        parser = SafeConfigParser(default=defaults)
+    except ImportError:
+        from configparser import ConfigParser
+        parser = ConfigParser(
+            defaults=defaults,
+            comment_prefixes=comment_prefixes,
+            inline_comment_prefixes=inline_comment_prefixes,
+        )
+    if one_param_section is None:
+        one_param_section = parser.default_section
+    parser.read_file(fp)
+    if isinstance(parameterized, param.Parameterized):
+        parser = parser[one_param_section]
+    deserialize_from_dict(
+        parser, parameterized,
+        deserializer_name_dict=deserializer_name_dict,
+        deserializer_type_dict=deserializer_type_dict,
+        on_missing=on_missing)
+
+
+def deserialize_from_ini(
+        file, parameterized,
+        deserializer_name_dict=None,
+        deserializer_type_dict=None,
+        on_missing='warn',
+        defaults=None,
+        comment_prefixes=('#', ';'),
+        inline_comment_prefixes=(';',),
+        one_param_section=None):
+    '''Deserialize an INI (config) file into a parameterized instance
+
+    `.INI syntax <https://en.wikipedia.org/wiki/INI_file>`, also including
+    `interpolation
+    <https://docs.python.org/3.7/library/configparser.html>`. This function
+    converts an INI file to a dictionary, then populates `parameterized` with
+    the contents of this dictionary.
+
+    INI files are broken up into sections; all key-value
+    pairs must belong to a section. If `parameterized` is a
+    ``param.Parameterized`` instance (rather than a hierarchical dictionary of
+    them), the action will try to deserialize the section specified by
+    `one_param_section` keyword argument
+
+    Paramters
+    ---------
+    file : file pointer or str
+        The INI file to deserialize from. Can be a pointer or a path
+    parameterized : param.Parameterized or dict
+    deserializer_name_dict : dict, optional
+    deserializer_type_dict : dict, optional
+    on_missing : {'ignore', 'warn', 'raise'}, optional
+    defaults : dict, optional
+        Default key-values used in interpolation (substitution). Terms such
+        as ``(key)%s`` (like a python 2.7 format string) are substituted with
+        these values
+    comment_prefixes : sequence, optional
+        A sequence of characters that indicate a full-line comment in the INI
+        file. Ignored in python 2.7
+    inline_comment_prefixes : sequence, optional
+        A sequence of characters that indicate an inline (including full-line)
+        comment in the INI file. Ignored in python 2.7
+    one_param_section : str or None, optional
+        If `parameterized` refers to a single ``param.Parameterized`` instance,
+        this keyword is used to indicate which section of the INI file will
+        be deserialized. If ``None``, the INI file's default section
+        (``"DEFAULT"``) will be used
+
+    See Also
+    --------
+    deserialize_from_dict : A description of the deserialization process and
+        the parameters to this function
+    '''
+    if isinstance(file, str):
+        with open(file) as fp:
+            _deserialize_from_ini_fp(
+                fp, parameterized,
+                deserializer_name_dict, deserializer_type_dict, on_missing,
+                defaults, comment_prefixes, inline_comment_prefixes,
+                one_param_section)
+    else:
+        _deserialize_from_ini_fp(
+            file, parameterized,
+            deserializer_name_dict, deserializer_type_dict, on_missing,
+            defaults, comment_prefixes, inline_comment_prefixes,
+            one_param_section)
+
+
+def _deserialize_from_yaml_fp(
+        fp, parameterized,
+        deserializer_name_dict, deserializer_type_dict, on_missing):
+    yaml = None
+    for name in YAML_MODULE_PRIORITIES:
+        if name == 'ruamel.yaml':
+            try:
+                from ruamel.yaml import YAML
+                yaml = YAML()
+            except ImportError:
+                pass
+        elif name == 'ruamel_yaml':
+            try:
+                from ruamel_yaml import YAML
+                yaml = YAML()
+            except ImportError:
+                pass
+        elif name == 'pyyaml':
+            try:
+                import yaml
+            except ImportError:
+                pass
+        else:
+            raise ValueError(
+                "Invalid value in YAML_MODULE_PRIORITIES: {}".format(name))
+    if yaml is None:
+        raise ImportError(
+            'Could not import any of {} for YAML deserialization'.format(
+                YAML_MODULE_PRIORITIES))
+    dict_ = yaml.load(fp)
+    deserialize_from_dict(
+        dict_, parameterized,
+        deserializer_name_dict=deserializer_name_dict,
+        deserializer_type_dict=deserializer_type_dict,
+        on_missing=on_missing)
+
+
+def deserialize_from_yaml(
+        file, parameterized,
+        deserializer_name_dict=None,
+        deserializer_type_dict=None, on_missing='warn'):
+    '''Deserialize a YAML file into a parameterized instance
+
+    `YAML syntax <https://en.wikipedia.org/wiki/YAML>`. This function converts
+    a YAML file to a dictionary, then populates `parameterized` with the
+    contents of this dictionary
+
+    Paramters
+    ---------
+    file : file pointer or str
+        The YAML file to deserialize from. Can be a pointer or a path
+    parameterized : param.Parameterized or dict
+    deserializer_name_dict : dict, optional
+    deserializer_type_dict : dict, optional
+    on_missing : {'ignore', 'warn', 'raise'}, optional
+
+    See Also
+    --------
+    deserialize_from_dict : A description of the deserialization process and
+        the parameters to this function
+
+    Notes
+    -----
+    This function tries to use the YAML (de)serialization module to load the
+    YAML file in the order listed in
+    ``pydrobert.param.serialization.YAML_MODULE_PRIORITIES``, falling back on
+    the next if there's an ``ImportError``. Only ``"ruamel.yaml"``,
+    ``"ruamel_yaml"``, and "``pyyaml``" are supported constants in
+    ``YAML_MODULE_PRIORITIES``
+    '''
+    if isinstance(file, str):
+        with open(file) as fp:
+            _deserialize_from_yaml_fp(
+                fp, parameterized,
+                deserializer_name_dict, deserializer_type_dict, on_missing)
+    else:
+        _deserialize_from_yaml_fp(
+            file, parameterized,
+            deserializer_name_dict, deserializer_type_dict, on_missing)
+
+
+def _deserialize_from_json_fp(
+        fp, parameterized,
+        deserializer_name_dict, deserializer_type_dict, on_missing):
+    import json
+    dict_ = json.load(fp)
+    deserialize_from_dict(
+        dict_, parameterized,
+        deserializer_name_dict=deserializer_name_dict,
+        deserializer_type_dict=deserializer_type_dict,
+        on_missing=on_missing)
+
+
+def deserialize_from_json(
+        file, parameterized,
+        deserializer_name_dict=None,
+        deserializer_type_dict=None, on_missing='warn'):
+    '''Deserialize a YAML file into a parameterized instance
+
+    `JSON syntax <https://en.wikipedia.org/wiki/JSON>`. This function converts
+    a JSON file to a dictionary, then populates `parameterized` with the
+    contents of this dictionary
+
+    Paramters
+    ---------
+    file : file pointer or str
+        The JSON file to deserialize from. Can be a pointer or a path
+    parameterized : param.Parameterized or dict
+    deserializer_name_dict : dict, optional
+    deserializer_type_dict : dict, optional
+    on_missing : {'ignore', 'warn', 'raise'}, optional
+
+    See Also
+    --------
+    deserialize_from_dict : A description of the deserialization process and
+        the parameters to this function
+    '''
+    if isinstance(file, str):
+        with open(file) as fp:
+            _deserialize_from_json_fp(
+                fp, parameterized,
+                deserializer_name_dict, deserializer_type_dict, on_missing)
+    else:
+        _deserialize_from_json_fp(
+            file, parameterized,
+            deserializer_name_dict, deserializer_type_dict, on_missing)

@@ -25,16 +25,26 @@ class ParameterizedFileReadAction(
     Subclasses of this class can be added as the 'action' keyword to an
     `argparse.ArgumentParser.add_argument()` call. The action will read the
     file path passed as an argument via command line and use the contents
-    of the file to populate a `param.Parameterized` instance. Note that
-    the `dest` attribute of the parsed namespace will always be populated by
-    a parameterized instance, whether or not the argument was specified on
-    the command line.
+    of the file to populate `param.Parameterized` instances. The subclass
+    deserializes the contents of the file according to the
+    ``pydrobert.param.serialization.deserializing_from_filetype`` function,
+    where ``filetype`` is replaced with the subclass' file type.
 
-    The `param.Parameterized` object to fill can be specified using either
-    the keyword `parameterized` or `type` in the list of keywords. One,
-    *and only one*, must always be specified. Two additional keywords for the
-    main mechanism of deserialization,
-    `pydrobert.param.serialization.deserialize_from_dict`, can be set.
+    There are three ways to specify parameterized objects to populate. They
+    are mutually exclusive:
+    1. Set the keyword `type` with the subclass of `param.Parameterized` you
+       want to deserialize into. A new instance of that subclass will be
+       created with a name matching `dest`. The instance will be returned in
+       the parsed namespace's attribute whose name matches `dest` as well.
+    2. Set the keyword `parameterized` with an instance of
+       `param.Parameterized`. That instance will be populated and also
+       returned in the parsed namespace's attribute whose name matches `dest`.
+    3. Set the keyword `parameterized` as a hierarchical dictionary of
+       ``param.Parameterized`` instances. The leaves of the dictionary will
+       be populated according to the "hierarchical mode" specified in the
+       documentation of ``pydrobert.param.serialization.serialize_from_dict``.
+       The same dictionary will be returned in the parsed namespace's attribute
+       whose name matches `dest`.
 
     Parameters
     ----------
@@ -42,22 +52,9 @@ class ParameterizedFileReadAction(
         A list of command-line option strings which should be associated with
         this action.
     dest : str
-        The name of the attribute to hold the created object. In this case,
-        the `param.Parameterized` instance.
+        The name of the attribute to hold the created object.
     parameterized : param.Parameterized or dict, optional
-        If set, `parameterized` will be directly stored in the `dest`
-        attribute of the parsed namespace. If `parameterized` is a
-        `param.Parameterized` instance, that instance will be populated
-        directly. Othewise, `parameterized` is treated as a hierarchical
-        dictionary. A non-dict value in the `parameterized` dict is assumed to
-        be a `param.Parameterized` instance. The path of keys through the
-        `parameterized` dict is taken through the config file as well, allowing
-        more than one `param.Parameterized` instance to be populated with one
-        file.
     type : type, optional
-        If set, an instance of a `param.Parameterized` object of this type
-        with a name `dest` will be created, populated, and stored in the
-        `dest` attribute.
     deserializer_name_dict : dict, optional
         Use specific deserializers for parameters with specific names.
     deserializer_type_dict : dict, optional
@@ -74,6 +71,13 @@ class ParameterizedFileReadAction(
         The name to be used for the option's argument with the help string.
         If ``None``, the `dest` value will be used as the name.
 
+    Attributes
+    ----------
+    parameterized : param.Parameterized or dict
+        The object that populates the `dest` attribute of the parsed namespace
+    deserializer_name_dict : dict or None
+    deserializer_type_dict : dict or None
+    on_missing : {'ignore', 'warn', 'raise'}
 
     See Also
     --------
@@ -84,7 +88,7 @@ class ParameterizedFileReadAction(
     def __init__(
             self, option_strings, dest,
             parameterized=None, type=None, deserializer_name_dict=None,
-            deserializer_type_dict=None, on_missing='warn', section=None,
+            deserializer_type_dict=None, on_missing='warn',
             required=False, help=None, metavar=None):
         if parameterized is None and type is None:
             raise TypeError('one of parameterized or type must be set')
@@ -104,138 +108,140 @@ class ParameterizedFileReadAction(
         )
 
     @abc.abstractmethod
-    def fp_to_dict(self, fp):
-        '''Convert the file pointer to a dictionary of values to deserialize'''
+    def deserialize(self, fp):
+        '''Read the file pointer into parameterized objects
+
+        Called during the callable section of this class. Implemented by
+        subclasses.
+        '''
         raise NotImplementedError()
 
     def __call__(self, parser, namespace, values, option_string=None):
-        dict_ = self.fp_to_dict(values)
-        dict_stack = [dict_]
-        param_stack = [self.parameterized]
-        while len(dict_stack):
-            dict_ = dict_stack.pop()
-            parameterized = param_stack.pop()
-            if isinstance(parameterized, param.Parameterized):
-                serialization.deserialize_from_dict(
-                    dict_, parameterized,
-                    deserializer_name_dict=self.deserializer_name_dict,
-                    deserializer_type_dict=self.deserializer_type_dict,
-                    on_missing=self.on_missing,
-                )
-            else:
-                for key, value in parameterized.items():
-                    dict_stack.append(dict_[key])
-                    param_stack.append(value)
+        self.deserialize(values)
 
 
 class ParameterizedIniReadAction(ParameterizedFileReadAction):
-    '''Deserialize a .INI file into a parameterized object
+    '''Deserialize an INI file into a parameterized object
 
-    `.INI syntax <https://en.wikipedia.org/wiki/INI_file>`, also including
-    interpolation. .INI files are broken up into sections; all key-value
-    pairs must belong to a section. If a section has not been specified
-    through the `parameterized` keyword, the action will try to deserialize
-    the default section
-
-    Additional Parameters
-    ---------------------
+    Parameters
+    ----------
+    option_strings : list
+    dest : str
+    parameterized : param.Parameterized or dict, optional
+    type : type, optional
+    deserializer_name_dict : dict, optional
+    deserializer_type_dict : dict, optional
+    on_missing: {'ignore', 'warn', 'raise'}, optional
+    required : bool, optional
+    help : str, optional
+    metavar : str, optional
     defaults : dict, optional
-        Intrinsic defaults used in interpolation
     comment_prefixes : tuple, optional
-        In Python 3.x, this controls which characters indicate an inline
-        comment. Ignored in 2.7
-    inline_comment_prefixes : tuple, optional
-        In Python 3.x, this controls which characters indicate an inline
-        comment. Ignored in 2.7
+    inline_comment_prefixes : sequence, optional
+    one_param_section : str or None, optional
 
     See Also
     --------
     ParameterizedFileReadAction
         A full description of the parameters and behaviour of like actions.
-    configparser.ConfigParser
-        Description of .INI file parsing and interpolation
+    pydrobert.param.serialization.deserialize_from_ini
+        A description of the deserialization process and of the additional
+        parameters.
     '''
 
     def __init__(
             self, option_strings, dest,
-            defaults=None,
-            comment_prefixes=('#', ';'),
-            inline_comment_prefixes=(';',),
-            **kwargs):
+            parameterized=None, type=None, deserializer_name_dict=None,
+            deserializer_type_dict=None, on_missing='warn',
+            required=False, help=None, metavar=None,
+            defaults=None, comment_prefixes=('#', ';'),
+            inline_comment_prefixes=(';',), one_param_section=None):
         self.defaults = defaults
         self.comment_prefixes = comment_prefixes
         self.inline_comment_prefixes = inline_comment_prefixes
+        self.one_param_section = one_param_section
         super(ParameterizedIniReadAction, self).__init__(
-            option_strings, dest, **kwargs)
+            option_strings, dest,
+            parameterized=parameterized, type=type,
+            deserializer_name_dict=deserializer_name_dict,
+            deserializer_type_dict=deserializer_type_dict,
+            on_missing=on_missing, required=required, help=help,
+            metavar=metavar,
+        )
 
-    def fp_to_dict(self, fp):
-        from configparser import ConfigParser
-        try:
-            parser = ConfigParser(
-                defaults=self.defaults,
-                comment_prefixes=self.comment_prefixes,
-                inline_comment_prefixes=self.inline_comment_prefixes,
-            )
-        except TypeError:  # probably py2.7
-            parser = ConfigParser(defaults=self.defaults)
-        parser.read_file(fp)
-        if isinstance(self.parameterized, param.Parameterized):
-            parser = parser[parser.default_section]
-        return parser
+    def deserialize(self, fp):
+        serialization.deserialize_from_ini(
+            fp, self.parameterized,
+            deserializer_name_dict=self.deserializer_name_dict,
+            deserializer_type_dict=self.deserializer_type_dict,
+            on_missing=self.on_missing,
+            comment_prefixes=self.comment_prefixes,
+            inline_comment_prefixes=self.inline_comment_prefixes,
+            one_param_section=self.one_param_section,
+        )
 
 
 class ParameterizedYamlReadAction(ParameterizedFileReadAction):
-    '''Deserialize a .yaml file into a parameterized object
+    '''Deserialize a YAML file into a parameterized object
 
-    `YAML syntax <https://en.wikipedia.org/wiki/YAML>`. This action tries
-    to load the python module `ruamel.yaml` to parse the file. If that
-    cannot be loaded, `yaml` is attempted.
+    Parameters
+    ----------
+    option_strings : list
+    dest : str
+    parameterized : param.Parameterized or dict, optional
+    type : type, optional
+    deserializer_name_dict : dict, optional
+    deserializer_type_dict : dict, optional
+    on_missing: {'ignore', 'warn', 'raise'}, optional
+    required : bool, optional
+    help : str, optional
+    metavar : str, optional
 
     See Also
     --------
     ParameterizedFileReadAction
         A full description of the parameters and behaviour of like actions.
+    pydrobert.param.serialization.deserialize_from_yaml
+        A description of the deserialization process.
     '''
 
-    def fp_to_dict(self, fp):
-        yaml = None
-        try:
-            from ruamel.yaml import YAML
-            yaml = YAML()
-        except ImportError:
-            pass
-        if yaml is None:
-            try:
-                # conda?
-                from ruamel_yaml import YAML
-                yaml = YAML()
-            except ImportError:
-                pass
-        if yaml is None:
-            try:
-                import yaml
-            except ImportError:
-                pass
-        if yaml is None:
-            raise ImportError(
-                "One of ruamel.yaml, ruamel_yaml or pyyaml is needed to "
-                "parse a YAML config")
-        return yaml.load(fp)
+    def deserialize(self, fp):
+        serialization.deserialize_from_yaml(
+            fp, self.parameterized,
+            deserializer_name_dict=self.deserializer_name_dict,
+            deserializer_type_dict=self.deserializer_type_dict,
+            on_missing=self.on_missing,
+        )
 
 
 class ParameterizedJsonReadAction(ParameterizedFileReadAction):
-    '''Deserialize a .JSON file into a parameterized object
+    '''Deserialize a JSON file into a parameterized object
 
-    `JSON syntax <https://en.wikipedia.org/wiki/JSON>`
+    Parameters
+    ----------
+    option_strings : list
+    dest : str
+    parameterized : param.Parameterized or dict, optional
+    type : type, optional
+    deserializer_name_dict : dict, optional
+    deserializer_type_dict : dict, optional
+    on_missing: {'ignore', 'warn', 'raise'}, optional
+    required : bool, optional
+    help : str, optional
+    metavar : str, optional
 
     See Also
     --------
     ParameterizedFileReadAction
         A full description of the parameters and behaviour of like actions.
-    json
-        The module used in json reading.
+    pydrobert.param.serialization.deserialize_from_json
+        A description of the deserialization process.
     '''
 
-    def fp_to_dict(self, fp):
-        import json
-        return json.load(fp)
+    def deserialize(self, fp):
+        serialization.deserialize_from_json(
+            fp, self.parameterized,
+            deserializer_name_dict=self.deserializer_name_dict,
+            deserializer_type_dict=self.deserializer_type_dict,
+            on_missing=self.on_missing,
+        )

@@ -53,7 +53,8 @@ def test_ini_read_action():
         'zoo',
         action=pargparse.ParameterizedIniReadAction,
         parameterized={'params_b': ParamsB()},
-        deserializer_type_dict={param.List: CommaListDeserializer()},
+        deserializer_type_dict={
+            'params_b': {param.List: CommaListDeserializer()}},
     )
     parsed = parser.parse_args([os.path.join(FILE_DIR, 'param.ini')])
     assert parsed.zoo['params_b'].object_selector == 1

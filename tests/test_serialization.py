@@ -1,4 +1,9 @@
-"""Tests for pydrobert.param.serialization"""
+"""Tests for pydrobert.param.serialization
+
+We test the various deserialization from file functions in
+``test_argparse``, since those actions are merely a thin wrapper around
+these functions
+"""
 
 from __future__ import absolute_import
 from __future__ import division
