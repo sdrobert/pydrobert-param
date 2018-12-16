@@ -90,7 +90,7 @@ def BigDumbParams(name=None):
             allow_None=True,
             check_on_set=True,
         )
-        number = param.Number(-10., allow_None=True)
+        number = param.Number(-10., allow_None=True, doc='here is a number')
         numeric_tuple = param.NumericTuple((5., 10.), allow_None=True)
         object_selector = param.ObjectSelector(
             False, objects={'False': False, 'True': 1}, allow_None=True)
@@ -176,11 +176,17 @@ def test_serialize_to_dict():
     parameterized_b.number = 4.
 
     class _StupidNumberSerializer(serial.ParamConfigSerializer):
+        def help_string(self, name, parameterized):
+            return 'subtract dat 2'
+
         def serialize(self, name, parameterized):
             val = getattr(parameterized, name)
             return val - 2.
 
     class _MyLittleDynamicSerializer(serial.ParamConfigSerializer):
+        def help_string(self, name, parameterized):
+            return 'left on time'
+
         def serialize(self, name, parameterized):
             return 'electric six'
     dict_ = serial.serialize_to_dict(
@@ -190,7 +196,7 @@ def test_serialize_to_dict():
         serializer_type_dict={param.Dynamic: _MyLittleDynamicSerializer()},
     )
     assert dict_ == {'number': 2., 'dynamic': 'electric six'}
-    dict_ = serial.serialize_to_dict(
+    dict_, help_dict = serial.serialize_to_dict(
         {'a': {'A': parameterized_a}, 'b': {'B': parameterized_b}},
         only={
             'a': {'A': {'number', 'dynamic'}},
@@ -206,10 +212,19 @@ def test_serialize_to_dict():
                 param.Dynamic: _MyLittleDynamicSerializer()
             }},
             'b': {'B': {param.Dynamic: _MyLittleDynamicSerializer()}},
-        }
+        },
+        include_help=True,
     )
     assert dict_['a']['A'] == {'number': 3., 'dynamic': 'electric six'}
     assert dict_['b']['B'] == {'number': 4., 'dynamic': 'electric six'}
+    assert help_dict['a']['A'] == {
+        'number': 'here is a number. subtract dat 2',
+        'dynamic': 'left on time'
+    }
+    assert help_dict['b']['B'] == {
+        'number': 'here is a number',
+        'dynamic': 'left on time'
+    }
 
 
 @pytest.mark.parametrize('block', [None, 'None'])

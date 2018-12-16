@@ -450,9 +450,17 @@ def _serialize_to_dict_flat(
             else:
                 serializer = DEFAULT_BACKUP_SERIALIZER
         dict_[name] = serializer.serialize(name, parameterized)
-        help_string = serializer.help_string(name, parameterized)
-        if help_string is not None:
-            help_dict[name] = help_string
+        help_string_serial = serializer.help_string(name, parameterized)
+        help_string_doc = parameterized.params()[name].doc
+        if help_string_doc:
+            if help_string_serial:
+                help_string_doc = help_string_doc.strip('. ')
+                help_dict[name] = '. '.join(
+                    (help_string_doc, help_string_serial))
+            else:
+                help_dict[name] = help_string_doc
+        elif help_string_serial:
+            help_dict[name] = help_string_serial
     return dict_, help_dict
 
 
