@@ -47,6 +47,7 @@ test:
   requires:
     - pytest
     - ruamel_yaml
+    - pyyaml
     - pandas
     - numpy
   imports:

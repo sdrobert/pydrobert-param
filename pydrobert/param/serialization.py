@@ -580,14 +580,6 @@ def serialize_to_dict(
 def _serialize_to_ini_fp(
         fp, parameterized, only, serializer_name_dict, serializer_type_dict,
         on_missing, include_help, help_prefix, one_param_section):
-    try:
-        from ConfigParser import SafeConfigParser
-        parser = SafeConfigParser()
-    except ImportError:
-        from configparser import ConfigParser
-        parser = ConfigParser(
-            comment_prefixes=(help_prefix,),
-        )
     dict_ = serialize_to_dict(
         parameterized,
         only=only,
@@ -600,6 +592,14 @@ def _serialize_to_ini_fp(
         dict_, help_dict = dict_
     else:
         help_dict = dict()
+    try:
+        from ConfigParser import SafeConfigParser
+        parser = SafeConfigParser()
+    except ImportError:
+        from configparser import ConfigParser
+        parser = ConfigParser(
+            comment_prefixes=(help_prefix,),
+        )
     if isinstance(parameterized, param.Parameterized):
         if one_param_section is None:
             one_param_section = parser.default_section
@@ -715,6 +715,135 @@ def serialize_to_ini(
             file, parameterized, only, serializer_name_dict,
             serializer_type_dict, on_missing, include_help, help_prefix,
             one_param_section)
+
+
+YAML_MODULE_PRIORITIES = ('ruamel.yaml', 'ruamel_yaml', 'pyyaml')
+
+
+def _serialize_to_ruamel_yaml(ruamel_yaml, fp, dict_, help_dict):
+    cdict = ruamel_yaml.comments.CommentedMap()
+    c_stack = [cdict]
+    d_stack = [dict_]
+    h_stack = [help_dict]
+    while len(c_stack):
+        c = c_stack.pop()
+        d = d_stack.pop()
+        h = h_stack.pop()
+        for key, dval in d.items():
+            hval = h.get(key, None)
+            if hval is None or isinstance(hval, str):
+                c.insert(len(c), key, dval, comment=hval)
+            else:
+                assert len(d)
+                c2 = ruamel_yaml.comments.CommentedMap()
+                c.insert(len(c), key, c2)
+                c_stack.append(c2)
+                d_stack.append(dval)
+                h_stack.append(hval)
+    ruamel_yaml.round_trip_dump(cdict, stream=fp)
+
+
+def _serialize_to_pyyaml(yaml, fp, dict_, help_dict):
+    if help_dict:
+        help_string_io = StringIO()
+        yaml.dump(help_dict, stream=help_string_io, default_flow_style=False)
+        help_string = help_string_io.getvalue().replace('\n', '\n# ')
+        help_string = '# == Help ==\n# ' + help_string + '\n'
+        fp.write(help_string)
+    yaml.dump(dict_, stream=fp, default_flow_style=False)
+
+
+def _serialize_to_yaml_fp(
+        fp, parameterized, only, serializer_name_dict, serializer_type_dict,
+        on_missing, include_help):
+    dict_ = serialize_to_dict(
+        parameterized,
+        only=only,
+        serializer_name_dict=serializer_name_dict,
+        serializer_type_dict=serializer_type_dict,
+        on_missing=on_missing,
+        include_help=include_help,
+    )
+    if include_help:
+        dict_, help_dict = dict_
+    else:
+        help_dict = dict()
+    for name in YAML_MODULE_PRIORITIES:
+        if name == 'ruamel.yaml':
+            try:
+                import ruamel.yaml
+                _serialize_to_ruamel_yaml(ruamel.yaml, fp, dict_, help_dict)
+                return
+            except ImportError:
+                pass
+        elif name == 'ruamel_yaml':
+            try:
+                import ruamel_yaml
+                _serialize_to_ruamel_yaml(ruamel_yaml, fp, dict_, help_dict)
+                return
+            except ImportError:
+                pass
+        elif name == 'pyyaml':
+            try:
+                import yaml
+                _serialize_to_pyyaml(yaml, fp, dict_, help_dict)
+                return
+            except ImportError:
+                pass
+        else:
+            raise ValueError(
+                "Invalid value in YAML_MODULE_PRIORITIES: {}".format(name))
+    raise ImportError(
+        'Could not import any of {} for YAML serialization'.format(
+            YAML_MODULE_PRIORITIES))
+
+
+def serialize_to_yaml(
+        file, parameterized,
+        only=None,
+        serializer_name_dict=None,
+        serializer_type_dict=None,
+        on_missing='raise',
+        include_help=True):
+    '''Serialize a parameterized instance into a YAML file
+
+    `YAML syntax <https://en.wikipedia.org/wiki/YAML>`. This function
+    converts `parameterized` to a dictionary, then fills an INI file with
+    the contents of this dictionary.
+
+    Paramters
+    ---------
+    file : file pointer or str
+        The YAML file to serialize to. Can be a pointer or a path
+    parameterized : param.Parameterized or dict
+    only : set or dict, optional
+    serializer_name_dict : dict, optional
+    serializer_type_dict : dict, optional
+    on_missing : {'ignore', 'warn', 'raise'}, optional
+    include_help : bool, optional
+        If ``True``, help documentation will be included. If `ruamel YAML
+        <https://yaml.readthedocs.io/en/latest/>` can be imported, help
+        strings will be inline. Otherwise, all documentation will be at the
+        top of the file
+
+    Notes
+    -----
+    This function tries to use the YAML (de)serialization module to load the
+    YAML file in the order listed in
+    ``pydrobert.param.serialization.YAML_MODULE_PRIORITIES``, falling back on
+    the next if there's an ``ImportError``. Only ``"ruamel.yaml"``,
+    ``"ruamel_yaml"``, and "``pyyaml``" are supported constants in
+    ``YAML_MODULE_PRIORITIES``
+    '''
+    if isinstance(file, str):
+        with open(file, 'w') as fp:
+            _serialize_to_yaml_fp(
+                fp, parameterized, only, serializer_name_dict,
+                serializer_type_dict, on_missing, include_help)
+    else:
+        _serialize_to_yaml_fp(
+            file, parameterized, only, serializer_name_dict,
+            serializer_type_dict, on_missing, include_help)
 
 
 class ParamConfigDeserializer(with_metaclass(abc.ABCMeta, object)):
@@ -1455,9 +1584,6 @@ def deserialize_from_dict(
                     dtd_stack.append(None)
                 else:
                     dtd_stack.append(dtd[name])
-
-
-YAML_MODULE_PRIORITIES = ('ruamel.yaml', 'ruamel_yaml', 'pyyaml')
 
 
 def _deserialize_from_ini_fp(

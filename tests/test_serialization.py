@@ -77,7 +77,8 @@ def BigDumbParams(name=None):
         date = param.Date(datetime.now(), allow_None=True)
         date_range = param.DateRange(
             (datetime.min, datetime.max), allow_None=True)
-        dict_ = param.Dict({'foo': 'bar'}, allow_None=True)
+        dict_ = param.Dict(
+            {'foo': 'bar'}, allow_None=True, doc='dict means dictionary')
         dynamic = param.Dynamic(default=default_action, allow_None=True)
         file_selector = param.FileSelector(
             "LICENSE",
@@ -284,6 +285,58 @@ def test_serialize_to_ini():
     assert parser.has_section('b')
     assert parser.get('b', 'string') == "I'm gonna get get get you drunk"
     assert parser.getint('b', 'integer') == -1
+
+
+def test_serialize_to_yaml(myyaml):
+    parameterized_a = BigDumbParams(name='test_serialize_to_yaml_a')
+    parameterized_a.dict_ = {'foo': {'bar': None}}
+    parameterized_a.list_ = [2, 4, 6, 8]
+    sbuff = StringIO()
+    serial.serialize_to_yaml(
+        sbuff, parameterized_a,
+        {'dict_', 'list_'},
+        include_help=False
+    )
+    sbuff.seek(0)
+    dict_ = myyaml.load(sbuff)
+    assert dict_['dict_']['foo']['bar'] is None
+    assert dict_['list_'] == [2, 4, 6, 8]
+    parameterized_b = BigDumbParams(name='test_serialize_to_yaml_b')
+    sidx = pd.Index(['foo', 'bar'])
+    parameterized_b.series = pd.Series(range(20))
+    parameterized_b.tuple_ = ('a', 'b', 'c')
+    sbuff = StringIO()
+    serial.serialize_to_yaml(
+        sbuff,
+        {'a': parameterized_a, 'b': {'c': parameterized_b}},
+        {'a': {'dict_', 'list_'}, 'b': {'c': {'series', 'tuple_'}}},
+        include_help=True
+    )
+    s = sbuff.getvalue()
+    # if comments are inline, they come after the first matching key but before
+    # the next newline
+    # if comments are at the beginning of the file, the first matching key is
+    # commented and so is the comment itself, so also before the next newline
+    first_dict_idx = s.find('dict_')
+    assert first_dict_idx != -1
+    first_dict_n_idx = s.find('\n', first_dict_idx)
+    assert first_dict_n_idx != -1
+    assert (
+        s.find("dict means dictionary", first_dict_idx, first_dict_n_idx) !=
+        -1
+    )
+    first_series_idx = s.find('series')
+    assert first_series_idx != -1
+    first_series_n_idx = s.find('\n', first_series_idx)
+    assert first_series_n_idx != -1
+    assert (
+        s.find("Series axes", first_series_idx, first_series_n_idx) != -1)
+    sbuff.seek(0)
+    dict_ = myyaml.load(sbuff)
+    assert dict_['a']['dict_']['foo']['bar'] is None
+    assert dict_['a']['list_'] == [2, 4, 6, 8]
+    assert np.allclose(dict_['b']['c']['series'], pd.Series(range(20)))
+    assert dict_['b']['c']['tuple_'] == ['a', 'b', 'c']
 
 
 @pytest.mark.parametrize('block', [None, 'None'])
