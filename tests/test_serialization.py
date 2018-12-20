@@ -11,7 +11,17 @@ from __future__ import print_function
 
 import os
 
+from collections import OrderedDict
 from datetime import datetime
+try:
+    # python 2.7 wants us to write bytes
+    from cStringIO import StringIO
+except ImportError:
+    from io import StringIO
+try:
+    from ConfigParser import SafeConfigParser as ConfigParser
+except ImportError:
+    from configparser import ConfigParser
 
 import pytest
 import param
@@ -97,7 +107,7 @@ def BigDumbParams(name=None):
         path = param.Path(FILE_DIR + "/../LICENSE", allow_None=True)
         range_ = param.Range((-1., 2.), allow_None=True)
         series = param.Series(pd.Series(range(5)))
-        string = param.String("foo", allow_None=True)
+        string = param.String("foo", allow_None=True, doc='this is a string')
         tuple_ = param.Tuple((3, 4, 'fi'), allow_None=True)
         x_y_coordinates = param.XYCoordinates((1., 2.), allow_None=True)
     return _BigDumbParams(name=name)
@@ -225,6 +235,55 @@ def test_serialize_to_dict():
         'number': 'here is a number',
         'dynamic': 'left on time'
     }
+
+
+def test_serialize_to_ini():
+    parameterized_a = BigDumbParams(name='test_serialize_to_ini_a')
+    parameterized_a.number = 1e-4
+    parameterized_a.boolean = False
+    sbuff = StringIO()
+    serial.serialize_to_ini(
+        sbuff, parameterized_a,
+        only={'number', 'boolean'},
+        include_help=False,
+    )
+    parser = ConfigParser()
+    sbuff.seek(0)
+    try:
+        parser.read_file(sbuff)
+    except AttributeError:
+        parser.readfp(sbuff)
+    assert parser.getfloat(parser.default_section, 'number') == 1e-4
+    assert not parser.getboolean(parser.default_section, 'boolean')
+    parameterized_a.boolean = True
+    parameterized_b = BigDumbParams(name='test_serialize_to_ini_b')
+    parameterized_b.string = "I'm gonna get get get you drunk"
+    parameterized_b.integer = -1
+    sbuff = StringIO()
+    serial.serialize_to_ini(
+        sbuff,
+        OrderedDict((('a', parameterized_a), ('b', parameterized_b))),
+        only={'a': {'number', 'boolean'}, 'b': {'string', 'integer'}},
+        include_help=True,
+    )
+    s = sbuff.getvalue()
+    a_help_idx = s.find('# [a]')
+    number_help_idx = s.find('# number')
+    b_help_idx = s.find('# [b]')
+    string_help_idx = s.find('# string')
+    assert a_help_idx < number_help_idx < b_help_idx < string_help_idx
+    sbuff.seek(0)
+    parser = ConfigParser()
+    try:
+        parser.read_file(sbuff)
+    except AttributeError:
+        parser.readfp(sbuff)
+    assert parser.has_section('a')
+    assert parser.getfloat('a', 'number') == 1e-4
+    assert parser.getboolean('a', 'boolean')
+    assert parser.has_section('b')
+    assert parser.get('b', 'string') == "I'm gonna get get get you drunk"
+    assert parser.getint('b', 'integer') == -1
 
 
 @pytest.mark.parametrize('block', [None, 'None'])

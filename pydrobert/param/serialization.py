@@ -7,6 +7,10 @@ from __future__ import print_function
 import abc
 
 from builtins import bytes
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from io import StringIO
 
 import param
 
@@ -571,6 +575,141 @@ def serialize_to_dict(
                 h_stack.append(dict())
                 h[name] = h_stack[-1]
     return (dict_, help_dict) if include_help else dict_
+
+
+def _serialize_to_ini_fp(
+        fp, parameterized, only, serializer_name_dict, serializer_type_dict,
+        on_missing, include_help, help_prefix, one_param_section):
+    try:
+        from ConfigParser import SafeConfigParser
+        parser = SafeConfigParser()
+    except ImportError:
+        from configparser import ConfigParser
+        parser = ConfigParser(
+            comment_prefixes=(help_prefix,),
+        )
+    dict_ = serialize_to_dict(
+        parameterized,
+        only=only,
+        serializer_name_dict=serializer_name_dict,
+        serializer_type_dict=serializer_type_dict,
+        on_missing=on_missing,
+        include_help=include_help,
+    )
+    if include_help:
+        dict_, help_dict = dict_
+    else:
+        help_dict = dict()
+    if isinstance(parameterized, param.Parameterized):
+        if one_param_section is None:
+            one_param_section = parser.default_section
+        parameterized = {one_param_section: parameterized}
+        dict_ = {one_param_section: dict_}
+        help_dict = {one_param_section: help_dict}
+    # use queues to maintain order of parameterized (if OrderedDict)
+    p_queue = [parameterized]
+    d_queue = [dict_]
+    h_queue = [help_dict]
+    s_queue = []
+    help_string_io = StringIO()
+    while len(p_queue):
+        p = p_queue.pop()
+        d = d_queue.pop()
+        h = h_queue.pop()
+        if isinstance(p, param.Parameterized):
+            assert len(s_queue)
+            assert d is not None
+            section = s_queue.pop()
+            if section != parser.default_section:
+                parser.add_section(section)
+            if h:
+                help_string_io.write('{} [{}]\n'.format(help_prefix, section))
+            for key, val in d.items():
+                parser.set(section, key, str(val))
+                if key in h:
+                    help_string_io.write('{} {}: {}\n'.format(
+                        help_prefix, key, h[key]))
+            if h:
+                help_string_io.write('\n')
+        else:
+            if len(s_queue):
+                raise IOError(
+                    'INI format cannot serialize hierarchical parameterized '
+                    'dictionaries greater than depth 1')
+            for key in p:
+                if key not in d:
+                    continue
+                p_queue.insert(0, p[key])
+                d_queue.insert(0, d[key])
+                h_queue.insert(0, h.get(key, dict()))
+                s_queue.insert(0, key)
+    help_string = help_string_io.getvalue()
+    if len(help_string):
+        fp.write('{} == Help == '.format(help_prefix))
+        fp.write(help_string)
+        fp.write('\n')
+    parser.write(fp)
+
+
+def serialize_to_ini(
+        file, parameterized,
+        only=None,
+        serializer_name_dict=None,
+        serializer_type_dict=None,
+        on_missing='raise',
+        include_help=True,
+        help_prefix='#',
+        one_param_section=None):
+    '''Serialize a parameterized instance into an INI (config) file
+
+    `.INI syntax <https://en.wikipedia.org/wiki/INI_file>`, also including
+    `interpolation
+    <https://docs.python.org/3.7/library/configparser.html>`. This function
+    converts `parameterized` to a dictionary, then fills an INI file with
+    the contents of this dictionary.
+
+    INI files are broken up into sections; all key-value
+    pairs must belong to a section. If `parameterized` is a
+    ``param.Parameterized`` instance (rather than a hierarchical dictionary of
+    them), the action will try to serialize `parameterized` into the section
+    specified by the `one_param_section` keyword argument. If `parameterized`
+    is a hierarchical dictionary, it can only have depth 1, with each leaf
+    being a ``param.Parameterized`` instance. In this case, each key
+    corresponds to a section. If an ordered dictionary, sections will be
+    written in the same order as they exist in `parameterized`.
+
+    Parameters
+    ----------
+    file : file pointer or str
+        The INI file to serialize to. Can be a pointer or a path
+    parameterized : param.Parameterized or dict
+    only : set or dict, optional
+    serializer_name_dict : dict, optional
+    serializer_type_dict : dict, optional
+    on_missing : {'ignore', 'warn', 'raise'}, optional
+    include_help : bool, optional
+        If ``True``, help documentation will be included at the top of the
+        INI file for any parameters and/or serializers that support it
+    help_prefix : str, optional
+        The character prefix used at the start of each help line, usually
+        indicating a comment
+    one_param_section : str or None, optional
+        If `parameterized` refers to a single ``param.Parameterized`` instance,
+        this keyword is used to indicate which section of the INI file
+        `parameterized` will be serialized to. If ``None``, the INI file's
+        default section (``"DEFAULT"``) will be used
+    '''
+    if isinstance(file, str):
+        with open(file, 'w') as fp:
+            _serialize_to_ini_fp(
+                fp, parameterized, only, serializer_name_dict,
+                serializer_type_dict, on_missing, include_help, help_prefix,
+                one_param_section)
+    else:
+        _serialize_to_ini_fp(
+            file, parameterized, only, serializer_name_dict,
+            serializer_type_dict, on_missing, include_help, help_prefix,
+            one_param_section)
 
 
 class ParamConfigDeserializer(with_metaclass(abc.ABCMeta, object)):
@@ -1333,7 +1472,10 @@ def _deserialize_from_ini_fp(
         )
     if one_param_section is None:
         one_param_section = parser.default_section
-    parser.read_file(fp)
+    try:
+        parser.read_file(fp)
+    except AttributeError:
+        parser.readfp(fp)
     if isinstance(parameterized, param.Parameterized):
         parser = parser[one_param_section]
     deserialize_from_dict(
