@@ -698,6 +698,11 @@ def serialize_to_ini(
         this keyword is used to indicate which section of the INI file
         `parameterized` will be serialized to. If ``None``, the INI file's
         default section (``"DEFAULT"``) will be used
+
+    See Also
+    --------
+    serialize_to_dict : A description of the serialization process and the
+        parameters to this function
     '''
     if isinstance(file, str):
         with open(file, 'w') as fp:
