@@ -7,6 +7,7 @@ from __future__ import print_function
 import abc
 
 from builtins import bytes
+from collections import OrderedDict
 try:
     from cStringIO import StringIO
 except ImportError:
@@ -527,53 +528,55 @@ def serialize_to_dict(
 
     Returns
     -------
-    dict or tuple
+    collections.OrderedDict or tuple
         A dictionary of serialized parameters or a pair of dictionaries if
-        `include_help` was ``True`` (the latter is the help dictionary).
+        `include_help` was ``True`` (the latter is the help dictionary). If
+        `parameterized` was an ordered dictionary, the returned serialized
+        dictionary will have the same order
 
     Raises
     ------
     ParamConfigTypeError
         If serialization of a value fails
     '''
-    dict_ = dict()
+    dict_ = OrderedDict()
     help_dict = dict()
-    p_stack = [parameterized]
-    o_stack = [only]
-    snd_stack = [serializer_name_dict]
-    std_stack = [serializer_type_dict]
-    d_stack = [dict_]
-    h_stack = [help_dict]
-    while len(p_stack):
-        p = p_stack.pop()
-        o = o_stack.pop()
-        snd = snd_stack.pop()
-        std = std_stack.pop()
-        d = d_stack.pop()
-        h = h_stack.pop()
+    p_queue = [parameterized]
+    o_queue = [only]
+    snd_queue = [serializer_name_dict]
+    std_queue = [serializer_type_dict]
+    d_queue = [dict_]
+    h_queue = [help_dict]
+    while len(p_queue):
+        p = p_queue.pop(0)
+        o = o_queue.pop(0)
+        snd = snd_queue.pop(0)
+        std = std_queue.pop(0)
+        d = d_queue.pop(0)
+        h = h_queue.pop(0)
         if isinstance(p, param.Parameterized):
             dp, hp = _serialize_to_dict_flat(p, o, snd, std, on_missing)
             d.update(dp)
             h.update(hp)
         else:
             for name in p:
-                p_stack.append(p[name])
+                p_queue.append(p[name])
                 if o is None:
-                    o_stack.append(None)
+                    o_queue.append(None)
                 else:
-                    o_stack.append(o[name])
+                    o_queue.append(o[name])
                 if snd is None:
-                    snd_stack.append(None)
+                    snd_queue.append(None)
                 else:
-                    snd_stack.append(snd[name])
+                    snd_queue.append(snd[name])
                 if std is None:
-                    std_stack.append(None)
+                    std_queue.append(None)
                 else:
-                    std_stack.append(std[name])
-                d_stack.append(dict())
-                d[name] = d_stack[-1]
-                h_stack.append(dict())
-                h[name] = h_stack[-1]
+                    std_queue.append(std[name])
+                d_queue.append(OrderedDict())
+                d[name] = d_queue[-1]
+                h_queue.append(dict())
+                h[name] = h_queue[-1]
     return (dict_, help_dict) if include_help else dict_
 
 

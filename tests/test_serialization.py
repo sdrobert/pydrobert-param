@@ -208,7 +208,8 @@ def test_serialize_to_dict():
     )
     assert dict_ == {'number': 2., 'dynamic': 'electric six'}
     dict_, help_dict = serial.serialize_to_dict(
-        {'a': {'A': parameterized_a}, 'b': {'B': parameterized_b}},
+        OrderedDict(
+            [('b', {'B': parameterized_b}), ('a', {'A': parameterized_a})]),
         only={
             'a': {'A': {'number', 'dynamic'}},
             'b': {'B': {'number', 'dynamic'}},
@@ -226,6 +227,7 @@ def test_serialize_to_dict():
         },
         include_help=True,
     )
+    assert list(dict_.keys()) == ['b', 'a']  # maintains order
     assert dict_['a']['A'] == {'number': 3., 'dynamic': 'electric six'}
     assert dict_['b']['B'] == {'number': 4., 'dynamic': 'electric six'}
     assert help_dict['a']['A'] == {
