@@ -10,6 +10,7 @@ from __future__ import division
 from __future__ import print_function
 
 import os
+import json
 
 from collections import OrderedDict
 from datetime import datetime
@@ -339,6 +340,37 @@ def test_serialize_to_yaml(myyaml):
     assert dict_['a']['list_'] == [2, 4, 6, 8]
     assert np.allclose(dict_['b']['c']['series'], pd.Series(range(20)))
     assert dict_['b']['c']['tuple_'] == ['a', 'b', 'c']
+
+
+def test_serialize_to_json():
+    parameterized_a = BigDumbParams(name="test_serialize_to_json_a")
+    parameterized_a.number = 10.
+    parameterized_a.list_selector = [2, 2, 2]
+    sbuff = StringIO()
+    serial.serialize_to_json(
+        sbuff, parameterized_a,
+        {'number', 'list_selector'}
+    )
+    sbuff.seek(0)
+    dict_ = json.load(sbuff)
+    assert dict_['number'] == 10.
+    assert dict_['list_selector'] == ['2', '2', '2']
+    parameterized_b = BigDumbParams(name="test_serialize_to_json_b")
+    parameterized_b.list_ = [-1, -2, 4]
+    parameterized_b.string = None
+    sbuff = StringIO()
+    serial.serialize_to_json(
+        sbuff,
+        OrderedDict([('z', parameterized_a), ('b', {'q': parameterized_b})]),
+        {'b': {'q': {'list_', 'string'}}, 'z': {'number', 'list_selector'}}
+    )
+    sbuff.seek(0)
+    dict_ = json.load(sbuff)
+    assert list(dict_.keys()) == ['z', 'b']
+    assert dict_['z']['number'] == 10.
+    assert dict_['z']['list_selector'] == ['2', '2', '2']
+    assert dict_['b']['q']['list_'] == [-1, -2, 4]
+    assert dict_['b']['q']['string'] is None
 
 
 @pytest.mark.parametrize('block', [None, 'None'])

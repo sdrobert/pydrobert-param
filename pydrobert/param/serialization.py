@@ -829,6 +829,11 @@ def serialize_to_yaml(
         strings will be inline. Otherwise, all documentation will be at the
         top of the file
 
+    See Also
+    --------
+    serialize_to_dict : A description of the serialization process and the
+        parameters to this function
+
     Notes
     -----
     This function tries to use the YAML (de)serialization module to load the
@@ -847,6 +852,64 @@ def serialize_to_yaml(
         _serialize_to_yaml_fp(
             file, parameterized, only, serializer_name_dict,
             serializer_type_dict, on_missing, include_help)
+
+
+def _serialize_to_json_fp(
+        fp, parameterized, only, serializer_name_dict, serializer_type_dict,
+        on_missing):
+    dict_ = serialize_to_dict(
+        parameterized,
+        only=only,
+        serializer_name_dict=serializer_name_dict,
+        serializer_type_dict=serializer_type_dict,
+        on_missing=on_missing,
+        include_help=False,
+    )
+    import json
+    json.dump(dict_, fp)
+
+
+def serialize_to_json(
+        file, parameterized,
+        only=None,
+        serializer_name_dict=None,
+        serializer_type_dict=None,
+        on_missing='raise'):
+    '''Serialize a parameterized instance into a JSON file
+
+    `JSON syntax <https://en.wikipedia.org/wiki/JSON>`. This function
+    converts `parameterized` to a dictionary, then fills an JSON file with
+    the contents of this dictionary.
+
+    Paramters
+    ---------
+    file : file pointer or str
+        The YAML file to serialize to. Can be a pointer or a path
+    parameterized : param.Parameterized or dict
+    only : set or dict, optional
+    serializer_name_dict : dict, optional
+    serializer_type_dict : dict, optional
+    on_missing : {'ignore', 'warn', 'raise'}, optional
+
+    See Also
+    --------
+    serialize_to_dict : A description of the serialization process and the
+        parameters to this function
+
+    Notes
+    -----
+    JSON does not have standard "comments," so this function does not write
+    help strings as comments
+    '''
+    if isinstance(file, str):
+        with open(file, 'w') as fp:
+            _serialize_to_json_fp(
+                fp, parameterized, only, serializer_name_dict,
+                serializer_type_dict, on_missing)
+    else:
+        _serialize_to_json_fp(
+            file, parameterized, only, serializer_name_dict,
+            serializer_type_dict, on_missing)
 
 
 class ParamConfigDeserializer(with_metaclass(abc.ABCMeta, object)):
