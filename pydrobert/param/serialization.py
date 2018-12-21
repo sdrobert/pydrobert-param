@@ -435,6 +435,7 @@ def _serialize_to_dict_flat(
         serializer_name_dict = dict()
     if only is None:
         only = set(parameterized.params())
+        only.remove('name')
     dict_ = dict()
     help_dict = dict()
     for name in only:
@@ -514,7 +515,8 @@ def serialize_to_dict(
     parameterized : param.Parameterized or dict
     only : set or dict, optional
         If specified, only the parameters with their names in this set will
-        be serialized into the return dictionary
+        be serialized into the return dictionary. If unset, all parameters
+        except ``"name"`` will be serialized.
     deserializer_name_dict : dict, optional
     deserializer_type_dict : dict, optional
     on_missing : {'ignore', 'warn', 'raise'}, optional
@@ -564,15 +566,15 @@ def serialize_to_dict(
                 if o is None:
                     o_queue.append(None)
                 else:
-                    o_queue.append(o[name])
+                    o_queue.append(o.get(name, None))
                 if snd is None:
                     snd_queue.append(None)
                 else:
-                    snd_queue.append(snd[name])
+                    snd_queue.append(snd.get(name, None))
                 if std is None:
                     std_queue.append(None)
                 else:
-                    std_queue.append(std[name])
+                    std_queue.append(std.get(name, None))
                 d_queue.append(OrderedDict())
                 d[name] = d_queue[-1]
                 h_queue.append(dict())
@@ -648,7 +650,7 @@ def _serialize_to_ini_fp(
                 s_queue.insert(0, key)
     help_string = help_string_io.getvalue()
     if len(help_string):
-        fp.write('{} == Help == '.format(help_prefix))
+        fp.write('{} == Help ==\n'.format(help_prefix))
         fp.write(help_string)
         fp.write('\n')
     parser.write(fp)
@@ -856,7 +858,7 @@ def serialize_to_yaml(
 
 def _serialize_to_json_fp(
         fp, parameterized, only, serializer_name_dict, serializer_type_dict,
-        on_missing):
+        on_missing, indent):
     dict_ = serialize_to_dict(
         parameterized,
         only=only,
@@ -866,7 +868,7 @@ def _serialize_to_json_fp(
         include_help=False,
     )
     import json
-    json.dump(dict_, fp)
+    json.dump(dict_, fp, indent=indent)
 
 
 def serialize_to_json(
@@ -874,7 +876,8 @@ def serialize_to_json(
         only=None,
         serializer_name_dict=None,
         serializer_type_dict=None,
-        on_missing='raise'):
+        on_missing='raise',
+        indent=2):
     '''Serialize a parameterized instance into a JSON file
 
     `JSON syntax <https://en.wikipedia.org/wiki/JSON>`. This function
@@ -890,6 +893,9 @@ def serialize_to_json(
     serializer_name_dict : dict, optional
     serializer_type_dict : dict, optional
     on_missing : {'ignore', 'warn', 'raise'}, optional
+    indent : int or None, optional
+        The indentation level of nested keys. If ``None``, the output will
+        be compact
 
     See Also
     --------
@@ -905,11 +911,11 @@ def serialize_to_json(
         with open(file, 'w') as fp:
             _serialize_to_json_fp(
                 fp, parameterized, only, serializer_name_dict,
-                serializer_type_dict, on_missing)
+                serializer_type_dict, on_missing, indent)
     else:
         _serialize_to_json_fp(
             file, parameterized, only, serializer_name_dict,
-            serializer_type_dict, on_missing)
+            serializer_type_dict, on_missing, indent)
 
 
 class ParamConfigDeserializer(with_metaclass(abc.ABCMeta, object)):
@@ -1640,16 +1646,16 @@ def deserialize_from_dict(
                         import warnings
                         warnings.warn(msg)
                     continue
-                d_stack.append(d[name])
+                d_stack.append(d.get(name, dict()))
                 p_stack.append(p_name)
                 if dnd is None:
                     dnd_stack.append(None)
                 else:
-                    dnd_stack.append(dnd[name])
+                    dnd_stack.append(dnd.get(name, None))
                 if dtd is None:
                     dtd_stack.append(None)
                 else:
-                    dtd_stack.append(dtd[name])
+                    dtd_stack.append(dtd.get(name, None))
 
 
 def _deserialize_from_ini_fp(
@@ -1674,9 +1680,14 @@ def _deserialize_from_ini_fp(
     except AttributeError:
         parser.readfp(fp)
     if isinstance(parameterized, param.Parameterized):
-        parser = parser[one_param_section]
+        dict_ = OrderedDict(parser.items(one_param_section))
+    else:
+        dict_ = OrderedDict(
+            (s, OrderedDict(parser.items(s)))
+            for s in parser.sections()
+        )
     deserialize_from_dict(
-        parser, parameterized,
+        dict_, parameterized,
         deserializer_name_dict=deserializer_name_dict,
         deserializer_type_dict=deserializer_type_dict,
         on_missing=on_missing)

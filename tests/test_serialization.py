@@ -566,3 +566,12 @@ def test_deserialize_from_dict():
     assert parameterized_a.number == -420.
     assert parameterized_a.date == datetime(2018, 4, 20)
     assert parameterized_a.x_y_coordinates == (1., 2.)
+
+
+def test_deserialize_from_dict_missing_parameterized():
+    parameterized_a = BigDumbParams(name='missing_parameterized_a')
+    parameterized_b = BigDumbParams(name='missing_parameterized_b')
+    param_dict = {'a': parameterized_a, 'b': parameterized_b}
+    dict_ = {'a': {'number': 500.}}
+    serial.deserialize_from_dict(dict_, param_dict)
+    assert parameterized_a.number == 500.
