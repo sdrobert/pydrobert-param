@@ -83,6 +83,8 @@ assert t_params.lr == 10000.
 serial.deserialize_from_yaml('conf.yaml', param_dict)
 assert t_params.lr == 1e-05
 ```
+_pydrobert.param.argparse_ contains convenience methods for deserializing
+config files right from the command line. Wow, neat-o!
 
 Sometimes, the default (de)serialization routines are unsuited for the data.
 For example, INI files do not have a standard format for lists of values. We
