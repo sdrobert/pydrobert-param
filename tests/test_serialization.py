@@ -133,8 +133,8 @@ def BigDumbParams(name=None):
     ('date', datetime(1945, 8, 15, 0, 0, 0, 1), '1945-08-15T00:00:00.000001'),
     (
         'date_range',
-        (datetime(11, 11, 11, 11), datetime(12, 12, 12, 12)),
-        ['0011-11-11T11:00:00', '0012-12-12T12:00:00'],
+        (datetime(2222, 11, 11, 11), datetime(2222, 12, 12, 12)),
+        ['2222-11-11T11:00:00', '2222-12-12T12:00:00'],
     ),
     ('dict_', {'a': {'a': 1}}, {'a': {'a': 1}}),
     # FIXME(sdrobert): what to do with dynamic?
@@ -181,10 +181,10 @@ def test_can_serialize_with_defaults(name, set_to, expected):
 def test_serialize_to_dict():
     parameterized_a = BigDumbParams(name='test_serialize_to_dict_a')
     parameterized_a.number = 5.
-    parameterized_a.date = datetime(1, 2, 3, 4, 5)
+    parameterized_a.date = datetime(1900, 2, 3, 4, 5)
     parameterized_b = BigDumbParams(name='test_serialize_to_dict_b')
     dict_ = serial.serialize_to_dict(parameterized_a, only={'number', 'date'})
-    assert dict_ == {'number': 5., 'date': '0001-02-03T04:05:00'}
+    assert dict_ == {'number': 5., 'date': '1900-02-03T04:05:00'}
     parameterized_b.number = 4.
 
     class _StupidNumberSerializer(serial.ParamConfigSerializer):
@@ -257,8 +257,8 @@ def test_serialize_to_ini():
         parser.read_file(sbuff)
     except AttributeError:
         parser.readfp(sbuff)
-    assert parser.getfloat(parser.default_section, 'number') == 1e-4
-    assert not parser.getboolean(parser.default_section, 'boolean')
+    assert parser.getfloat('DEFAULT', 'number') == 1e-4
+    assert not parser.getboolean('DEFAULT', 'boolean')
     parameterized_a.boolean = True
     parameterized_b = BigDumbParams(name='test_serialize_to_ini_b')
     parameterized_b.string = "I'm gonna get get get you drunk"
@@ -411,9 +411,9 @@ def test_can_deserialize_none(block):
     (
         'data_frame',
         FILE_DIR + '/pandas_data_frame.csv',
-        pd.DataFrame({'foo': [1., 3.], 'bar': [2., 4.]}),
+        pd.DataFrame(OrderedDict([('foo', [1., 3.]), ('bar', [2., 4.])])),
     ),
-    ('date', datetime(2020, 10, 2).timestamp(), datetime(2020, 10, 2)),
+    ('date', serial._timestamp(datetime(2020, 10, 2)), datetime(2020, 10, 2)),
     ('date', datetime(2030, 1, 8).toordinal(), datetime(2030, 1, 8)),
     ('date', '2040-10-04', datetime(2040, 10, 4)),
     ('date', '2050-11-05T06:07:08', datetime(2050, 11, 5, 6, 7, 8)),
@@ -436,8 +436,8 @@ def test_can_deserialize_none(block):
     (
         'date_range',
         (
-            datetime(2018, 12, 7, 18, 16, 28, 610366).timestamp(),
-            datetime(2018, 12, 7, 18, 16, 38, 466311).timestamp(),
+            serial._timestamp(datetime(2018, 12, 7, 18, 16, 28, 610366)),
+            serial._timestamp(datetime(2018, 12, 7, 18, 16, 38, 466311)),
         ),
         (
             datetime(2018, 12, 7, 18, 16, 28, 610366),

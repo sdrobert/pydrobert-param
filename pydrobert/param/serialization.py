@@ -215,6 +215,26 @@ def _datetime_to_formatted(parameterized, name, dt, formats):
     return s, format
 
 
+def _timestamp(dt):
+    import datetime
+    if dt.tzinfo:
+        zero = datetime.timedelta(0)
+
+        class _UTC(datetime.tzinfo):
+            def utcoffset(self, dt):
+                return zero
+
+            def tzname(self, dt):
+                return "UTC"
+
+            def dst(self, dt):
+                return zero
+        utc = _UTC()
+        return (dt - datetime.datetime(1970, 1, 1, tzinfo=utc)).total_seconds()
+    else:
+        return (dt - datetime.datetime(1970, 1, 1)).total_seconds()
+
+
 class DefaultDateSerializer(ParamConfigSerializer):
     '''Default date serializer
 
@@ -261,7 +281,7 @@ class DefaultDateSerializer(ParamConfigSerializer):
         from datetime import datetime
         if isinstance(val, datetime):
             if self.format is None:
-                return val.timestamp()
+                return _timestamp(val)
             else:
                 val = _datetime_to_formatted(
                     parameterized, name, val, self.format)[0]
@@ -305,7 +325,7 @@ class DefaultDateRangeSerializer(ParamConfigSerializer):
         for val in vals:
             if isinstance(val, datetime):
                 if self.format is None:
-                    val = val.timestamp()
+                    val = _timestamp(val)
                 else:
                     val = _datetime_to_formatted(
                         parameterized, name, val, self.format)[0]
@@ -607,7 +627,7 @@ def _serialize_to_ini_fp(
         )
     if isinstance(parameterized, param.Parameterized):
         if one_param_section is None:
-            one_param_section = parser.default_section
+            one_param_section = 'DEFAULT'
         parameterized = {one_param_section: parameterized}
         dict_ = {one_param_section: dict_}
         help_dict = {one_param_section: help_dict}
@@ -625,7 +645,7 @@ def _serialize_to_ini_fp(
             assert len(s_queue)
             assert d is not None
             section = s_queue.pop()
-            if section != parser.default_section:
+            if section != 'DEFAULT':
                 parser.add_section(section)
             if h:
                 help_string_io.write('{} [{}]\n'.format(help_prefix, section))
@@ -1244,7 +1264,7 @@ class DefaultDateDeserializer(ParamConfigDeserializer):
           is successful, use that parsed datetime.
     4. Try casting `block` to a float
        1. If the float has a remainder or the value exceeds the maximum
-          ordinal value, treat as a timestamp
+          ordinal value, treat as a UTC timestamp
        2. Otherwise, treat as a Gregorian ordinal time
     5. Try instantiating a datetime with `block` as an argument to the
        constructor.
@@ -1261,6 +1281,7 @@ class DefaultDateDeserializer(ParamConfigDeserializer):
     def deserialize(self, name, block, parameterized):
         if self.check_if_allow_none_and_set(name, block, parameterized):
             return
+        print('block', block)
         from datetime import datetime
         if isinstance(block, datetime):
             parameterized.param.set_param(name, block)
@@ -1273,7 +1294,7 @@ class DefaultDateDeserializer(ParamConfigDeserializer):
         try:
             float_block = float(block)
             if float_block % 1 or float_block > datetime.max.toordinal():
-                block = datetime.fromtimestamp(float_block)
+                block = datetime.utcfromtimestamp(float_block)
             else:
                 block = datetime.fromordinal(int(float_block))
             parameterized.param.set_param(name, block)
@@ -1322,7 +1343,7 @@ class DefaultDateRangeDeserializer(ParamConfigDeserializer):
             try:
                 float_elem = float(elem)
                 if float_elem % 1 or float_elem > datetime.max.toordinal():
-                    elem = datetime.fromtimestamp(float_elem)
+                    elem = datetime.utcfromtimestamp(float_elem)
                 else:
                     elem = datetime.fromordinal(int(float_elem))
                 val.append(elem)
@@ -1665,7 +1686,7 @@ def _deserialize_from_ini_fp(
         one_param_section):
     try:
         from ConfigParser import SafeConfigParser
-        parser = SafeConfigParser(default=defaults)
+        parser = SafeConfigParser(defaults=defaults)
     except ImportError:
         from configparser import ConfigParser
         parser = ConfigParser(
@@ -1674,7 +1695,7 @@ def _deserialize_from_ini_fp(
             inline_comment_prefixes=inline_comment_prefixes,
         )
     if one_param_section is None:
-        one_param_section = parser.default_section
+        one_param_section = 'DEFAULT'
     try:
         parser.read_file(fp)
     except AttributeError:
