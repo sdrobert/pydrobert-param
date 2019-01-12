@@ -221,10 +221,8 @@ def test_serialize_to_dict():
         },
         serializer_type_dict={
             'a': {'A': {
-                param.Number: _MyLittleDynamicSerializer(),
-                param.Dynamic: _MyLittleDynamicSerializer()
-            }},
-            'b': {'B': {param.Dynamic: _MyLittleDynamicSerializer()}},
+                param.Number: _MyLittleDynamicSerializer()}},
+            param.Dynamic: _MyLittleDynamicSerializer(),
         },
         include_help=True,
     )
@@ -553,7 +551,7 @@ def test_deserialize_from_dict():
     }
     type_dict = {
         'a': None,
-        'b': {'B': type_dict},
+        'b': type_dict,
     }
     serial.deserialize_from_dict(
         dict_,

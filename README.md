@@ -107,10 +107,12 @@ class CommaDeserializer(serial.DefaultListSelectorDeserializer):
 
 serial.serialize_to_ini(
     'conf.ini', param_dict,
-    serializer_name_dict={'model': {'layers': CommaSerializer()}},
+    # (de)serialize by type
+    serializer_type_dict={param.ListSelector: CommaSerializer()},
 )
 serial.deserialize_from_ini(
     'conf.ini', param_dict,
+    # or by name!
     deserializer_name_dict={'model': {'layers': CommaDeserializer()}},
 )
 ```

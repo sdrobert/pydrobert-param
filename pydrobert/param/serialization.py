@@ -562,11 +562,12 @@ def serialize_to_dict(
     or nested dictionaries. The returned dictionary will have the same
     hierarchical dictionary structure as `parameterized`, but with the
     ``param.Parameterized`` values replaced with serialized dictionaries. In
-    this case, `only`, `deserializer_name_dict`, and `deserializer_type_dict`
-    are expected to be dictionaries with the same hierarchical structure
+    this case, `only` and `deserializer_name_dict` are expected to be
+    dictionaries with the same hierarchical structure
     (though they can still be ``None``, which propagates to children), whose
     leaves correspond to the arguments used to serialize the leaves of
-    `parameterized`.
+    `parameterized`. `deserializer_type_dict` can also be hierarchical, can
+    be flat, or be some combination.
 
     Parameters
     ----------
@@ -629,10 +630,15 @@ def serialize_to_dict(
                     snd_queue.append(None)
                 else:
                     snd_queue.append(snd.get(name, None))
-                if std is None:
+                if std is None or std.get(name, 'a') is None:
                     std_queue.append(None)
                 else:
-                    std_queue.append(std.get(name, None))
+                    std_name = dict(
+                        (k, v) for (k, v) in std.items()
+                        if isinstance(k, type)
+                    )
+                    std_name.update(std.get(name, dict()))
+                    std_queue.append(std_name)
                 d_queue.append(OrderedDict())
                 d[name] = d_queue[-1]
                 h_queue.append(dict())
@@ -1645,14 +1651,14 @@ def deserialize_from_dict(
     It is possible to pass a dictionary as `parameterized` instead of a
     ``param.Parameterized`` instance to this function. This is "hierarchical
     mode". The values of `parameterized` can be ``param.Parameterized`` objects
-    or nested dictionaries. In this case, `dict_`, `deserializer_name_dict`,
-    and `deserializer_type_dict` are expected to be dictionaries with the same
-    hierarchical structure (though the latter two can still be ``None``,
-    which propagates to children). The leaves of `dict_` deserialize into the
-    leaves of `parameterized`, using the leaves of `deserializer_name_dict` and
-    `deserializer_type_dict` as arguments. If no leaf of `dict_` exists for
-    a given `parameterized` leaf, that parameterized object will not be
-    updated.
+    or nested dictionaries. In this case, `dict_` and `deserializer_name_dict`
+    are expected to be dictionaries with the same hierarchical structure
+    (though the latter can still be ``None``). `deserializer_type_dict` can
+    be a flat dictionary of types to be applied to all nodes, or a
+    hierarchical dictionary of strings like `dict_`, or some combination.
+    The leaves of `dict_` deserialize into the leaves of `parameterized`. If
+    no leaf of `dict_` exists for a given `parameterized` leaf, that
+    parameterized object will not be updated.
 
     Default deserializers are likely appropriate for basic types like strings,
     ints, bools, floats, and numeric tuples. For more complex data types,
@@ -1711,10 +1717,15 @@ def deserialize_from_dict(
                     dnd_stack.append(None)
                 else:
                     dnd_stack.append(dnd.get(name, None))
-                if dtd is None:
+                if dtd is None or dtd.get(name, 'a') is None:
                     dtd_stack.append(None)
                 else:
-                    dtd_stack.append(dtd.get(name, None))
+                    dtd_name = dict(
+                        (k, v) for (k, v) in dtd.items()
+                        if isinstance(k, type)
+                    )
+                    dtd_name.update(dtd.get(name, dict()))
+                    dtd_stack.append(dtd_name)
 
 
 def _deserialize_from_ini_fp(
