@@ -1325,7 +1325,6 @@ class DefaultDateDeserializer(ParamConfigDeserializer):
     def deserialize(self, name, block, parameterized):
         if self.check_if_allow_none_and_set(name, block, parameterized):
             return
-        print('block', block)
         from datetime import datetime
         if isinstance(block, datetime):
             parameterized.param.set_param(name, block)
