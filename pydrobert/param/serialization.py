@@ -36,6 +36,10 @@ __email__ = "sdrobert@cs.toronto.edu"
 __license__ = "Apache 2.0"
 __copyright__ = "Copyright 2019 Sean Robertson"
 __all__ = [
+    'DEFAULT_BACKUP_SERIALIZER',
+    'DEFAULT_BACKUP_SERIALIZER',
+    'DEFAULT_DESERIALIZER_DICT',
+    'DEFAULT_SERIALIZER_DICT',
     'DefaultArrayDeserializer',
     'DefaultArraySerializer',
     'DefaultBooleanDeserializer',
@@ -114,23 +118,21 @@ class ParamConfigSerializer(with_metaclass(abc.ABCMeta, object)):
 
     Subclasses of ``ParamConfigSerializer`` are expected to implement
     `serialize`. Instances of the subclass can be passed into
-    ``pydrobert.param.serialization.serialize_to_dict``. The goal of a
-    serializer is to convert a parameter value from a
-    ``param.Parameterized`` object into something that can be handled
-    by a dict-like data store. The format of the outgoing data should
-    reflect where the dict-like data are going. For example, a JSON
-    serializer can handle lists, but not an INI serializer. In
+    ``serialize_to_dict()``. The goal of a serializer is to convert a parameter
+    value from a ``param.Parameterized`` object into something that can be
+    handled by a dict-like data store. The format of the outgoing data should
+    reflect where the dict-like data are going. For example, a JSON serializer
+    can handle lists, but not an INI serializer. In
     ``pydrobert.param.serialization``, there are a number of default
-    serializers (matching the pattern ``Default*Serializer``) that are
-    best guesses on how to serialize data from a variety of sources
+    serializers (matching the pattern ``Default*Serializer``) that are best
+    guesses on how to serialize data from a variety of sources
     '''
 
     def help_string(self, name, parameterized):
         '''A string that helps explain this serialization
 
         The return string will be included in the second element of
-        the pair returned by
-        ``pydrobert.param.serialization.serialize_to_dict``. Helps
+        the pair returned by ``serialize_to_dict()``. Helps
         explain the serialized value to the user.
         '''
         return None
@@ -199,7 +201,8 @@ class DefaultClassSelectorSerializer(ParamConfigSerializer):
     '''Default ClassSelector serializer
 
     The process:
-    1. If None, return
+
+    1. If ``None``, return
     2. If parameter's ``is_instance`` attribute is ``True``, return value
        verbatim
     3. Search for the corresponding name in the selector's ``get_range()``
@@ -227,10 +230,11 @@ class DefaultClassSelectorSerializer(ParamConfigSerializer):
 
 
 class DefaultDataFrameSerializer(ParamConfigSerializer):
-    '''Default pandas.DataFrame serializer
+    '''Default ``pandas.DataFrame`` serializer
 
     The process:
-    1. If None, return
+
+    1. If ``None``, return
     2. Call ``tolist()`` on the ``values`` property of the parameter's
        value and return
     '''
@@ -288,12 +292,15 @@ def _timestamp(dt):
 
 
 class DefaultDateSerializer(ParamConfigSerializer):
-    '''Default date serializer
+    '''Default ``datetime.datetime`` serializer
 
     The process:
-    1. If None, return
+
+    1. If ``None``, return
     2. If a ``datetime.datetime`` instance
-       1. If the `format` keyword argument of the serializer is not None:
+
+       1. If the `format` keyword argument of the serializer is not ``None``:
+
           1. If `format` is a string, return the result of the value's
              ``strftime(format)`` call
           2. If `format` is list-like, iterate through it, formatting with
@@ -301,7 +308,9 @@ class DefaultDateSerializer(ParamConfigSerializer):
              with ``strptime(element)``, produces an equivalent ``datetime``
              object as the value is returned. If no such string exists, the
              last string is returned.
+
        2. Return the result of the value's ``timestamp()`` call
+
     3. If a ``numpy.datetime64`` instance, return the value cast to a
        string
     '''
@@ -391,9 +400,11 @@ class DefaultListSelectorSerializer(ParamConfigSerializer):
     '''Default ListSelector serializer
 
     For each element in the value:
+
     1. Search for its name in the selector's ``get_range()`` dict and
        swap if for the name, if possible
     2. Otherwise, use that element verbatim
+
     '''
 
     def help_string(self, name, parameterized):
@@ -417,7 +428,8 @@ class DefaultObjectSelectorSerializer(ParamConfigSerializer):
     '''Default ObjectSelector serializer
 
     The process:
-    1. If None, return
+
+    1. If ``None``, return
     2. Search for the name of the value in the selector's ``get_range()``
        dictionary and return, if possible
     3. Return value verbatim
@@ -441,10 +453,11 @@ class DefaultObjectSelectorSerializer(ParamConfigSerializer):
 
 
 class DefaultSeriesSerializer(ParamConfigSerializer):
-    '''Default pandas.Series serializer
+    '''Default ``pandas.Series`` serializer
 
     The process:
-    1. If None, return
+
+    1. If ``None``, return
     2. Call ``tolist()`` on the ``values`` property of the parameter's
        value and return
     '''
@@ -475,6 +488,13 @@ class DefaultTupleSerializer(ParamConfigSerializer):
         return val if val is None else list(val)
 
 
+'''Default serializers by param type
+
+See Also
+--------
+serialize_to_dict
+    How these are used
+'''
 DEFAULT_SERIALIZER_DICT = {
     param.Array: DefaultArraySerializer(),
     param.ClassSelector: DefaultClassSelectorSerializer(),
@@ -491,6 +511,13 @@ DEFAULT_SERIALIZER_DICT = {
     param.XYCoordinates: DefaultTupleSerializer(),
 }
 
+'''Default serializer to use when not type specific
+
+See Also
+--------
+serialize_to_dict
+    How this is used
+'''
 DEFAULT_BACKUP_SERIALIZER = DefaultSerializer()
 
 
@@ -555,6 +582,7 @@ def serialize_to_dict(
     storage in a dict-like file format such as YAML or JSON. Each parameter
     will be serialized into the dictionary using a `ParamConfigSerializer`
     object, matched with the following precedent:
+
     1. If `serializer_name_dict` is specified and contains the parameter
        name as a key, the value will be used.
     2. If `serializer_type_dict` and the type of the parameter in question
@@ -567,7 +595,7 @@ def serialize_to_dict(
 
     Default serializers are likely appropriate for basic types like strings,
     ints, bools, floats, and numeric tuples. For more complex data types,
-    including recursive `param.Parameterized` instances, custom serializers
+    including recursive ``param.Parameterized`` instances, custom serializers
     are recommended.
 
     It is possible to pass a dictionary as `parameterized` instead of a
@@ -800,6 +828,17 @@ def serialize_to_ini(
             one_param_section)
 
 
+'''Specifies the order with which to try YAML parser modules
+
+A number of different `YAML syntax <https://en.wikipedia.org/wiki/YAML>`
+parsers exist. This tuple specifies the order by which we attempt to import
+parsers
+
+See Also
+--------
+serialize_to_yaml
+deserialize_from_yaml
+'''
 YAML_MODULE_PRIORITIES = ('ruamel.yaml', 'ruamel_yaml', 'pyyaml')
 
 
@@ -894,8 +933,8 @@ def serialize_to_yaml(
     converts `parameterized` to a dictionary, then fills an INI file with
     the contents of this dictionary.
 
-    Paramters
-    ---------
+    Parameters
+    ----------
     file : file pointer or str
         The YAML file to serialize to. Can be a pointer or a path
     parameterized : param.Parameterized or dict
@@ -916,10 +955,10 @@ def serialize_to_yaml(
 
     Notes
     -----
+
     This function tries to use the YAML (de)serialization module to load the
-    YAML file in the order listed in
-    ``pydrobert.param.serialization.YAML_MODULE_PRIORITIES``, falling back on
-    the next if there's an ``ImportError``. Only ``"ruamel.yaml"``,
+    YAML file in the order listed in ``YAML_MODULE_PRIORITIES``, falling back
+    on the next if there's an ``ImportError``. Only ``"ruamel.yaml"``,
     ``"ruamel_yaml"``, and "``pyyaml``" are supported constants in
     ``YAML_MODULE_PRIORITIES``
     '''
@@ -962,8 +1001,8 @@ def serialize_to_json(
     converts `parameterized` to a dictionary, then fills an JSON file with
     the contents of this dictionary.
 
-    Paramters
-    ---------
+    Parameters
+    ----------
     file : file pointer or str
         The YAML file to serialize to. Can be a pointer or a path
     parameterized : param.Parameterized or dict
@@ -1001,15 +1040,14 @@ class ParamConfigDeserializer(with_metaclass(abc.ABCMeta, object)):
 
     Subclasses of ``ParamConfigDeserializer`` are expected to implement
     `deserialize`. Instances of the subclass can be passed into
-    ``pydrobert.param.serialization.deserialize_from_dict``. The goal of
-    a deserializer is to convert data into the value of a parameter in a
-    ``param.Parameterized`` object. The format of the incoming data is
-    specific to where the dict-like input came from. For example, a JSON
-    parser converts numeric strings to floats, and the contents of square
-    braces (``[]``) as lists. In ``pydrobert.param.serialization``, there
-    are a number of default deserializers (matching the pattern
-    ``Default*Deserializer``) that are best guesses on how to deserialize
-    data from a variety of sources.
+    ``deserialize_from_dict()``. The goal of a deserializer is to convert data
+    into the value of a parameter in a ``param.Parameterized`` object. The
+    format of the incoming data is specific to where the dict-like input came
+    from. For example, a JSON parser converts numeric strings to floats, and
+    the contents of square braces (``[]``) as lists. In
+    ``pydrobert.param.serialization``, there are a number of default
+    deserializers (matching the pattern ``Default*Deserializer``) that are best
+    guesses on how to deserialize data from a variety of sources.
     '''
 
     @abc.abstractmethod
@@ -1092,10 +1130,11 @@ class DefaultArrayDeserializer(ParamConfigDeserializer):
     deserializer with those keyword arguments.
 
     The process:
-    1. None check
+
+    1. ``None`` check
     2. If already a numpy array, set it
-    3. If a string ending with '.npy', load it as a file path (``numpy.load``
-       with kwargs)
+    3. If a string ending with ``'.npy'``, load it as a file path
+       (``numpy.load`` with kwargs)
     4. If bytes, load it with ``numpy.frombuffer`` and kwargs
     5. If a string, load it with ``numpy.fromstring`` and kwargs
     6. Try initializing to array with ``numpy.array`` and kwargs
@@ -1146,7 +1185,8 @@ class DefaultBooleanDeserializer(ParamConfigDeserializer):
     '''Default deserializer for booleans
 
     The process:
-    1. None check
+
+    1. ``None`` check
     2. Check `block` against a number of strings commonly meaning ``True``
        (e.g. ``"YES"``, ``"t"``, and ``"on"``) as well as the number 1.
     3. Check `block` against a number of strins commonly meaning ``False``
@@ -1192,13 +1232,16 @@ class DefaultClassSelectorDeserializer(ParamConfigDeserializer):
     '''Default ClassSelector deserializer
 
     The process:
-    1. None check
+
+    1. ``None`` check
     2. If the parameter's ``is_instance`` attribute is ``True``:
+
        1. If `block` is an instance of the parameter's ``class_`` attribute,
           set it
        2. Try instantiating the class with `block` as the first argument, with
           additional arguments and keyword arguments passed to the deserializer
           passed allong to the constructor.
+
     3. Look for the block or the block name in the selector's ``get_range()``
        dictionary
     '''
@@ -1228,13 +1271,14 @@ class DefaultClassSelectorDeserializer(ParamConfigDeserializer):
 
 
 class DefaultDataFrameDeserializer(ParamConfigDeserializer):
-    '''Default panda.DataFrame deserializer
+    '''Default ``pandas.DataFrame`` deserializer
 
     Keyword arguments and positional arguments can be passed to referenced
     methods by initializing this deserializer with those keyword arguments.
 
     The process:
-    1. None check
+
+    1. ``None`` check
     2. If `block` is a data frame, set it
     3. If `block` is a string that ends with one of a number of file suffixes,
        e.g. ``".csv", ".json", ".html", ".xls"``, use the associated
@@ -1308,22 +1352,27 @@ def _get_datetime_from_formats(block, formats):
 
 
 class DefaultDateDeserializer(ParamConfigDeserializer):
-    '''Default datetime deserializer
+    '''Default ``datetime.datetime`` deserializer
 
     The process:
-    1. None check
+
+    1. ``None`` check
     2. If `block` is a ``datetime.datetime``, set it
     3. If the deserializer's `format` argument is not None and `block` is a
        string:
+
        1. If `format` is a string, try to convert `block` to a datetime using
           ``datetime.datetime.strptime()``
        2. If `format` is list-like, parse a ``datetime.datetime`` object
           with ``datetime.datetime.strptime(element, format)``. If the parse
           is successful, use that parsed datetime.
+
     4. Try casting `block` to a float
+
        1. If the float has a remainder or the value exceeds the maximum
           ordinal value, treat as a UTC timestamp
        2. Otherwise, treat as a Gregorian ordinal time
+
     5. Try instantiating a datetime with `block` as an argument to the
        constructor.
     6. If ``numpy`` can be imported, try instantiating a ``numpy.datetime64``
@@ -1429,13 +1478,16 @@ class DefaultListDeserializer(ParamConfigDeserializer):
     '''Default list deserializer
 
     The process:
-    1. None check
+
+    1. ``None`` check
     2. If the parameter's ``class_`` attribute has been set, for each
        element in `block` (we always assume `block` is iterable):
+
        1. If the element is an instance of the class, leave it alone
        2. Try instantiating a ``class_`` object using the element
           as the first argument plus any arguments or keyword arguments
           passed to the deserializer on initialization.
+
     3. Cast to a list and set
     '''
 
@@ -1486,6 +1538,7 @@ class _CastDeserializer(ParamConfigDeserializer):
     '''Default {0} deserializer
 
     The process:
+
     1. None check
     2. If `block` is a(n) {0}, set it
     3. Initialize a(n) {0} instance with `block` as the first argument
@@ -1549,7 +1602,8 @@ class DefaultObjectSelectorDeserializer(ParamConfigDeserializer):
     '''Default ObjectSelector deserializer
 
     The process:
-    1. None check
+
+    1. ``None`` check
     2. Match `block` to a value or name in the selector's ``get_range()``
        method
     '''
@@ -1580,6 +1634,13 @@ class DefaultTupleDeserializer(_CastDeserializer):
     class_ = tuple
 
 
+'''Default deserializers by parameter type
+
+See Also
+--------
+deserialize_from_dict
+    How these are used
+'''
 DEFAULT_DESERIALIZER_DICT = {
     param.Array: DefaultArrayDeserializer(),
     param.Boolean: DefaultBooleanDeserializer(),
@@ -1603,6 +1664,13 @@ DEFAULT_DESERIALIZER_DICT = {
     param.XYCoordinates: DefaultNumericTupleDeserializer(),
 }
 
+'''Default deserializer that is not type specific
+
+See Also
+--------
+deserialize_from_dict
+    How this is used
+'''
 DEFAULT_BACKUP_DESERIALIZER = DefaultDeserializer()
 
 
@@ -1675,7 +1743,7 @@ def deserialize_from_dict(
 
     Default deserializers are likely appropriate for basic types like strings,
     ints, bools, floats, and numeric tuples. For more complex data types,
-    including recursive `param.Parameterized` instances, custom deserializers
+    including recursive ``param.Parameterized`` instances, custom deserializers
     are recommended.
 
     Parameters
@@ -1797,8 +1865,8 @@ def deserialize_from_ini(
     them), the action will try to deserialize the section specified by
     `one_param_section` keyword argument
 
-    Paramters
-    ---------
+    Parameters
+    ----------
     file : file pointer or str
         The INI file to deserialize from. Can be a pointer or a path
     parameterized : param.Parameterized or dict
@@ -1891,8 +1959,8 @@ def deserialize_from_yaml(
     a YAML file to a dictionary, then populates `parameterized` with the
     contents of this dictionary
 
-    Paramters
-    ---------
+    Parameters
+    ----------
     file : file pointer or str
         The YAML file to deserialize from. Can be a pointer or a path
     parameterized : param.Parameterized or dict
@@ -1908,9 +1976,8 @@ def deserialize_from_yaml(
     Notes
     -----
     This function tries to use the YAML (de)serialization module to load the
-    YAML file in the order listed in
-    ``pydrobert.param.serialization.YAML_MODULE_PRIORITIES``, falling back on
-    the next if there's an ``ImportError``. Only ``"ruamel.yaml"``,
+    YAML file in the order listed in ``YAML_MODULE_PRIORITIES``, falling back
+    on the next if there's an ``ImportError``. Only ``"ruamel.yaml"``,
     ``"ruamel_yaml"``, and "``pyyaml``" are supported constants in
     ``YAML_MODULE_PRIORITIES``
     '''
@@ -1947,8 +2014,8 @@ def deserialize_from_json(
     a JSON file to a dictionary, then populates `parameterized` with the
     contents of this dictionary
 
-    Paramters
-    ---------
+    Parameters
+    ----------
     file : file pointer or str
         The JSON file to deserialize from. Can be a pointer or a path
     parameterized : param.Parameterized or dict
