@@ -1,3 +1,7 @@
+[![Build Status](https://travis-ci.com/sdrobert/pydrobert-param.svg?branch=master)](https://travis-ci.com/sdrobert/pydrobert-param)
+[![Documentation Status](https://readthedocs.org/projects/pydrobert-param/badge/?version=latest)](https://pydrobert-param.readthedocs.io/en/latest/?badge=latest)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+
 # pydrobert-param
 
 Utilities for the python package [param](http://param.pyviz.org/)
