@@ -43,22 +43,25 @@ class ParameterizedFileReadAction(
     '''Base class for deserializing files into a param.Parameterized object
 
     Subclasses of this class can be added as the 'action' keyword to an
-    `argparse.ArgumentParser.add_argument()` call. The action will read the
+    ``argparse.ArgumentParser.add_argument()`` call. The action will read the
     file path passed as an argument via command line and use the contents
-    of the file to populate `param.Parameterized` instances. The subclass
+    of the file to populate ``param.Parameterized`` instances. The subclass
     deserializes the contents of the file according to the
     ``pydrobert.param.serialization.deserializing_from_filetype`` function,
     where ``filetype`` is replaced with the subclass' file type.
 
     There are three ways to specify parameterized objects to populate. They
     are mutually exclusive:
-    1. Set the keyword `type` with the subclass of `param.Parameterized` you
+
+    1. Set the keyword `type` with the subclass of ``param.Parameterized`` you
        want to deserialize into. A new instance of that subclass will be
        created with a name matching `dest`. The instance will be returned in
        the parsed namespace's attribute whose name matches `dest` as well.
+
     2. Set the keyword `parameterized` with an instance of
-       `param.Parameterized`. That instance will be populated and also
+       ``param.Parameterized``. That instance will be populated and also
        returned in the parsed namespace's attribute whose name matches `dest`.
+
     3. Set the keyword `parameterized` as a hierarchical dictionary of
        ``param.Parameterized`` instances. The leaves of the dictionary will
        be populated according to the "hierarchical mode" specified in the
