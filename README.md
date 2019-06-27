@@ -46,5 +46,5 @@ _pydrobert-param_ is available via both PyPI and Conda.
 ``` sh
 conda install -c sdrobert pydrobert-param
 pip install pydrobert-param
-pip install https://github.com/sdrobert/pydrobert-param # bleeding edge
+pip install git+https://github.com/sdrobert/pydrobert-param # bleeding edge
 ```
