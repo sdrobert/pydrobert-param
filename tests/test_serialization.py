@@ -288,7 +288,7 @@ def test_serialize_to_ini():
     assert parser.getint('b', 'integer') == -1
 
 
-def test_serialize_to_yaml(myyaml):
+def test_serialize_to_yaml(yaml_loader):
     parameterized_a = BigDumbParams(name='test_serialize_to_yaml_a')
     parameterized_a.dict_ = {'foo': {'bar': None}}
     parameterized_a.list_ = [2, 4, 6, 8]
@@ -299,7 +299,7 @@ def test_serialize_to_yaml(myyaml):
         include_help=False
     )
     sbuff.seek(0)
-    dict_ = myyaml.load(sbuff)
+    dict_ = yaml_loader(sbuff)
     assert dict_['dict_']['foo']['bar'] is None
     assert dict_['list_'] == [2, 4, 6, 8]
     parameterized_b = BigDumbParams(name='test_serialize_to_yaml_b')
@@ -333,7 +333,7 @@ def test_serialize_to_yaml(myyaml):
     assert (
         s.find("Series axes", first_series_idx, first_series_n_idx) != -1)
     sbuff.seek(0)
-    dict_ = myyaml.load(sbuff)
+    dict_ = yaml_loader(sbuff)
     assert dict_['a']['dict_']['foo']['bar'] is None
     assert dict_['a']['list_'] == [2, 4, 6, 8]
     assert np.allclose(dict_['b']['c']['series'], pd.Series(range(20)))

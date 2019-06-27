@@ -60,7 +60,7 @@ def test_ini_read_action():
     assert parsed.zoo['params_b'].object_selector == 1
 
 
-def test_yaml_read_action(myyaml):
+def test_yaml_read_action(yaml_loader):
     parser = ArgumentParser()
     parser.add_argument(
         'zoo',

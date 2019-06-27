@@ -1629,13 +1629,13 @@ def deserialize_from_dict(
         on_missing='warn'):
     '''Deserialize a dictionary into a parameterized object
 
-    This function is suitable for deserializing the results of parsing
-    a data storage file such as a YAML, JSON, or a section of an INI file
-    (using the `yaml`, `json`, and `configparser` python modules, resp.)
-    into a `param.Parameterized` object. Each key in `dict_` should match
-    the name of a parameter in `parameterized`. The parameter will be
-    deserialized into `parameterized` using a `ParamConfigDeserializer` object
-    matched with the following precedent:
+    This function is suitable for deserializing the results of parsing a data
+    storage file such as a YAML, JSON, or a section of an INI file (using the
+    ``yaml``, ``json``, and ``configparser`` python modules, resp.) into a
+    ``param.Parameterized`` object. Each key in `dict_` should match the name
+    of a parameter in `parameterized`. The parameter will be deserialized into
+    `parameterized` using a ``ParamConfigDeserializer`` object matched with the
+    following precedent:
 
      1. If `deserializer_name_dict` is specified and contains the same key,
         the value of the item in `deserializer_name_dict` will be used.
@@ -1643,21 +1643,21 @@ def deserialize_from_dict(
         *exactly matches* a key in `deserializer_type_dict`, the value of the
         item in `deserializer_type_dict` will be used.
      3. If the type of the parameter in question *exactly matches* a key in
-        `DEFAULT_DESERIALIZER_DICT`, the value of the item in
-        `DEFAULT_DESERIALIZER_DICT` will be used.
-     4. `DEFAULT_BACKUP_DESERIALIZER` will be used.
+        ``DEFAULT_DESERIALIZER_DICT``, the value of the item in
+        ``DEFAULT_DESERIALIZER_DICT`` will be used.
+     4. ``DEFAULT_BACKUP_DESERIALIZER`` will be used.
 
     It is possible to pass a dictionary as `parameterized` instead of a
     ``param.Parameterized`` instance to this function. This is "hierarchical
     mode". The values of `parameterized` can be ``param.Parameterized`` objects
     or nested dictionaries. In this case, `dict_` and `deserializer_name_dict`
     are expected to be dictionaries with the same hierarchical structure
-    (though the latter can still be ``None``). `deserializer_type_dict` can
-    be a flat dictionary of types to be applied to all nodes, or a
-    hierarchical dictionary of strings like `dict_`, or some combination.
-    The leaves of `dict_` deserialize into the leaves of `parameterized`. If
-    no leaf of `dict_` exists for a given `parameterized` leaf, that
-    parameterized object will not be updated.
+    (though the latter can still be ``None``). `deserializer_type_dict` can be
+    a flat dictionary of types to be applied to all nodes, or a hierarchical
+    dictionary of strings like `dict_`, or some combination. The leaves of
+    `dict_` deserialize into the leaves of `parameterized`. If no leaf of
+    `dict_` exists for a given `parameterized` leaf, that parameterized object
+    will not be updated.
 
     Default deserializers are likely appropriate for basic types like strings,
     ints, bools, floats, and numeric tuples. For more complex data types,
@@ -1706,9 +1706,7 @@ def deserialize_from_dict(
                     if on_missing == 'raise':
                         raise ValueErro(msg)
                     elif on_missing == 'warn':
-                        # FIXME(sdrobert): do something involving param
-                        import warnings
-                        warnings.warn(msg)
+                        param.get_logger().warning(msg)
                     continue
                 d_stack.append(d.get(name, dict()))
                 p_stack.append(p_name)
@@ -1832,33 +1830,36 @@ def deserialize_from_ini(
 def _deserialize_from_yaml_fp(
         fp, parameterized,
         deserializer_name_dict, deserializer_type_dict, on_missing):
-    yaml = None
+    yaml_loader = None
     for name in YAML_MODULE_PRIORITIES:
         if name == 'ruamel.yaml':
             try:
                 from ruamel.yaml import YAML
-                yaml = YAML()
+                yaml_loader = YAML().load
             except ImportError:
                 pass
         elif name == 'ruamel_yaml':
             try:
                 from ruamel_yaml import YAML
-                yaml = YAML()
+                yaml_loader = YAML().load
             except ImportError:
                 pass
         elif name == 'pyyaml':
             try:
                 import yaml
+
+                def yaml_loader(x):
+                    return yaml.load(x, Loader=yaml.FullLoader)
             except ImportError:
                 pass
         else:
             raise ValueError(
                 "Invalid value in YAML_MODULE_PRIORITIES: {}".format(name))
-    if yaml is None:
+    if yaml_loader is None:
         raise ImportError(
             'Could not import any of {} for YAML deserialization'.format(
                 YAML_MODULE_PRIORITIES))
-    dict_ = yaml.load(fp)
+    dict_ = yaml_loader(fp)
     deserialize_from_dict(
         dict_, parameterized,
         deserializer_name_dict=deserializer_name_dict,
