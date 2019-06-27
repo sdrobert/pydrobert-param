@@ -27,6 +27,7 @@ def main():
         name='pydrobert-param',
         description="Utilities for the python package 'param'",
         long_description=LONG_DESCRIPTION,
+        long_description_content_type='text/markdown',
         use_scm_version=True,
         zip_safe=False,
         url='https://github.com/sdrobert/pydrobert-param',
