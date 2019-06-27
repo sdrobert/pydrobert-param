@@ -363,7 +363,7 @@ def test_serialize_to_json():
         {'b': {'q': {'list_', 'string'}}, 'z': {'number', 'list_selector'}}
     )
     sbuff.seek(0)
-    dict_ = json.load(sbuff)
+    dict_ = json.load(sbuff, object_pairs_hook=OrderedDict)
     assert list(dict_.keys()) == ['z', 'b']
     assert dict_['z']['number'] == 10.
     assert dict_['z']['list_selector'] == ['2', '2', '2']
