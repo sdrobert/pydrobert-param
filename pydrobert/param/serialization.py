@@ -1704,7 +1704,7 @@ def deserialize_from_dict(
                         'parameterized instance to match it'
                     ).format(n_stack[-1])
                     if on_missing == 'raise':
-                        raise ValueErro(msg)
+                        raise ValueError(msg)
                     elif on_missing == 'warn':
                         param.get_logger().warning(msg)
                     continue
