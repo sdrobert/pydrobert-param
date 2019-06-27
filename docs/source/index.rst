@@ -5,7 +5,8 @@ pydrobert-param
    :maxdepth: 2
    :caption: Contents:
 
-.. include:: modules.rst
+   modules.rst
+   tutorial.rst
 
 Indices and tables
 ==================
