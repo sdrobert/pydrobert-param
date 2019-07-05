@@ -19,6 +19,7 @@ from __future__ import division
 from __future__ import print_function
 
 import abc
+import json
 
 from builtins import bytes
 from collections import OrderedDict
@@ -36,7 +37,6 @@ __email__ = "sdrobert@cs.toronto.edu"
 __license__ = "Apache 2.0"
 __copyright__ = "Copyright 2019 Sean Robertson"
 __all__ = [
-    'DEFAULT_BACKUP_SERIALIZER',
     'DEFAULT_BACKUP_SERIALIZER',
     'DEFAULT_DESERIALIZER_DICT',
     'DEFAULT_SERIALIZER_DICT',
@@ -61,15 +61,31 @@ __all__ = [
     'DefaultObjectSelectorDeserializer',
     'DefaultObjectSelectorSerializer',
     'DefaultSerializer',
-    'DefaultSerializer',
     'DefaultSeriesSerializer',
     'DefaultStringDeserializer',
-    'DefaultTupleSerializer',
     'DefaultTupleSerializer',
     'deserialize_from_dict',
     'deserialize_from_ini',
     'deserialize_from_json',
     'deserialize_from_yaml',
+    'JSON_STRING_SERIALIZER_DICT',
+    'JSONStringArrayDeserializer',
+    'JSONStringArraySerializer',
+    'JSONStringDataFrameDeserializer',
+    'JSONStringDataFrameSerializer',
+    'JSONStringDateRangeDeserializer',
+    'JSONStringDateRangeSerializer',
+    'JSONStringDictSerializer',
+    'JSONStringDictDeserializer',
+    'JSONStringListDeserializer',
+    'JSONStringListSelectorDeserializer',
+    'JSONStringListSelectorSerializer',
+    'JSONStringListSerializer',
+    'JSONStringNumericTupleDeserializer',
+    'JSONStringSeriesDeserializer',
+    'JSONStringSeriesSerializer',
+    'JSONStringTupleDeserializer',
+    'JSONStringTupleSerializer',
     'ParamConfigDeserializer',
     'ParamConfigSerializer',
     'ParamConfigTypeError',
@@ -95,6 +111,11 @@ except ImportError:
             return all(c == d for c, d in zip(a, b))
         except Exception:
             return 0
+
+try:
+    basestring
+except NameError:
+    basestring = str
 
 
 def _equal(a, b):
@@ -254,7 +275,7 @@ class DefaultDataFrameSerializer(ParamConfigSerializer):
 
 
 def _datetime_to_formatted(parameterized, name, dt, formats):
-    if isinstance(formats, str):
+    if isinstance(formats, basestring):
         formats = (formats,)
     s = None
     try:
@@ -488,6 +509,63 @@ class DefaultTupleSerializer(ParamConfigSerializer):
         return val if val is None else list(val)
 
 
+def _to_json_string_serializer(cls, typename):
+
+    class _JSONStringSerializer(cls):
+        '''Converts a {} to a JSON string
+
+        The default serializer used in INI files. This does the same as
+        ``{}``, but then converts it to a json string
+
+        See Also
+        --------
+        serialize_to_json
+            To serialize an entire ``param.Parameterized`` instance as json
+        '''.format(typename, cls.__name__)
+
+        def help_string(self, name, parameterized):
+            s = super(_JSONStringSerializer, self).help_string(
+                parameterized, name)
+            if s is None:
+                return 'A JSON string'
+            else:
+                return 'A JSON string. ' + s
+
+        def serialize(self, name, parameterized):
+            val = super(_JSONStringSerializer, self).serialize(
+                name, parameterized)
+            try:
+                return json.dumps(val)
+            except (TypeError, ValueError) as e:
+                raise_from(ParamConfigTypeError(parameterized, name), e)
+
+    return _JSONStringSerializer
+
+
+JSONStringArraySerializer = _to_json_string_serializer(
+    DefaultArraySerializer, 'numpy array')
+
+JSONStringDataFrameSerializer = _to_json_string_serializer(
+    DefaultDataFrameSerializer, '``pandas.DataFrame``')
+
+JSONStringDateRangeSerializer = _to_json_string_serializer(
+    DefaultDateRangeSerializer, 'date range')
+
+JSONStringDictSerializer = _to_json_string_serializer(
+    DefaultSerializer, 'dict')
+
+JSONStringListSerializer = _to_json_string_serializer(
+    DefaultSerializer, 'list')
+
+JSONStringListSelectorSerializer = _to_json_string_serializer(
+    DefaultListSelectorSerializer, 'list selector')
+
+JSONStringSeriesSerializer = _to_json_string_serializer(
+    DefaultSeriesSerializer, '``pandas.Series``')
+
+JSONStringTupleSerializer = _to_json_string_serializer(
+    DefaultTupleSerializer, 'tuple')
+
 '''Default serializers by param type
 
 See Also
@@ -519,6 +597,31 @@ serialize_to_dict
     How this is used
 '''
 DEFAULT_BACKUP_SERIALIZER = DefaultSerializer()
+
+
+'''JSON string serializers by param type
+
+Used as defaults when writing an INI file
+
+See Also
+--------
+serialize_to_ini
+    How these are used
+'''
+JSON_STRING_SERIALIZER_DICT = {
+    param.Array: JSONStringArraySerializer(),
+    param.DataFrame: JSONStringDataFrameSerializer(),
+    param.DateRange: JSONStringDateRangeSerializer(),
+    param.List: JSONStringListSerializer(),
+    param.Dict: JSONStringDictSerializer(),
+    param.ListSelector: JSONStringListSelectorSerializer(),
+    param.MultiFileSelector: JSONStringListSelectorSerializer(),
+    param.NumericTuple: JSONStringTupleSerializer(),
+    param.Range: JSONStringTupleSerializer(),
+    param.Series: JSONStringSeriesSerializer(),
+    param.Tuple: JSONStringTupleSerializer(),
+    param.XYCoordinates: JSONStringTupleSerializer(),
+}
 
 
 def _serialize_to_dict_flat(
@@ -691,6 +794,12 @@ def serialize_to_dict(
 def _serialize_to_ini_fp(
         fp, parameterized, only, serializer_name_dict, serializer_type_dict,
         on_missing, include_help, help_prefix, one_param_section):
+    if serializer_type_dict:
+        d = JSON_STRING_SERIALIZER_DICT.copy()
+        d.update(serializer_type_dict)
+        serializer_type_dict = d
+    else:
+        serializer_type_dict = JSON_STRING_SERIALIZER_DICT
     dict_ = serialize_to_dict(
         parameterized,
         only=only,
@@ -774,20 +883,28 @@ def serialize_to_ini(
     '''Serialize a parameterized instance into an INI (config) file
 
     `.INI syntax <https://en.wikipedia.org/wiki/INI_file>`, also including
-    `interpolation
-    <https://docs.python.org/3.7/library/configparser.html>`. This function
-    converts `parameterized` to a dictionary, then fills an INI file with
-    the contents of this dictionary.
+    `interpolation <https://docs.python.org/3.7/library/configparser.html>`.
+    This function converts `parameterized` to a dictionary, then fills an INI
+    file with the contents of this dictionary.
 
-    INI files are broken up into sections; all key-value
-    pairs must belong to a section. If `parameterized` is a
-    ``param.Parameterized`` instance (rather than a hierarchical dictionary of
-    them), the action will try to serialize `parameterized` into the section
-    specified by the `one_param_section` keyword argument. If `parameterized`
-    is a hierarchical dictionary, it can only have depth 1, with each leaf
-    being a ``param.Parameterized`` instance. In this case, each key
-    corresponds to a section. If an ordered dictionary, sections will be
-    written in the same order as they exist in `parameterized`.
+    INI files are broken up into sections; all key-value pairs must belong to a
+    section. If `parameterized` is a ``param.Parameterized`` instance (rather
+    than a hierarchical dictionary of them), the action will try to serialize
+    `parameterized` into the section specified by the `one_param_section`
+    keyword argument. If `parameterized` is a hierarchical dictionary, it can
+    only have depth 1, with each leaf being a ``param.Parameterized`` instance.
+    In this case, each key corresponds to a section. If an ordered dictionary,
+    sections will be written in the same order as they exist in
+    `parameterized`.
+
+    Because the INI syntax does not support standard containers like dicts or
+    lists out-of-the-box, this function uses the ``JSONString*Serializer`` to
+    convert container values to JSON strings before writing them to the INI
+    file. This solution was proposed `here
+    <https://stackoverflow.com/questions/335695/lists-in-configparser>`.
+    Defaults from ``DEFAULT_SERIALIZER_DICT`` are clobbered by those from
+    ``JSON_STRING_SERIALIZER_DICT``. You can get the original defaults back
+    by including them in `serializer_type_dict`
 
     Parameters
     ----------
@@ -984,7 +1101,6 @@ def _serialize_to_json_fp(
         on_missing=on_missing,
         include_help=False,
     )
-    import json
     json.dump(dict_, fp, indent=indent)
 
 
@@ -1332,7 +1448,7 @@ class DefaultDataFrameDeserializer(ParamConfigDeserializer):
             except Exception as e:
                 raise_from(ParamConfigTypeError(parameterized, name), e)
         try:
-            block = pandas.DataFrame(data=block, **kwargs)
+            block = pandas.DataFrame(data=block, **self.kwargs)
             parameterized.param.set_param(name, block)
             return
         except Exception as e:
@@ -1441,7 +1557,7 @@ class DefaultDateRangeDeserializer(ParamConfigDeserializer):
             if isinstance(elem, datetime):
                 val.append(elem)
                 continue
-            if self.format is not None and isinstance(elem, str):
+            if self.format is not None and isinstance(elem, basestring):
                 v = _get_datetime_from_formats(elem, self.format)
                 if v is not None:
                     val.append(v)
@@ -1634,6 +1750,88 @@ class DefaultTupleDeserializer(_CastDeserializer):
     class_ = tuple
 
 
+class JSONStringDataFrameDeserializer(DefaultDataFrameDeserializer):
+    '''Parses block as JSON before converting to ``pandas.DataFrame``
+
+    The default deserializer used in INI files. Input is always assumed to
+    be a string. It parses the value as JSON, then does the same as
+    ``DefaultDataFrameSerializer``. However, if the input ends in a file
+    suffix like ".csv", ".xls", etc., the input will be immediately passed
+    to ``DefaultDataFrameSerializer``
+
+    See Also
+    --------
+    deserialize_to_json
+        To deserialize json into ``param.Parameterized`` instances
+    '''
+    file_suffixes = {
+        'csv', 'json', 'html', '.xls', 'h5', 'feather', 'parquet',
+        'msg', 'dta', 'sas7bdat', 'pkl',
+    }
+
+    def deserialize(self, name, block, parameterized):
+        bs = block.split('.')
+        if len(bs) > 1 and bs[-1] in self.file_suffixes:
+            return super(JSONStringDataFrameDeserializer, self).deserialize(
+                name, block, parameterized)
+        try:
+            block = json.loads(block)
+        except json.JSONDecodeError as e:
+            raise_from(ParamConfigTypeError(parameterized, name), e)
+        super(JSONStringDataFrameDeserializer, self).deserialize(
+            name, block, parameterized)
+
+
+def _to_json_string_deserializer(cls, typename):
+
+    class _JSONStringDeserializer(cls):
+        '''Parses block as json before converting into {}
+
+        The default deserializer used in INI files. It parses the value as
+        JSON, then does the same as ``{}``
+
+        See Also
+        --------
+        deserialize_to_json
+            To deserialize json into ``param.Parameterized`` instances
+        '''.format(typename, cls.__name__)
+
+        def deserialize(self, name, block, parameterized):
+            try:
+                block = json.loads(block)
+            except json.JSONDecodeError as e:
+                raise_from(ParamConfigTypeError(parameterized, name), e)
+            super(_JSONStringDeserializer, self).deserialize(
+                name, block, parameterized)
+
+    return _JSONStringDeserializer
+
+
+JSONStringArrayDeserializer = _to_json_string_deserializer(
+    DefaultArrayDeserializer, 'numpy array')
+
+JSONStringDateRangeDeserializer = _to_json_string_deserializer(
+    DefaultDateRangeDeserializer, 'date range')
+
+JSONStringDictDeserializer = _to_json_string_deserializer(
+    DefaultDeserializer, 'dict')
+
+JSONStringListDeserializer = _to_json_string_deserializer(
+    DefaultListDeserializer, 'list')
+
+JSONStringListSelectorDeserializer = _to_json_string_deserializer(
+    DefaultListSelectorDeserializer, 'list selector')
+
+JSONStringNumericTupleDeserializer = _to_json_string_deserializer(
+    DefaultNumericTupleDeserializer, 'numeric tuple')
+
+JSONStringSeriesDeserializer = _to_json_string_deserializer(
+    DefaultSeriesDeserializer, '``pandas.Series``')
+
+JSONStringTupleDeserializer = _to_json_string_deserializer(
+    DefaultTupleDeserializer, 'tuple')
+
+
 '''Default deserializers by parameter type
 
 See Also
@@ -1672,6 +1870,31 @@ deserialize_from_dict
     How this is used
 '''
 DEFAULT_BACKUP_DESERIALIZER = DefaultDeserializer()
+
+
+'''JSON string deserializers by param type
+
+Used as defaults when parsing an INI file
+
+See Also
+--------
+deserialize_to_ini
+    How these are used
+'''
+JSON_STRING_DESERIALIZER_DICT = {
+    param.Array: JSONStringArrayDeserializer(),
+    param.DataFrame: JSONStringDataFrameDeserializer(),
+    param.DateRange: JSONStringDateRangeDeserializer(),
+    param.Dict: JSONStringDictDeserializer(),
+    param.List: JSONStringListDeserializer(),
+    param.ListSelector: JSONStringListSelectorDeserializer(),
+    param.MultiFileSelector: JSONStringListSelectorDeserializer(),
+    param.NumericTuple: JSONStringNumericTupleDeserializer(),
+    param.Range: JSONStringNumericTupleDeserializer(),
+    param.Series: JSONStringSeriesDeserializer(),
+    param.Tuple: JSONStringTupleDeserializer(),
+    param.XYCoordinates: JSONStringNumericTupleDeserializer(),
+}
 
 
 def _deserialize_from_dict_flat(
@@ -1812,6 +2035,12 @@ def _deserialize_from_ini_fp(
         deserializer_name_dict, deserializer_type_dict, on_missing,
         defaults, comment_prefixes, inline_comment_prefixes,
         one_param_section):
+    if deserializer_type_dict:
+        d = JSON_STRING_DESERIALIZER_DICT.copy()
+        d.update(deserializer_type_dict)
+        deserializer_type_dict = d
+    else:
+        deserializer_type_dict = JSON_STRING_DESERIALIZER_DICT
     try:
         from ConfigParser import SafeConfigParser
         parser = SafeConfigParser(defaults=defaults)
@@ -1854,16 +2083,23 @@ def deserialize_from_ini(
     '''Deserialize an INI (config) file into a parameterized instance
 
     `.INI syntax <https://en.wikipedia.org/wiki/INI_file>`, also including
-    `interpolation
-    <https://docs.python.org/3.7/library/configparser.html>`. This function
-    converts an INI file to a dictionary, then populates `parameterized` with
-    the contents of this dictionary.
+    `interpolation <https://docs.python.org/3.7/library/configparser.html>`.
+    This function converts an INI file to a dictionary, then populates
+    `parameterized` with the contents of this dictionary.
 
-    INI files are broken up into sections; all key-value
-    pairs must belong to a section. If `parameterized` is a
-    ``param.Parameterized`` instance (rather than a hierarchical dictionary of
-    them), the action will try to deserialize the section specified by
-    `one_param_section` keyword argument
+    INI files are broken up into sections; all key-value pairs must belong to a
+    section. If `parameterized` is a ``param.Parameterized`` instance (rather
+    than a hierarchical dictionary of them), the action will try to deserialize
+    the section specified by `one_param_section` keyword argument.
+
+    Because the INI syntax does not support standard containers like dicts or
+    lists out-of-the-box, this function uses the ``JSONString*Deserializer`` to
+    read container values to JSON strings before trying the standard method of
+    deserialization. This solution was proposed `here
+    <https://stackoverflow.com/questions/335695/lists-in-configparser>`.
+    Defaults from ``DEFAULT_DESERIALIZER_DICT`` are clobbered by those from
+    ``JSON_DESTRING_SERIALIZER_DICT``. You can get the original defaults back
+    by including them in `deserializer_type_dict`
 
     Parameters
     ----------
