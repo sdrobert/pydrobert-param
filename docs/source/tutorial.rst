@@ -29,14 +29,14 @@ As an example, suppose we have parameterized classes and instances:
       'model': m_params,
     }
 
-We can serialize these easily into JSON or YAML:
+We can serialize these easily into JSON, YAML, or INI:
 
 .. code-block:: python
 
     from pydrobert.param import serialization as serial
     serial.serialize_to_json('conf.json', param_dict)
-    # requires ruamel.yaml or pyyaml
-    serial.serialize_to_yaml('conf.yaml', param_dict)
+    serial.serialize_to_yaml('conf.yaml', param_dict)  # requires ruamel.yaml or pyyaml
+    serial.serialize_to_ini('conf.ini', param_dict)
 
 where we get
 
@@ -58,7 +58,7 @@ where we get
       }
     }
 
-and
+or
 
 .. currently, there's a bug in YAML syntax (issue #1528 in pygments-main)
 .. that doesn't like the last line of this example. Until fixed, use verbatim
@@ -76,6 +76,29 @@ and
         - fc
       activations: relu  # Choices: "tanh", "relu"
 
+or
+
+.. code-block:: ini
+
+    # == Help ==
+    # [training]
+    # model_regex: Regular exp for storing model weights after every epoch
+    # lr: The learning rate
+
+    # [model]
+    # activations: Choices: "tanh", "relu"
+    # layers: Sequence of layers by type, bottom-first. A JSON string. Element choices: "conv", "fc", "recurrent"
+
+
+    [training]
+    model_regex = model-{epoch:05d}.pkl
+    max_epochs = 10
+    lr = 1e-05
+
+    [model]
+    activations = relu
+    layers = ["conv", "conv", "fc"]
+
 respectively.
 
 Deserialization proceeds similarly. Files can be used to populate parameters in
@@ -92,8 +115,10 @@ existing parameterized instances.
 config files right from the command line. Wow, neat-o!
 
 Sometimes, the default (de)serialization routines are unsuited for the data.
-For example, INI files do not have a standard format for lists of values. We
-can design a custom serializer and deserializer for handling our `layers`
+For example, INI files do not have a standard format for lists of values. For
+this, and many other container types, values are parsed with JSON syntax. If we
+wanted to parse lists differently, such as a comma-delimited list, we can
+design a custom serializer and deserializer for handling our `layers`
 parameter:
 
 .. code-block:: python
