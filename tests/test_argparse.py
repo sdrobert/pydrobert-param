@@ -39,12 +39,14 @@ class CommaListDeserializer(object):
 def test_ini_read_action():
     parser = ArgumentParser()
     parser.add_argument(
-        'zoo',
+        '--zoo',
         action=pargparse.ParameterizedIniReadAction,
         type=ParamsA,
+        nargs='?',
+        const=os.path.join(FILE_DIR, 'param.ini'),
         deserializer_type_dict={param.List: CommaListDeserializer()},
     )
-    parsed = parser.parse_args([os.path.join(FILE_DIR, 'param.ini')])
+    parsed = parser.parse_args(['--zoo'])
     assert parsed.zoo.bingo == 'a'
     assert parsed.zoo.bango == 1
     assert parsed.zoo.bongo == ['b', 'a', 'd']
@@ -52,6 +54,7 @@ def test_ini_read_action():
     parser.add_argument(
         'zoo',
         action=pargparse.ParameterizedIniReadAction,
+        nargs='+',
         parameterized={'params_b': ParamsB()},
         deserializer_type_dict={
             'params_b': {param.List: CommaListDeserializer()}},
@@ -64,10 +67,14 @@ def test_yaml_read_action(yaml_loader):
     parser = ArgumentParser()
     parser.add_argument(
         'zoo',
+        nargs='+',
         action=pargparse.ParameterizedYamlReadAction,
         type=ParamsA,
     )
-    parsed = parser.parse_args([os.path.join(FILE_DIR, 'param.yaml')])
+    parsed = parser.parse_args([
+        os.path.join(FILE_DIR, 'param.yaml'),
+        os.path.join(FILE_DIR, 'param.yaml')
+    ])
     assert parsed.zoo.bingo == 'a'
     assert parsed.zoo.bango == 1
     assert parsed.zoo.bongo == ['b', 1, False]
@@ -79,6 +86,16 @@ def test_yaml_read_action(yaml_loader):
     )
     parsed = parser.parse_args([os.path.join(FILE_DIR, 'param.yaml')])
     assert parsed.zoo['params_b'].object_selector == '2'
+    print('heeee')
+    parser = ArgumentParser()
+    parser.add_argument(
+        'zoo',
+        nargs='*',
+        action=pargparse.ParameterizedYamlReadAction,
+        parameterized={'params_a': ParamsB()},  # mismatch if actually parsed
+    )
+    parsed = parser.parse_args([])
+    assert parsed.zoo['params_a'].object_selector is None
 
 
 def test_json_read_action():
@@ -95,8 +112,9 @@ def test_json_read_action():
     parser = ArgumentParser()
     parser.add_argument(
         'zoo',
+        nargs='*',
         action=pargparse.ParameterizedJsonReadAction,
-        parameterized={'params_b': ParamsB()}
+        parameterized={'params_b': ParamsB()},
     )
     parsed = parser.parse_args([os.path.join(FILE_DIR, 'param.json')])
     assert parsed.zoo['params_b'].object_selector == 1
