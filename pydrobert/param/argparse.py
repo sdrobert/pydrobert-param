@@ -93,6 +93,14 @@ class ParameterizedFileReadAction(
     metavar : str, optional
         The name to be used for the option's argument with the help string.
         If ``None``, the `dest` value will be used as the name.
+    nargs : str or int, optional
+        The number of command line arguments to be consumed. When more than
+        one argument is specified, each will be deserialized in the order that
+        they were presented on the command line. Thus, later config values
+        will clobber earlier ones
+    const : str, optional
+        If `nargs` is ``'?'`` but the flag is present on the command line,
+        this value will be supplied as the missing argument
 
     Attributes
     ----------
@@ -112,7 +120,8 @@ class ParameterizedFileReadAction(
             self, option_strings, dest,
             parameterized=None, type=None, deserializer_name_dict=None,
             deserializer_type_dict=None, on_missing='warn',
-            required=False, help=None, metavar=None):
+            required=False, help=None, metavar=None, nargs=None,
+            const=None):
         if parameterized is None and type is None:
             raise TypeError('one of parameterized or type must be set')
         if parameterized is not None and type is not None:
@@ -128,6 +137,7 @@ class ParameterizedFileReadAction(
             option_strings, dest,
             type=argparse.FileType('r'), default=self.parameterized,
             required=required, help=help, metavar=metavar,
+            nargs=nargs, const=const,
         )
 
     @abc.abstractmethod
@@ -140,7 +150,13 @@ class ParameterizedFileReadAction(
         raise NotImplementedError()
 
     def __call__(self, parser, namespace, values, option_string=None):
-        self.deserialize(values)
+        # the latter occurs with, for example, nargs='*' and empty args
+        if values is None or values == self.parameterized:
+            return
+        if not isinstance(values, list):
+            values = [values]
+        for fp in values:
+            self.deserialize(fp)
 
 
 class ParameterizedIniReadAction(ParameterizedFileReadAction):
@@ -158,6 +174,8 @@ class ParameterizedIniReadAction(ParameterizedFileReadAction):
     required : bool, optional
     help : str, optional
     metavar : str, optional
+    nargs : str or int, optional
+    const : str, optional
     defaults : dict, optional
     comment_prefixes : tuple, optional
     inline_comment_prefixes : sequence, optional
@@ -176,7 +194,7 @@ class ParameterizedIniReadAction(ParameterizedFileReadAction):
             self, option_strings, dest,
             parameterized=None, type=None, deserializer_name_dict=None,
             deserializer_type_dict=None, on_missing='warn',
-            required=False, help=None, metavar=None,
+            required=False, help=None, metavar=None, nargs=None, const=None,
             defaults=None, comment_prefixes=('#', ';'),
             inline_comment_prefixes=(';',), one_param_section=None):
         self.defaults = defaults
@@ -189,7 +207,7 @@ class ParameterizedIniReadAction(ParameterizedFileReadAction):
             deserializer_name_dict=deserializer_name_dict,
             deserializer_type_dict=deserializer_type_dict,
             on_missing=on_missing, required=required, help=help,
-            metavar=metavar,
+            metavar=metavar, nargs=nargs, const=const,
         )
 
     def deserialize(self, fp):
@@ -219,6 +237,9 @@ class ParameterizedYamlReadAction(ParameterizedFileReadAction):
     required : bool, optional
     help : str, optional
     metavar : str, optional
+    nargs : int or str, optional
+    const : str, optional
+
 
     See Also
     --------
@@ -252,6 +273,8 @@ class ParameterizedJsonReadAction(ParameterizedFileReadAction):
     required : bool, optional
     help : str, optional
     metavar : str, optional
+    nargs : str, optional
+    const : str, optional
 
     See Also
     --------
