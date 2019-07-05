@@ -27,6 +27,8 @@ def ParamsB(name=None):
     class _ParamsB(param.Parameterized):
         object_selector = param.ObjectSelector(None, objects=[1, '2'])
         dont_try_this = param.Callable(None)
+        date_range = param.DateRange(None)
+        list_ = param.List(None)
     return _ParamsB(name=name)
 
 
@@ -56,11 +58,10 @@ def test_ini_read_action():
         action=pargparse.ParameterizedIniReadAction,
         nargs='+',
         parameterized={'params_b': ParamsB()},
-        deserializer_type_dict={
-            'params_b': {param.List: CommaListDeserializer()}},
     )
     parsed = parser.parse_args([os.path.join(FILE_DIR, 'param.ini')])
     assert parsed.zoo['params_b'].object_selector == 1
+    assert parsed.zoo['params_b'].list_ == [1, 1, 3]
 
 
 def test_yaml_read_action(yaml_loader):
@@ -86,7 +87,6 @@ def test_yaml_read_action(yaml_loader):
     )
     parsed = parser.parse_args([os.path.join(FILE_DIR, 'param.yaml')])
     assert parsed.zoo['params_b'].object_selector == '2'
-    print('heeee')
     parser = ArgumentParser()
     parser.add_argument(
         'zoo',
