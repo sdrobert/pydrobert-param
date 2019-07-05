@@ -180,12 +180,19 @@ def test_can_serialize_with_defaults(name, set_to, expected):
 
 @pytest.mark.parametrize('name,set_to,expected', [
     ('array', np.array([[[1]], [[2]], [[3]]]), '[[[1]], [[2]], [[3]]]'),
+    (
+        'data_frame',
+        pd.DataFrame({'a': 'foo', 'b': [1, 2, 3]}),
+        '[["foo", 1], ["foo", 2], ["foo", 3]]',
+    ),
 ])
 def test_json_str_serializers(name, set_to, expected):
     parameterized = BigDumbParams(name='test_json_str_serializers')
     parameterized.param.set_param(name, set_to)
     if name == 'array':
         serializer = serial.JSONStringArraySerializer()
+    elif name == 'data_frame':
+        serializer = serial.JSONStringDataFrameSerializer()
     actual = serializer.serialize(name, parameterized)
     assert expected == actual
 

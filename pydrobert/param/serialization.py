@@ -106,8 +106,6 @@ def _equal(a, b):
     return r
 
 
-_JSON_LIST_HELP = "A json list (i.e. '[elem_1, elem_2, ...]')"
-
 
 class ParamConfigTypeError(TypeError):
     '''Raised when failed to (de)serialize Parameterized object'''
@@ -116,14 +114,6 @@ class ParamConfigTypeError(TypeError):
         super(ParamConfigTypeError, self).__init__(
             '{}.{}: {}'.format(parameterized.name, name, message)
         )
-
-
-def _to_json_str(val, name, parameterized):
-    try:
-        s = json.dumps(val)
-    except (TypeError, ValueError) as e:
-        raise_from(ParamConfigTypeError(parameterized, name), e)
-    return s
 
 
 def _from_json_str(block, name, parameterized):
@@ -204,32 +194,6 @@ class DefaultArraySerializer(ParamConfigSerializer):
         if val is None:
             return val
         return val.tolist()
-
-
-class JSONStringArraySerializer(DefaultArraySerializer):
-    '''Convert JSON stored in a string to a numpy array
-
-    The default serializer used in INI files. This treats the value at hand
-    as a string of JSON.
-
-    See Also
-    --------
-    serialize_to_json
-        To serialize an entire ``param.Parameterized`` instance as json
-    '''
-
-    def help_string(self, name, parameterized):
-        s = super(JSONStringArraySerializer, self).help_string(
-            name, parameterized)
-        if s is None:
-            return _JSON_LIST_HELP
-        else:
-            return _JSON_LIST_HELP + '. ' + s
-
-    def serialize(self, name, parameterized):
-        val = super(JSONStringArraySerializer, self).serialize(
-            name, parameterized)
-        return _to_json_str(val, name, parameterized)
 
 
 def _get_name_from_param_range(name, parameterized, val):
@@ -533,6 +497,46 @@ class DefaultTupleSerializer(ParamConfigSerializer):
     def serialize(self, name, parameterized):
         val = getattr(parameterized, name)
         return val if val is None else list(val)
+
+
+def _to_json_string_serializer(cls, typename):
+
+    class _JSONStringSerializer(cls):
+        '''Converts a {} to a JSON string
+
+        The default serializer used in INI files. This does the same as
+        ``{}``, but then converts it to a json string
+
+        See Also
+        --------
+        serialize_to_json
+            To serialize an entire ``param.Parameterized`` instance as json
+        '''.format(typename, cls.__name__)
+
+        def help_string(self, name, parameterized):
+            s = super(_JSONStringSerializer, self).help_string(
+                parameterized, name)
+            if s is None:
+                return 'A JSON string'
+            else:
+                return 'A JSON string. ' + s
+
+        def serialize(self, name, parameterized):
+            val = super(_JSONStringSerializer, self).serialize(
+                name, parameterized)
+            try:
+                return json.dumps(val)
+            except (TypeError, ValueError) as e:
+                raise_from(ParamConfigTypeError(parameterized, name), e)
+
+    return _JSONStringSerializer
+
+
+JSONStringArraySerializer = _to_json_string_serializer(
+    DefaultArraySerializer, 'numpy array')
+
+JSONStringDataFrameSerializer = _to_json_string_serializer(
+    DefaultDataFrameSerializer, '``pandas.DataFrame``')
 
 
 '''Default serializers by param type
@@ -1678,6 +1682,7 @@ class DefaultStringDeserializer(_CastDeserializer):
 class DefaultTupleDeserializer(_CastDeserializer):
     __doc__ = _CastDeserializer.__doc__.format('tuple')
     class_ = tuple
+
 
 
 '''Default deserializers by parameter type
