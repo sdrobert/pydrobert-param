@@ -301,7 +301,7 @@ def test_serialize_to_ini():
     serial.serialize_to_ini(
         sbuff,
         OrderedDict((('a', parameterized_a), ('b', parameterized_b))),
-        only={'a': {'number', 'boolean'}, 'b': {'string', 'integer'}},
+        only={'a': {'number', 'boolean'}, 'b': {'string', 'integer', 'list_'}},
         include_help=True,
     )
     s = sbuff.getvalue()
@@ -322,6 +322,7 @@ def test_serialize_to_ini():
     assert parser.has_section('b')
     assert parser.get('b', 'string') == "I'm gonna get get get you drunk"
     assert parser.getint('b', 'integer') == -1
+    assert parser.get('b', 'list_') == "[1, 2, 3]"
 
 
 def test_serialize_to_yaml(yaml_loader):

@@ -794,6 +794,12 @@ def serialize_to_dict(
 def _serialize_to_ini_fp(
         fp, parameterized, only, serializer_name_dict, serializer_type_dict,
         on_missing, include_help, help_prefix, one_param_section):
+    if serializer_type_dict:
+        d = JSON_STRING_SERIALIZER_DICT.copy()
+        d.update(serializer_type_dict)
+        serializer_type_dict = d
+    else:
+        serializer_type_dict = JSON_STRING_SERIALIZER_DICT
     dict_ = serialize_to_dict(
         parameterized,
         only=only,
@@ -877,20 +883,28 @@ def serialize_to_ini(
     '''Serialize a parameterized instance into an INI (config) file
 
     `.INI syntax <https://en.wikipedia.org/wiki/INI_file>`, also including
-    `interpolation
-    <https://docs.python.org/3.7/library/configparser.html>`. This function
-    converts `parameterized` to a dictionary, then fills an INI file with
-    the contents of this dictionary.
+    `interpolation <https://docs.python.org/3.7/library/configparser.html>`.
+    This function converts `parameterized` to a dictionary, then fills an INI
+    file with the contents of this dictionary.
 
-    INI files are broken up into sections; all key-value
-    pairs must belong to a section. If `parameterized` is a
-    ``param.Parameterized`` instance (rather than a hierarchical dictionary of
-    them), the action will try to serialize `parameterized` into the section
-    specified by the `one_param_section` keyword argument. If `parameterized`
-    is a hierarchical dictionary, it can only have depth 1, with each leaf
-    being a ``param.Parameterized`` instance. In this case, each key
-    corresponds to a section. If an ordered dictionary, sections will be
-    written in the same order as they exist in `parameterized`.
+    INI files are broken up into sections; all key-value pairs must belong to a
+    section. If `parameterized` is a ``param.Parameterized`` instance (rather
+    than a hierarchical dictionary of them), the action will try to serialize
+    `parameterized` into the section specified by the `one_param_section`
+    keyword argument. If `parameterized` is a hierarchical dictionary, it can
+    only have depth 1, with each leaf being a ``param.Parameterized`` instance.
+    In this case, each key corresponds to a section. If an ordered dictionary,
+    sections will be written in the same order as they exist in
+    `parameterized`.
+
+    Because the INI syntax does not support standard containers like dicts or
+    lists out-of-the-box, this function uses the ``JSONString*Serializer`` to
+    convert container values to JSON strings before writing them to the INI
+    file. This solution was proposed `here
+    <https://stackoverflow.com/questions/335695/lists-in-configparser>`.
+    Defaults from ``DEFAULT_SERIALIZER_DICT`` are clobbered by those from
+    ``JSON_STRING_SERIALIZER_DICT``. You can get the original defaults back
+    by including them in `serializer_type_dict`
 
     Parameters
     ----------
@@ -2021,6 +2035,12 @@ def _deserialize_from_ini_fp(
         deserializer_name_dict, deserializer_type_dict, on_missing,
         defaults, comment_prefixes, inline_comment_prefixes,
         one_param_section):
+    if deserializer_type_dict:
+        d = JSON_STRING_DESERIALIZER_DICT.copy()
+        d.update(deserializer_type_dict)
+        deserializer_type_dict = d
+    else:
+        deserializer_type_dict = JSON_STRING_DESERIALIZER_DICT
     try:
         from ConfigParser import SafeConfigParser
         parser = SafeConfigParser(defaults=defaults)
@@ -2063,16 +2083,23 @@ def deserialize_from_ini(
     '''Deserialize an INI (config) file into a parameterized instance
 
     `.INI syntax <https://en.wikipedia.org/wiki/INI_file>`, also including
-    `interpolation
-    <https://docs.python.org/3.7/library/configparser.html>`. This function
-    converts an INI file to a dictionary, then populates `parameterized` with
-    the contents of this dictionary.
+    `interpolation <https://docs.python.org/3.7/library/configparser.html>`.
+    This function converts an INI file to a dictionary, then populates
+    `parameterized` with the contents of this dictionary.
 
-    INI files are broken up into sections; all key-value
-    pairs must belong to a section. If `parameterized` is a
-    ``param.Parameterized`` instance (rather than a hierarchical dictionary of
-    them), the action will try to deserialize the section specified by
-    `one_param_section` keyword argument
+    INI files are broken up into sections; all key-value pairs must belong to a
+    section. If `parameterized` is a ``param.Parameterized`` instance (rather
+    than a hierarchical dictionary of them), the action will try to deserialize
+    the section specified by `one_param_section` keyword argument.
+
+    Because the INI syntax does not support standard containers like dicts or
+    lists out-of-the-box, this function uses the ``JSONString*Deserializer`` to
+    read container values to JSON strings before trying the standard method of
+    deserialization. This solution was proposed `here
+    <https://stackoverflow.com/questions/335695/lists-in-configparser>`.
+    Defaults from ``DEFAULT_DESERIALIZER_DICT`` are clobbered by those from
+    ``JSON_DESTRING_SERIALIZER_DICT``. You can get the original defaults back
+    by including them in `deserializer_type_dict`
 
     Parameters
     ----------
