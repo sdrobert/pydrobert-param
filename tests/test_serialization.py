@@ -178,6 +178,18 @@ def test_can_serialize_with_defaults(name, set_to, expected):
         assert expected == actual
 
 
+@pytest.mark.parametrize('name,set_to,expected', [
+    ('array', np.array([[[1]], [[2]], [[3]]]), '[[[1]], [[2]], [[3]]]'),
+])
+def test_json_str_serializers(name, set_to, expected):
+    parameterized = BigDumbParams(name='test_json_str_serializers')
+    parameterized.param.set_param(name, set_to)
+    if name == 'array':
+        serializer = serial.JSONStringArraySerializer()
+    actual = serializer.serialize(name, parameterized)
+    assert expected == actual
+
+
 def test_serialize_to_dict():
     parameterized_a = BigDumbParams(name='test_serialize_to_dict_a')
     parameterized_a.number = 5.

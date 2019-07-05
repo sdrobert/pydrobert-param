@@ -19,6 +19,7 @@ from __future__ import division
 from __future__ import print_function
 
 import abc
+import json
 
 from builtins import bytes
 from collections import OrderedDict
@@ -36,6 +37,7 @@ __email__ = "sdrobert@cs.toronto.edu"
 __license__ = "Apache 2.0"
 __copyright__ = "Copyright 2019 Sean Robertson"
 __all__ = [
+    'JSONArraySerializer',
     'DEFAULT_BACKUP_SERIALIZER',
     'DEFAULT_BACKUP_SERIALIZER',
     'DEFAULT_DESERIALIZER_DICT',
@@ -104,6 +106,9 @@ def _equal(a, b):
     return r
 
 
+_JSON_LIST_HELP = "A json list (i.e. '[elem_1, elem_2, ...]')"
+
+
 class ParamConfigTypeError(TypeError):
     '''Raised when failed to (de)serialize Parameterized object'''
 
@@ -111,6 +116,22 @@ class ParamConfigTypeError(TypeError):
         super(ParamConfigTypeError, self).__init__(
             '{}.{}: {}'.format(parameterized.name, name, message)
         )
+
+
+def _to_json_str(val, name, parameterized):
+    try:
+        s = json.dumps(val)
+    except (TypeError, ValueError) as e:
+        raise_from(ParamConfigTypeError(parameterized, name), e)
+    return s
+
+
+def _from_json_str(block, name, parameterized):
+    try:
+        block = json.loads(block)
+    except json.JSONDecodeError as e:
+        raise_from(ParamConfigTypeError(parameterized, name), e)
+    return block
 
 
 class ParamConfigSerializer(with_metaclass(abc.ABCMeta, object)):
@@ -183,6 +204,32 @@ class DefaultArraySerializer(ParamConfigSerializer):
         if val is None:
             return val
         return val.tolist()
+
+
+class JSONStringArraySerializer(DefaultArraySerializer):
+    '''Convert JSON stored in a string to a numpy array
+
+    The default serializer used in INI files. This treats the value at hand
+    as a string of JSON.
+
+    See Also
+    --------
+    serialize_to_json
+        To serialize an entire ``param.Parameterized`` instance as json
+    '''
+
+    def help_string(self, name, parameterized):
+        s = super(JSONStringArraySerializer, self).help_string(
+            name, parameterized)
+        if s is None:
+            return _JSON_LIST_HELP
+        else:
+            return _JSON_LIST_HELP + '. ' + s
+
+    def serialize(self, name, parameterized):
+        val = super(JSONStringArraySerializer, self).serialize(
+            name, parameterized)
+        return _to_json_str(val, name, parameterized)
 
 
 def _get_name_from_param_range(name, parameterized, val):
@@ -984,7 +1031,6 @@ def _serialize_to_json_fp(
         on_missing=on_missing,
         include_help=False,
     )
-    import json
     json.dump(dict_, fp, indent=indent)
 
 
