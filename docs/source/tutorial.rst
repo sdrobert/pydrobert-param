@@ -78,7 +78,7 @@ or
 
 or
 
-.. code-block::
+.. code-block:: ini
 
     # == Help ==
     # [training]
