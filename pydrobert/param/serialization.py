@@ -37,7 +37,6 @@ __email__ = "sdrobert@cs.toronto.edu"
 __license__ = "Apache 2.0"
 __copyright__ = "Copyright 2019 Sean Robertson"
 __all__ = [
-    'JSONArraySerializer',
     'DEFAULT_BACKUP_SERIALIZER',
     'DEFAULT_BACKUP_SERIALIZER',
     'DEFAULT_DESERIALIZER_DICT',
@@ -72,6 +71,10 @@ __all__ = [
     'deserialize_from_ini',
     'deserialize_from_json',
     'deserialize_from_yaml',
+    'JSON_STRING_SERIALIZER_DICT',
+    'JSONStringArraySerializer',
+    'JSONStringDataFrameSerializer',
+    'JSONStringDateRangeSerializer',
     'ParamConfigDeserializer',
     'ParamConfigSerializer',
     'ParamConfigTypeError',
@@ -104,7 +107,6 @@ def _equal(a, b):
     if r == 0:
         r = a == b
     return r
-
 
 
 class ParamConfigTypeError(TypeError):
@@ -538,6 +540,23 @@ JSONStringArraySerializer = _to_json_string_serializer(
 JSONStringDataFrameSerializer = _to_json_string_serializer(
     DefaultDataFrameSerializer, '``pandas.DataFrame``')
 
+JSONStringDateRangeSerializer = _to_json_string_serializer(
+    DefaultDateRangeSerializer, 'date range')
+
+JSONStringDictSerializer = _to_json_string_serializer(
+    DefaultSerializer, 'dict')
+
+JSONStringListSerializer = _to_json_string_serializer(
+    DefaultSerializer, 'list')
+
+JSONStringListSelectorSerializer = _to_json_string_serializer(
+    DefaultListSelectorSerializer, 'list selector')
+
+JSONStringSeriesSerializer = _to_json_string_serializer(
+    DefaultSeriesSerializer, '``pandas.Series``')
+
+JSONStringTupleSerializer = _to_json_string_serializer(
+    DefaultTupleSerializer, 'tuple')
 
 '''Default serializers by param type
 
@@ -570,6 +589,30 @@ serialize_to_dict
     How this is used
 '''
 DEFAULT_BACKUP_SERIALIZER = DefaultSerializer()
+
+
+'''JSON string serializers by param type
+
+Used as defaults when parsing an INI file
+
+See Also
+--------
+serialize_to_ini
+    How these are used
+'''
+JSON_STRING_SERIALIZER_DICT = {
+    param.Array: JSONStringArraySerializer(),
+    param.DataFrame: JSONStringDataFrameSerializer(),
+    param.DateRange: JSONStringDateRangeSerializer(),
+    param.List: JSONStringListSerializer(),
+    param.Dict: JSONStringDictSerializer(),
+    param.ListSelector: JSONStringListSelectorSerializer(),
+    param.NumericTuple: JSONStringTupleSerializer(),
+    param.Range: JSONStringTupleSerializer(),
+    param.Series: JSONStringSeriesSerializer(),
+    param.Tuple: JSONStringTupleSerializer(),
+    param.XYCoordinates: JSONStringTupleSerializer(),
+}
 
 
 def _serialize_to_dict_flat(

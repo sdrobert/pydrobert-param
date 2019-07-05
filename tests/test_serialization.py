@@ -159,6 +159,7 @@ def BigDumbParams(name=None):
     ('numeric_tuple', (1., 2.), [1., 2.]),
     ('object_selector', 1, 'True'),
     ('range_', (-1, 1), [-1., 1.]),
+    ('series', pd.Series([1, 2, 3, 4, 5]), [1, 2, 3, 4, 5]),
     ('string', 'foo', 'foo'),
     ('tuple_', (None, None, None), [None, None, None]),
     ('x_y_coordinates', (10., 4.), [10., 4.]),
@@ -185,14 +186,25 @@ def test_can_serialize_with_defaults(name, set_to, expected):
         pd.DataFrame({'a': 'foo', 'b': [1, 2, 3]}),
         '[["foo", 1], ["foo", 2], ["foo", 3]]',
     ),
+    (
+        'date_range',
+        (datetime(2222, 11, 11, 11), datetime(2222, 12, 12, 12)),
+        '["2222-11-11T11:00:00", "2222-12-12T12:00:00"]',
+    ),
+    ('dict_', {'a': {'a': 1}}, '{"a": {"a": 1}}'),
+    ('list_', [1, 2, 3], "[1, 2, 3]"),
+    ('list_selector', [1, 1, 2], '["1", "1", "2"]'),
+    ('numeric_tuple', (2., 1.), "[2.0, 1.0]"),
+    ('range_', (-10., 4.5), "[-10.0, 4.5]"),
+    ('series', pd.Series([1, 2, 3, 4, 5]), '[1, 2, 3, 4, 5]'),
+    ('tuple_', (1, None, None), '[1, null, null]'),
+    ('x_y_coordinates', (50., -1.), '[50.0, -1.0]'),
 ])
 def test_json_str_serializers(name, set_to, expected):
     parameterized = BigDumbParams(name='test_json_str_serializers')
     parameterized.param.set_param(name, set_to)
-    if name == 'array':
-        serializer = serial.JSONStringArraySerializer()
-    elif name == 'data_frame':
-        serializer = serial.JSONStringDataFrameSerializer()
+    p = parameterized.params()[name]
+    serializer = serial.JSON_STRING_SERIALIZER_DICT[type(p)]
     actual = serializer.serialize(name, parameterized)
     assert expected == actual
 
