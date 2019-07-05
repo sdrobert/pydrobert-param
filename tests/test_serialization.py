@@ -195,6 +195,11 @@ def test_can_serialize_with_defaults(name, set_to, expected):
     ('list_', [1, 2, 3], "[1, 2, 3]"),
     ('list_selector', [1, 1, 2], '["1", "1", "2"]'),
     ('numeric_tuple', (2., 1.), "[2.0, 1.0]"),
+    (
+        'multi_file_selector',
+        [os.path.join(os.path.dirname(FILE_DIR), 'README.md')],
+        '["README.md"]',
+    ),
     ('range_', (-10., 4.5), "[-10.0, 4.5]"),
     ('series', pd.Series([1, 2, 3, 4, 5]), '[1, 2, 3, 4, 5]'),
     ('tuple_', (1, None, None), '[1, null, null]'),
@@ -521,6 +526,53 @@ def test_can_deserialize_with_defaults(name, block, expected):
     deserializer.deserialize(name, block, parameterized)
     if type(expected) in {np.ndarray, pd.DataFrame, pd.Series}:
         assert all(expected == getattr(parameterized, name))
+    else:
+        assert expected == getattr(parameterized, name)
+
+
+@pytest.mark.parametrize('name,block,expected', [
+    ('array', '[1, -3, 2, 4]', np.array([1, -3, 2, 4])),
+    (
+        'data_frame',
+        '[["foo", 1], ["foo", 2], ["foo", 3]]',
+        pd.DataFrame([["foo", 1], ["foo", 2], ["foo", 3]]),
+    ),
+    (
+        'data_frame',
+        FILE_DIR + '/pandas_data_frame.csv',
+        pd.DataFrame(OrderedDict([('foo', [1., 3.]), ('bar', [2., 4.])])),
+    ),
+    (
+        'date_range',
+        '["1968-01-01", "2001-05-12"]',
+        (datetime(1968, 1, 1), datetime(2001, 5, 12)),
+    ),
+    ('dict_', '{"a": 1, "b": "howdy"}', {'a': 1, 'b': 'howdy'}),
+    ('list_', '[10, 11, 12]', [10, 11, 12]),
+    ('list_selector', '[1, "3"]', [1, 3]),
+    (
+        'multi_file_selector',
+        '["setup.py", "LICENSE"]',
+        [
+            os.path.join(os.path.dirname(FILE_DIR), x)
+            for x in ('setup.py', 'LICENSE')
+        ],
+    ),
+    ('numeric_tuple', "[1.0, -3.4]", (1., -3.4)),
+    ('range_', "[-10, 4]", (-10., 4.)),
+    ('series', "[1, 2, 3]", pd.Series([1, 2, 3])),
+    ('tuple_', '[true, {"foo": "bar"}, null]', (True, {"foo": "bar"}, None)),
+    ('x_y_coordinates', '[0, 1]', (0., 1.)),
+])
+def test_json_str_deserializers(name, block, expected):
+    parameterized = BigDumbParams(name='test_json_str_deserializers')
+    p = parameterized.params()[name]
+    deserializer = serial.JSON_STRING_DESERIALIZER_DICT[type(p)]
+    deserializer.deserialize(name, block, parameterized)
+    if type(expected) in {np.ndarray, pd.Series}:
+        assert all(expected == getattr(parameterized, name))
+    elif isinstance(expected, pd.DataFrame):
+        assert (expected == getattr(parameterized, name)).all(axis=None)
     else:
         assert expected == getattr(parameterized, name)
 

@@ -38,7 +38,6 @@ __license__ = "Apache 2.0"
 __copyright__ = "Copyright 2019 Sean Robertson"
 __all__ = [
     'DEFAULT_BACKUP_SERIALIZER',
-    'DEFAULT_BACKUP_SERIALIZER',
     'DEFAULT_DESERIALIZER_DICT',
     'DEFAULT_SERIALIZER_DICT',
     'DefaultArrayDeserializer',
@@ -62,19 +61,31 @@ __all__ = [
     'DefaultObjectSelectorDeserializer',
     'DefaultObjectSelectorSerializer',
     'DefaultSerializer',
-    'DefaultSerializer',
     'DefaultSeriesSerializer',
     'DefaultStringDeserializer',
-    'DefaultTupleSerializer',
     'DefaultTupleSerializer',
     'deserialize_from_dict',
     'deserialize_from_ini',
     'deserialize_from_json',
     'deserialize_from_yaml',
     'JSON_STRING_SERIALIZER_DICT',
+    'JSONStringArrayDeserializer',
     'JSONStringArraySerializer',
+    'JSONStringDataFrameDeserializer',
     'JSONStringDataFrameSerializer',
+    'JSONStringDateRangeDeserializer',
     'JSONStringDateRangeSerializer',
+    'JSONStringDictSerializer',
+    'JSONStringDictDeserializer',
+    'JSONStringListDeserializer',
+    'JSONStringListSelectorDeserializer',
+    'JSONStringListSelectorSerializer',
+    'JSONStringListSerializer',
+    'JSONStringNumericTupleDeserializer',
+    'JSONStringSeriesDeserializer',
+    'JSONStringSeriesSerializer',
+    'JSONStringTupleDeserializer',
+    'JSONStringTupleSerializer',
     'ParamConfigDeserializer',
     'ParamConfigSerializer',
     'ParamConfigTypeError',
@@ -116,14 +127,6 @@ class ParamConfigTypeError(TypeError):
         super(ParamConfigTypeError, self).__init__(
             '{}.{}: {}'.format(parameterized.name, name, message)
         )
-
-
-def _from_json_str(block, name, parameterized):
-    try:
-        block = json.loads(block)
-    except json.JSONDecodeError as e:
-        raise_from(ParamConfigTypeError(parameterized, name), e)
-    return block
 
 
 class ParamConfigSerializer(with_metaclass(abc.ABCMeta, object)):
@@ -593,7 +596,7 @@ DEFAULT_BACKUP_SERIALIZER = DefaultSerializer()
 
 '''JSON string serializers by param type
 
-Used as defaults when parsing an INI file
+Used as defaults when writing an INI file
 
 See Also
 --------
@@ -607,6 +610,7 @@ JSON_STRING_SERIALIZER_DICT = {
     param.List: JSONStringListSerializer(),
     param.Dict: JSONStringDictSerializer(),
     param.ListSelector: JSONStringListSelectorSerializer(),
+    param.MultiFileSelector: JSONStringListSelectorSerializer(),
     param.NumericTuple: JSONStringTupleSerializer(),
     param.Range: JSONStringTupleSerializer(),
     param.Series: JSONStringSeriesSerializer(),
@@ -1425,7 +1429,7 @@ class DefaultDataFrameDeserializer(ParamConfigDeserializer):
             except Exception as e:
                 raise_from(ParamConfigTypeError(parameterized, name), e)
         try:
-            block = pandas.DataFrame(data=block, **kwargs)
+            block = pandas.DataFrame(data=block, **self.kwargs)
             parameterized.param.set_param(name, block)
             return
         except Exception as e:
@@ -1727,6 +1731,87 @@ class DefaultTupleDeserializer(_CastDeserializer):
     class_ = tuple
 
 
+class JSONStringDataFrameDeserializer(DefaultDataFrameDeserializer):
+    '''Parses block as JSON before converting to ``pandas.DataFrame``
+
+    The default deserializer used in INI files. Input is always assumed to
+    be a string. It parses the value as JSON, then does the same as
+    ``DefaultDataFrameSerializer``. However, if the input ends in a file
+    suffix like ".csv", ".xls", etc., the input will be immediately passed
+    to ``DefaultDataFrameSerializer``
+
+    See Also
+    --------
+    deserialize_to_json
+        To deserialize json into ``param.Parameterized`` instances
+    '''
+    file_suffixes = {
+        'csv', 'json', 'html', '.xls', 'h5', 'feather', 'parquet',
+        'msg', 'dta', 'sas7bdat', 'pkl',
+    }
+
+    def deserialize(self, name, block, parameterized):
+        bs = block.split('.')
+        if len(bs) > 1 and bs[-1] in self.file_suffixes:
+            return super(JSONStringDataFrameDeserializer, self).deserialize(
+                name, block, parameterized)
+        try:
+            block = json.loads(block)
+        except json.JSONDecodeError as e:
+            raise_from(ParamConfigTypeError(parameterized, name), e)
+        super(JSONStringDataFrameDeserializer, self).deserialize(
+            name, block, parameterized)
+
+
+def _to_json_string_deserializer(cls, typename):
+
+    class _JSONStringDeserializer(cls):
+        '''Parses block as json before converting into {}
+
+        The default deserializer used in INI files. It parses the value as
+        JSON, then does the same as ``{}``
+
+        See Also
+        --------
+        deserialize_to_json
+            To deserialize json into ``param.Parameterized`` instances
+        '''.format(typename, cls.__name__)
+
+        def deserialize(self, name, block, parameterized):
+            try:
+                block = json.loads(block)
+            except json.JSONDecodeError as e:
+                raise_from(ParamConfigTypeError(parameterized, name), e)
+            super(_JSONStringDeserializer, self).deserialize(
+                name, block, parameterized)
+
+    return _JSONStringDeserializer
+
+
+JSONStringArrayDeserializer = _to_json_string_deserializer(
+    DefaultArrayDeserializer, 'numpy array')
+
+JSONStringDateRangeDeserializer = _to_json_string_deserializer(
+    DefaultDateRangeDeserializer, 'date range')
+
+JSONStringDictDeserializer = _to_json_string_deserializer(
+    DefaultDeserializer, 'dict')
+
+JSONStringListDeserializer = _to_json_string_deserializer(
+    DefaultListDeserializer, 'list')
+
+JSONStringListSelectorDeserializer = _to_json_string_deserializer(
+    DefaultListSelectorDeserializer, 'list selector')
+
+JSONStringNumericTupleDeserializer = _to_json_string_deserializer(
+    DefaultNumericTupleDeserializer, 'numeric tuple')
+
+JSONStringSeriesDeserializer = _to_json_string_deserializer(
+    DefaultSeriesDeserializer, '``pandas.Series``')
+
+JSONStringTupleDeserializer = _to_json_string_deserializer(
+    DefaultTupleDeserializer, 'tuple')
+
 
 '''Default deserializers by parameter type
 
@@ -1766,6 +1851,31 @@ deserialize_from_dict
     How this is used
 '''
 DEFAULT_BACKUP_DESERIALIZER = DefaultDeserializer()
+
+
+'''JSON string deserializers by param type
+
+Used as defaults when parsing an INI file
+
+See Also
+--------
+deserialize_to_ini
+    How these are used
+'''
+JSON_STRING_DESERIALIZER_DICT = {
+    param.Array: JSONStringArrayDeserializer(),
+    param.DataFrame: JSONStringDataFrameDeserializer(),
+    param.DateRange: JSONStringDateRangeDeserializer(),
+    param.Dict: JSONStringDictDeserializer(),
+    param.List: JSONStringListDeserializer(),
+    param.ListSelector: JSONStringListSelectorDeserializer(),
+    param.MultiFileSelector: JSONStringListSelectorDeserializer(),
+    param.NumericTuple: JSONStringNumericTupleDeserializer(),
+    param.Range: JSONStringNumericTupleDeserializer(),
+    param.Series: JSONStringSeriesDeserializer(),
+    param.Tuple: JSONStringTupleDeserializer(),
+    param.XYCoordinates: JSONStringNumericTupleDeserializer(),
+}
 
 
 def _deserialize_from_dict_flat(
