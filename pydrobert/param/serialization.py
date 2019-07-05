@@ -36,14 +36,6 @@ __email__ = "sdrobert@cs.toronto.edu"
 __license__ = "Apache 2.0"
 __copyright__ = "Copyright 2019 Sean Robertson"
 __all__ = [
-    'CommaListSerializer',
-    'CommaListDeserializer',
-    'CommaListSelectorSerializer',
-    'CommaListSelectorDeserializer',
-    'CommaListArraySerializer',
-    'CommaListArrayDeserializer',
-    'CommaListTupleSerializer',
-    'CommaListTupleDeserializer',
     'DEFAULT_BACKUP_SERIALIZER',
     'DEFAULT_BACKUP_SERIALIZER',
     'DEFAULT_DESERIALIZER_DICT',
@@ -112,14 +104,6 @@ def _equal(a, b):
     return r
 
 
-_COMMA_LIST_HELP = "Values separated by commas"
-
-_DEPTH_COMMA_LIST_HELP = _COMMA_LIST_HELP + """\
-. Nested lists can be created by enclosing comma-delimited lists with
-parentheses\
-"""
-
-
 class ParamConfigTypeError(TypeError):
     '''Raised when failed to (de)serialize Parameterized object'''
 
@@ -127,70 +111,6 @@ class ParamConfigTypeError(TypeError):
         super(ParamConfigTypeError, self).__init__(
             '{}.{}: {}'.format(parameterized.name, name, message)
         )
-
-
-def _list_to_comma_delim_str(
-        lst, parameterized, name, nested_list_types=(list, tuple)):
-    res = []
-    if not isinstance(lst, nested_list_types):
-        raise ParamConfigTypeError(
-            parameterized, name,
-            'List to serialize is not of type {}'.format(nested_list_types))
-    for obj in lst:
-        if isinstance(obj, nested_list_types):
-            res.append(
-                '(' +
-                _list_to_comma_delim_str(
-                    obj, parameterized, name, nested_list_types) +
-                ')')
-        else:
-            try:
-                obj = str(obj)
-                if obj.strip() != obj:
-                    raise ParamConfigTypeError(
-                        parameterized, name,
-                        '"{}" cannot have leading or trailing whitespace'
-                        ''.format(obj))
-                res.append(obj)
-            except ValueError as e:
-                raise_from(ParamConfigTypeError(parameterized, name), e)
-    return ', '.join(res)
-
-
-def _comma_delim_str_to_list(
-        block, parameterized, name, nested_depth=0, list_type=list):
-    if block is None:
-        return None
-    res_stack = [[]]
-    for char in block:
-        if char == '(' and nested_depth:
-            if len(res_stack) == nested_depth + 1:
-                raise ParamConfigTypeError(
-                    parameterized, name,
-                    'list cannot exceed nested depth of {}'
-                    ''.format(nested_depth))
-            res_stack.append([])
-        elif char == ')' and nested_depth:
-            if len(res_stack) == 1:
-                raise ParamConfigTypeError(
-                    parameterized, name,
-                    'Found ")" with no prior matching "("'
-                )
-            nested = list_type(res_stack.pop())
-            res_stack[-1].append(nested)
-        elif char == ',':
-            res_stack[-1].append('')
-        elif char.strip():
-            if not len(res_stack[-1]):
-                res_stack[-1].append(char)
-            else:
-                res_stack[-1][-1] += char
-    if len(res_stack) != 1:
-        raise ParamConfigTypeError(
-            parameterized, name,
-            'Found "(" with no subsequent matching ")"'
-        )
-    return list_type(res_stack[0])
 
 
 class ParamConfigSerializer(with_metaclass(abc.ABCMeta, object)):
@@ -254,7 +174,6 @@ class DefaultArraySerializer(ParamConfigSerializer):
     '''Default numpy array serializer
 
     The process:
-
     1. If None, return
     2. Call value's ``tolist()`` method
     '''
@@ -264,23 +183,6 @@ class DefaultArraySerializer(ParamConfigSerializer):
         if val is None:
             return val
         return val.tolist()
-
-
-class CommaListArraySerializer(DefaultArraySerializer):
-    '''Serialize numpy arrays into comma-delimited lists
-
-    Used as INI serializer default
-    '''
-
-    def help_string(self, name, parameterized):
-        return _DEPTH_COMMA_LIST_HELP
-
-    def serialize(self, name, parameterized):
-        val = super(CommaListArraySerializer, self).serialize(
-            name, parameterized)
-        if val is None:
-            return val
-        return _list_to_comma_delim_str(val, parameterized, name)
 
 
 def _get_name_from_param_range(name, parameterized, val):
@@ -1680,7 +1582,6 @@ class DefaultNumericTupleDeserializer(ParamConfigDeserializer):
     '''Default numeric tuple deserializer
 
     The process:
-
     1. None check
     2. Cast each element of `block` to a ``float``
     3. Cast `block` to a ``tuple``

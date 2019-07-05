@@ -178,18 +178,6 @@ def test_can_serialize_with_defaults(name, set_to, expected):
         assert expected == actual
 
 
-@pytest.mark.parametrize('name,set_to,expected', [
-    ('array', np.array([[[1]], [[2]], [[3]]]), '((1)), ((2)), ((3))'),
-])
-def test_comma_list_serialization(name, set_to, expected):
-    parameterized = BigDumbParams(name='test_comma_list_serialization')
-    parameterized.param.set_param(name, set_to)
-    if name == 'array':
-        actual = serial.CommaListArraySerializer().serialize(
-            name, parameterized)
-    assert expected == actual
-
-
 def test_serialize_to_dict():
     parameterized_a = BigDumbParams(name='test_serialize_to_dict_a')
     parameterized_a.number = 5.
