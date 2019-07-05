@@ -27,6 +27,7 @@ def ParamsB(name=None):
     class _ParamsB(param.Parameterized):
         object_selector = param.ObjectSelector(None, objects=[1, '2'])
         dont_try_this = param.Callable(None)
+        date_range = param.DateRange(None)
     return _ParamsB(name=name)
 
 
@@ -86,7 +87,6 @@ def test_yaml_read_action(yaml_loader):
     )
     parsed = parser.parse_args([os.path.join(FILE_DIR, 'param.yaml')])
     assert parsed.zoo['params_b'].object_selector == '2'
-    print('heeee')
     parser = ArgumentParser()
     parser.add_argument(
         'zoo',

@@ -112,6 +112,11 @@ except ImportError:
         except Exception:
             return 0
 
+try:
+    basestring
+except NameError:
+    basestring = str
+
 
 def _equal(a, b):
     r = _equal_array(a, b)
@@ -270,7 +275,7 @@ class DefaultDataFrameSerializer(ParamConfigSerializer):
 
 
 def _datetime_to_formatted(parameterized, name, dt, formats):
-    if isinstance(formats, str):
+    if isinstance(formats, basestring):
         formats = (formats,)
     s = None
     try:
@@ -1538,7 +1543,7 @@ class DefaultDateRangeDeserializer(ParamConfigDeserializer):
             if isinstance(elem, datetime):
                 val.append(elem)
                 continue
-            if self.format is not None and isinstance(elem, str):
+            if self.format is not None and isinstance(elem, basestring):
                 v = _get_datetime_from_formats(elem, self.format)
                 if v is not None:
                     val.append(v)
