@@ -81,7 +81,6 @@ def combine_ini_files(args=None):
         except AttributeError:
             parser.readfp(fp)
     parser.write(options.dest)
-    options.dest.flush()
     return 0
 
 
@@ -103,8 +102,9 @@ def _combine_json_files_parse_args(args):
     )
     parser.add_argument(
         '--compact', action='store_true', default=False,
-        help='By default, JSON dicts will have newlines and tab indentation. '
-        'If set, will encode structures in the most compact way possible'
+        help='By default, JSON dicts will have newlines and 2-space '
+        'indentation. If set, will encode structures in the most compact way '
+        'possible'
     )
     return parser.parse_args(args)
 
@@ -152,6 +152,5 @@ def combine_json_files(args=None):
     if options.compact:
         json.dump(v, options.dest)
     else:
-        json.dump(v, options.dest, indent="\t")
-    options.dest.flush()
+        json.dump(v, options.dest, indent=2, separators=(',', ': '))
     return 0

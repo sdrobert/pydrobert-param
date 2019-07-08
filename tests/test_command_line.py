@@ -61,59 +61,59 @@ baz = zoop'''
 def test_combine_json_files(temp_dir):
     paths = dict(
         (x, os.path.join(temp_dir, x + '.json'))
-        for x in 'abcdef'
+        for x in 'abcde'
     )
+    out = os.path.join(temp_dir, 'out.json')
     with open(paths['a'], 'w') as f:
         f.write('null\n')
     with open(paths['b'], 'w') as f:
         f.write('''\
 [
-\t"foo",
-\t{
-\t\t"bar": "baz"
-\t}
+  "foo",
+  {
+    "bar": "baz"
+  }
 ]''')
     with open(paths['c'], 'w') as f:
         f.write('''\
 [
-\t{
-\t\t"bar": "bum"
-\t}
+  {
+    "bar": "bum"
+  }
 ]''')
     with open(paths['d'], 'w') as f:
         f.write('''\
 {
-\t"a": {
-\t\t"b": 1,
-\t\t"a": [
-\t\t\t1,
-\t\t\t2,
-\t\t\t3
-\t\t]
-\t},
-\t"c": 1
+  "a": {
+    "b": 1,
+    "a": [
+      1,
+      2,
+      3
+    ]
+  },
+  "c": 1
 }
 ''')
     with open(paths['e'], 'w') as f:
         f.write('''\
 {
-\t"d": {
-\t\t"foo": "bar"
-\t},
-\t"a": null
+  "d": {
+    "foo": "bar"
+  },
+  "a": null
 }
 ''')
-    for path in list(paths.values())[:-1]:
-        assert not command_line.combine_json_files([path, paths['f']])
-        with open(path) as f, open(paths['f']) as g:
+    for path in list(paths.values()):
+        assert not command_line.combine_json_files([path, out])
+        with open(path) as f, open(out) as g:
             assert f.read().strip() == g.read().strip()
-    assert command_line.combine_json_files(
-        [paths['a'], paths['b'], paths['f']])
+    assert command_line.combine_json_files([paths['a'], paths['b'], out])
     assert not command_line.combine_json_files(
-        [paths['b'], paths['c'], paths['f'], '--compact', '--quiet'])
-    with open(paths['f']) as f:
+        [paths['b'], paths['c'], out, '--compact', '--quiet'])
+    with open(out) as f:
         assert f.read().strip() == '["foo", {"bar": "baz"}, {"bar": "bum"}]'
     assert not command_line.combine_json_files(
-        [paths['d'], paths['e'], paths['f'], '--compact'])
-    with open(paths['f']) as f:
+        [paths['d'], paths['e'], out, '--compact'])
+    with open(out) as f:
         assert f.read().strip() == '{"a": null, "c": 1, "d": {"foo": "bar"}}'
