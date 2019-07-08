@@ -53,6 +53,8 @@ def main():
             'console_scripts': [
                 'combine-ini-files = pydrobert.param.command_line:'
                 'combine_ini_files',
+                'combine-json-files = pydrobert.param.command_line:'
+                'combine_json_files',
             ]
         }
     )
