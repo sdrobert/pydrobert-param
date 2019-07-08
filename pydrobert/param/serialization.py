@@ -1047,7 +1047,7 @@ def serialize_to_yaml(
     '''Serialize a parameterized instance into a YAML file
 
     `YAML syntax <https://en.wikipedia.org/wiki/YAML>`. This function
-    converts `parameterized` to a dictionary, then fills an INI file with
+    converts `parameterized` to a dictionary, then fills a YAML file with
     the contents of this dictionary.
 
     Parameters
