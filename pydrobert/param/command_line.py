@@ -81,6 +81,7 @@ def combine_ini_files(args=None):
         except AttributeError:
             parser.readfp(fp)
     parser.write(options.dest)
+    options.dest.flush()
     return 0
 
 
@@ -152,4 +153,5 @@ def combine_json_files(args=None):
         json.dump(v, options.dest)
     else:
         json.dump(v, options.dest, indent="\t")
+    options.dest.flush()
     return 0
