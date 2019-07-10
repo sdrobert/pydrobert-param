@@ -30,6 +30,10 @@ requirements:
 build:
   noarch: python
   number: {{ build_num }}
+  entry_points:
+    - combine-ini-files = pydrobert.param.command_line:combine_ini_files
+    - combine-json-files = pydrobert.param.command_line:combine_json_files
+    - combine-yaml-files = pydrobert.param.command_line:combine_yaml_files
   script:
     - export SETUPTOOLS_SCM_PRETEND_VERSION=${PKG_VERSION}  # [not win]
     - set SETUPTOOLS_SCM_PRETEND_VERSION=%PKG_VERSION%  # [win]

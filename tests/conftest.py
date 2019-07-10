@@ -1,3 +1,6 @@
+from shutil import rmtree
+from tempfile import mkdtemp
+
 import pytest
 import pydrobert.param.serialization as serial
 
@@ -23,3 +26,10 @@ def yaml_loader(request):
     serial.YAML_MODULE_PRIORITIES = (module_name,)
     yield yaml_loader
     serial.YAML_MODULE_PRIORITIES = old_props
+
+
+@pytest.fixture
+def temp_dir():
+    dir_name = mkdtemp()
+    yield dir_name
+    rmtree(dir_name, ignore_errors=True)

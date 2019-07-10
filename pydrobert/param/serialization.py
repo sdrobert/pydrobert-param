@@ -791,9 +791,73 @@ def serialize_to_dict(
     return (dict_, help_dict) if include_help else dict_
 
 
-def _serialize_to_ini_fp(
-        fp, parameterized, only, serializer_name_dict, serializer_type_dict,
-        on_missing, include_help, help_prefix, one_param_section):
+def serialize_to_ini(
+        file, parameterized,
+        only=None,
+        serializer_name_dict=None,
+        serializer_type_dict=None,
+        on_missing='raise',
+        include_help=True,
+        help_prefix='#',
+        one_param_section=None):
+    '''Serialize a parameterized instance into an INI (config) file
+
+    `.INI syntax <https://en.wikipedia.org/wiki/INI_file>`, also including
+    `interpolation <https://docs.python.org/3.7/library/configparser.html>`.
+    This function converts `parameterized` to a dictionary, then fills an INI
+    file with the contents of this dictionary.
+
+    INI files are broken up into sections; all key-value pairs must belong to a
+    section. If `parameterized` is a ``param.Parameterized`` instance (rather
+    than a hierarchical dictionary of them), the action will try to serialize
+    `parameterized` into the section specified by the `one_param_section`
+    keyword argument. If `parameterized` is a hierarchical dictionary, it can
+    only have depth 1, with each leaf being a ``param.Parameterized`` instance.
+    In this case, each key corresponds to a section. If an ordered dictionary,
+    sections will be written in the same order as they exist in
+    `parameterized`.
+
+    Because the INI syntax does not support standard containers like dicts or
+    lists out-of-the-box, this function uses the ``JSONString*Serializer`` to
+    convert container values to JSON strings before writing them to the INI
+    file. This solution was proposed `here
+    <https://stackoverflow.com/questions/335695/lists-in-configparser>`.
+    Defaults from ``DEFAULT_SERIALIZER_DICT`` are clobbered by those from
+    ``JSON_STRING_SERIALIZER_DICT``. You can get the original defaults back
+    by including them in `serializer_type_dict`
+
+    Parameters
+    ----------
+    file : file pointer or str
+        The INI file to serialize to. Can be a pointer or a path
+    parameterized : param.Parameterized or dict
+    only : set or dict, optional
+    serializer_name_dict : dict, optional
+    serializer_type_dict : dict, optional
+    on_missing : {'ignore', 'warn', 'raise'}, optional
+    include_help : bool, optional
+        If ``True``, help documentation will be included at the top of the
+        INI file for any parameters and/or serializers that support it
+    help_prefix : str, optional
+        The character prefix used at the start of each help line, usually
+        indicating a comment
+    one_param_section : str or None, optional
+        If `parameterized` refers to a single ``param.Parameterized`` instance,
+        this keyword is used to indicate which section of the INI file
+        `parameterized` will be serialized to. If ``None``, the INI file's
+        default section (``"DEFAULT"``) will be used
+
+    See Also
+    --------
+    serialize_to_dict : A description of the serialization process and the
+        parameters to this function
+    '''
+    if isinstance(file, str):
+        with open(file, 'w') as fp:
+            return serialize_to_ini(
+                fp, parameterized, only, serializer_name_dict,
+                serializer_type_dict, on_missing, include_help, help_prefix,
+                one_param_section)
     if serializer_type_dict:
         d = JSON_STRING_SERIALIZER_DICT.copy()
         d.update(serializer_type_dict)
@@ -865,84 +929,10 @@ def _serialize_to_ini_fp(
                 s_queue.insert(0, key)
     help_string = help_string_io.getvalue()
     if len(help_string):
-        fp.write('{} == Help ==\n'.format(help_prefix))
-        fp.write(help_string)
-        fp.write('\n')
-    parser.write(fp)
-
-
-def serialize_to_ini(
-        file, parameterized,
-        only=None,
-        serializer_name_dict=None,
-        serializer_type_dict=None,
-        on_missing='raise',
-        include_help=True,
-        help_prefix='#',
-        one_param_section=None):
-    '''Serialize a parameterized instance into an INI (config) file
-
-    `.INI syntax <https://en.wikipedia.org/wiki/INI_file>`, also including
-    `interpolation <https://docs.python.org/3.7/library/configparser.html>`.
-    This function converts `parameterized` to a dictionary, then fills an INI
-    file with the contents of this dictionary.
-
-    INI files are broken up into sections; all key-value pairs must belong to a
-    section. If `parameterized` is a ``param.Parameterized`` instance (rather
-    than a hierarchical dictionary of them), the action will try to serialize
-    `parameterized` into the section specified by the `one_param_section`
-    keyword argument. If `parameterized` is a hierarchical dictionary, it can
-    only have depth 1, with each leaf being a ``param.Parameterized`` instance.
-    In this case, each key corresponds to a section. If an ordered dictionary,
-    sections will be written in the same order as they exist in
-    `parameterized`.
-
-    Because the INI syntax does not support standard containers like dicts or
-    lists out-of-the-box, this function uses the ``JSONString*Serializer`` to
-    convert container values to JSON strings before writing them to the INI
-    file. This solution was proposed `here
-    <https://stackoverflow.com/questions/335695/lists-in-configparser>`.
-    Defaults from ``DEFAULT_SERIALIZER_DICT`` are clobbered by those from
-    ``JSON_STRING_SERIALIZER_DICT``. You can get the original defaults back
-    by including them in `serializer_type_dict`
-
-    Parameters
-    ----------
-    file : file pointer or str
-        The INI file to serialize to. Can be a pointer or a path
-    parameterized : param.Parameterized or dict
-    only : set or dict, optional
-    serializer_name_dict : dict, optional
-    serializer_type_dict : dict, optional
-    on_missing : {'ignore', 'warn', 'raise'}, optional
-    include_help : bool, optional
-        If ``True``, help documentation will be included at the top of the
-        INI file for any parameters and/or serializers that support it
-    help_prefix : str, optional
-        The character prefix used at the start of each help line, usually
-        indicating a comment
-    one_param_section : str or None, optional
-        If `parameterized` refers to a single ``param.Parameterized`` instance,
-        this keyword is used to indicate which section of the INI file
-        `parameterized` will be serialized to. If ``None``, the INI file's
-        default section (``"DEFAULT"``) will be used
-
-    See Also
-    --------
-    serialize_to_dict : A description of the serialization process and the
-        parameters to this function
-    '''
-    if isinstance(file, str):
-        with open(file, 'w') as fp:
-            _serialize_to_ini_fp(
-                fp, parameterized, only, serializer_name_dict,
-                serializer_type_dict, on_missing, include_help, help_prefix,
-                one_param_section)
-    else:
-        _serialize_to_ini_fp(
-            file, parameterized, only, serializer_name_dict,
-            serializer_type_dict, on_missing, include_help, help_prefix,
-            one_param_section)
+        file.write('{} == Help ==\n'.format(help_prefix))
+        file.write(help_string)
+        file.write('\n')
+    parser.write(file)
 
 
 '''Specifies the order with which to try YAML parser modules
@@ -959,7 +949,7 @@ deserialize_from_yaml
 YAML_MODULE_PRIORITIES = ('ruamel.yaml', 'ruamel_yaml', 'pyyaml')
 
 
-def _serialize_to_ruamel_yaml(ruamel_yaml, fp, dict_, help_dict):
+def _serialize_to_ruamel_yaml_help_dict(ruamel_yaml, fp, dict_, help_dict):
     cdict = ruamel_yaml.comments.CommentedMap()
     c_stack = [cdict]
     d_stack = [dict_]
@@ -979,53 +969,63 @@ def _serialize_to_ruamel_yaml(ruamel_yaml, fp, dict_, help_dict):
                 c_stack.append(c2)
                 d_stack.append(dval)
                 h_stack.append(hval)
-    ruamel_yaml.round_trip_dump(cdict, stream=fp)
+    ruamel_yaml.YAML().dump(cdict, stream=fp)
 
 
-def _serialize_to_pyyaml(yaml, fp, dict_, help_dict):
+def _serialize_to_ruamel_yaml(ruamel_yaml, fp, obj, help_dict=None):
+    if help_dict:
+        return _serialize_to_ruamel_yaml_help_dict(
+            ruamel_yaml, fp, obj, help_dict)
+    elif isinstance(obj, dict):
+        # round-trip dump will use !!omap if an ordered dict. Don't want that.
+        # py2.7 seems to think OrderedDict is unordered, so we update
+        new = ruamel_yaml.comments.CommentedMap()
+        new.update(obj)
+        obj = new
+    ruamel_yaml.YAML().dump(obj, stream=fp)
+
+
+def _serialize_to_pyyaml(yaml, fp, obj, help_dict=None):
     if help_dict:
         help_string_io = StringIO()
         yaml.dump(help_dict, stream=help_string_io, default_flow_style=False)
         help_string = help_string_io.getvalue().replace('\n', '\n# ')
         help_string = '# == Help ==\n# ' + help_string + '\n'
         fp.write(help_string)
-    yaml.dump(dict_, stream=fp, default_flow_style=False)
+    # https://stackoverflow.com/questions/5121931/in-python-how-can-you-load-yaml-mappings-as-ordereddicts
+
+    class OrderedDumper(yaml.SafeDumper):
+        pass
+
+    def dict_representer(dumper, data):
+        return dumper.represent_mapping(
+            yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
+            data.items())
+
+    OrderedDumper.add_representer(OrderedDict, dict_representer)
+    yaml.dump(obj, Dumper=OrderedDumper, stream=fp, default_flow_style=False)
 
 
-def _serialize_to_yaml_fp(
-        fp, parameterized, only, serializer_name_dict, serializer_type_dict,
-        on_missing, include_help):
-    dict_ = serialize_to_dict(
-        parameterized,
-        only=only,
-        serializer_name_dict=serializer_name_dict,
-        serializer_type_dict=serializer_type_dict,
-        on_missing=on_missing,
-        include_help=include_help,
-    )
-    if include_help:
-        dict_, help_dict = dict_
-    else:
-        help_dict = dict()
+def _serialize_to_yaml(fp, obj, help_dict=None):
     for name in YAML_MODULE_PRIORITIES:
         if name == 'ruamel.yaml':
             try:
                 import ruamel.yaml
-                _serialize_to_ruamel_yaml(ruamel.yaml, fp, dict_, help_dict)
+                _serialize_to_ruamel_yaml(ruamel.yaml, fp, obj, help_dict)
                 return
             except ImportError:
                 pass
         elif name == 'ruamel_yaml':
             try:
                 import ruamel_yaml
-                _serialize_to_ruamel_yaml(ruamel_yaml, fp, dict_, help_dict)
+                _serialize_to_ruamel_yaml(ruamel_yaml, fp, obj, help_dict)
                 return
             except ImportError:
                 pass
         elif name == 'pyyaml':
             try:
                 import yaml
-                _serialize_to_pyyaml(yaml, fp, dict_, help_dict)
+                _serialize_to_pyyaml(yaml, fp, obj, help_dict)
                 return
             except ImportError:
                 pass
@@ -1047,7 +1047,7 @@ def serialize_to_yaml(
     '''Serialize a parameterized instance into a YAML file
 
     `YAML syntax <https://en.wikipedia.org/wiki/YAML>`. This function
-    converts `parameterized` to a dictionary, then fills an INI file with
+    converts `parameterized` to a dictionary, then fills a YAML file with
     the contents of this dictionary.
 
     Parameters
@@ -1081,13 +1081,22 @@ def serialize_to_yaml(
     '''
     if isinstance(file, str):
         with open(file, 'w') as fp:
-            _serialize_to_yaml_fp(
+            return serialize_to_yaml(
                 fp, parameterized, only, serializer_name_dict,
                 serializer_type_dict, on_missing, include_help)
+    dict_ = serialize_to_dict(
+        parameterized,
+        only=only,
+        serializer_name_dict=serializer_name_dict,
+        serializer_type_dict=serializer_type_dict,
+        on_missing=on_missing,
+        include_help=include_help,
+    )
+    if include_help:
+        dict_, help_dict = dict_
     else:
-        _serialize_to_yaml_fp(
-            file, parameterized, only, serializer_name_dict,
-            serializer_type_dict, on_missing, include_help)
+        help_dict = dict()
+    _serialize_to_yaml(file, dict_, help_dict)
 
 
 def _serialize_to_json_fp(
@@ -2030,47 +2039,6 @@ def deserialize_from_dict(
                     dtd_stack.append(dtd_name)
 
 
-def _deserialize_from_ini_fp(
-        fp, parameterized,
-        deserializer_name_dict, deserializer_type_dict, on_missing,
-        defaults, comment_prefixes, inline_comment_prefixes,
-        one_param_section):
-    if deserializer_type_dict:
-        d = JSON_STRING_DESERIALIZER_DICT.copy()
-        d.update(deserializer_type_dict)
-        deserializer_type_dict = d
-    else:
-        deserializer_type_dict = JSON_STRING_DESERIALIZER_DICT
-    try:
-        from ConfigParser import SafeConfigParser
-        parser = SafeConfigParser(defaults=defaults)
-    except ImportError:
-        from configparser import ConfigParser
-        parser = ConfigParser(
-            defaults=defaults,
-            comment_prefixes=comment_prefixes,
-            inline_comment_prefixes=inline_comment_prefixes,
-        )
-    if one_param_section is None:
-        one_param_section = 'DEFAULT'
-    try:
-        parser.read_file(fp)
-    except AttributeError:
-        parser.readfp(fp)
-    if isinstance(parameterized, param.Parameterized):
-        dict_ = OrderedDict(parser.items(one_param_section))
-    else:
-        dict_ = OrderedDict(
-            (s, OrderedDict(parser.items(s)))
-            for s in parser.sections()
-        )
-    deserialize_from_dict(
-        dict_, parameterized,
-        deserializer_name_dict=deserializer_name_dict,
-        deserializer_type_dict=deserializer_type_dict,
-        on_missing=on_missing)
-
-
 def deserialize_from_ini(
         file, parameterized,
         deserializer_name_dict=None,
@@ -2132,42 +2100,80 @@ def deserialize_from_ini(
     '''
     if isinstance(file, str):
         with open(file) as fp:
-            _deserialize_from_ini_fp(
+            return deserialize_from_ini(
                 fp, parameterized,
                 deserializer_name_dict, deserializer_type_dict, on_missing,
                 defaults, comment_prefixes, inline_comment_prefixes,
                 one_param_section)
+    if deserializer_type_dict:
+        d = JSON_STRING_DESERIALIZER_DICT.copy()
+        d.update(deserializer_type_dict)
+        deserializer_type_dict = d
     else:
-        _deserialize_from_ini_fp(
-            file, parameterized,
-            deserializer_name_dict, deserializer_type_dict, on_missing,
-            defaults, comment_prefixes, inline_comment_prefixes,
-            one_param_section)
+        deserializer_type_dict = JSON_STRING_DESERIALIZER_DICT
+    try:
+        from ConfigParser import SafeConfigParser
+        parser = SafeConfigParser(defaults=defaults)
+    except ImportError:
+        from configparser import ConfigParser
+        parser = ConfigParser(
+            defaults=defaults,
+            comment_prefixes=comment_prefixes,
+            inline_comment_prefixes=inline_comment_prefixes,
+        )
+    if one_param_section is None:
+        one_param_section = 'DEFAULT'
+    try:
+        parser.read_file(file)
+    except AttributeError:
+        parser.readfp(file)
+    if isinstance(parameterized, param.Parameterized):
+        dict_ = OrderedDict(parser.items(one_param_section))
+    else:
+        dict_ = OrderedDict(
+            (s, OrderedDict(parser.items(s)))
+            for s in parser.sections()
+        )
+    deserialize_from_dict(
+        dict_, parameterized,
+        deserializer_name_dict=deserializer_name_dict,
+        deserializer_type_dict=deserializer_type_dict,
+        on_missing=on_missing)
 
 
-def _deserialize_from_yaml_fp(
-        fp, parameterized,
-        deserializer_name_dict, deserializer_type_dict, on_missing):
+def _deserialize_from_yaml(fp, round_trip=True):
     yaml_loader = None
     for name in YAML_MODULE_PRIORITIES:
-        if name == 'ruamel.yaml':
+        if name in {'ruamel.yaml', 'ruamel_yaml'}:
             try:
-                from ruamel.yaml import YAML
+                if name == 'ruamel.yaml':
+                    from ruamel.yaml import YAML
+                else:
+                    from ruamel_yaml import YAML
                 yaml_loader = YAML().load
-            except ImportError:
-                pass
-        elif name == 'ruamel_yaml':
-            try:
-                from ruamel_yaml import YAML
-                yaml_loader = YAML().load
+                break
             except ImportError:
                 pass
         elif name == 'pyyaml':
             try:
                 import yaml
 
+                # https://stackoverflow.com/questions/5121931/in-python-how-can-you-load-yaml-mappings-as-ordereddicts
+                class OrderedLoader(yaml.FullLoader):
+                    pass
+
+                def construct_mapping(loader, node):
+                    loader.flatten_mapping(node)
+                    return OrderedDict(loader.construct_pairs(node))
+
+                OrderedLoader.add_constructor(
+                    yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
+                    construct_mapping
+                )
+
                 def yaml_loader(x):
-                    return yaml.load(x, Loader=yaml.FullLoader)
+                    return yaml.load(x, Loader=OrderedLoader)
+                break
             except ImportError:
                 pass
         else:
@@ -2178,11 +2184,7 @@ def _deserialize_from_yaml_fp(
             'Could not import any of {} for YAML deserialization'.format(
                 YAML_MODULE_PRIORITIES))
     dict_ = yaml_loader(fp)
-    deserialize_from_dict(
-        dict_, parameterized,
-        deserializer_name_dict=deserializer_name_dict,
-        deserializer_type_dict=deserializer_type_dict,
-        on_missing=on_missing)
+    return dict_
 
 
 def deserialize_from_yaml(
@@ -2219,20 +2221,10 @@ def deserialize_from_yaml(
     '''
     if isinstance(file, str):
         with open(file) as fp:
-            _deserialize_from_yaml_fp(
+            return deserialize_from_yaml(
                 fp, parameterized,
                 deserializer_name_dict, deserializer_type_dict, on_missing)
-    else:
-        _deserialize_from_yaml_fp(
-            file, parameterized,
-            deserializer_name_dict, deserializer_type_dict, on_missing)
-
-
-def _deserialize_from_json_fp(
-        fp, parameterized,
-        deserializer_name_dict, deserializer_type_dict, on_missing):
-    import json
-    dict_ = json.load(fp)
+    dict_ = _deserialize_from_yaml(file)
     deserialize_from_dict(
         dict_, parameterized,
         deserializer_name_dict=deserializer_name_dict,
@@ -2266,10 +2258,12 @@ def deserialize_from_json(
     '''
     if isinstance(file, str):
         with open(file) as fp:
-            _deserialize_from_json_fp(
+            return deserialize_from_json(
                 fp, parameterized,
                 deserializer_name_dict, deserializer_type_dict, on_missing)
-    else:
-        _deserialize_from_json_fp(
-            file, parameterized,
-            deserializer_name_dict, deserializer_type_dict, on_missing)
+    dict_ = json.load(file)
+    deserialize_from_dict(
+        dict_, parameterized,
+        deserializer_name_dict=deserializer_name_dict,
+        deserializer_type_dict=deserializer_type_dict,
+        on_missing=on_missing)

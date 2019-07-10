@@ -49,6 +49,16 @@ def main():
         install_requires=['param>=1.8', 'future'],
         setup_requires=SETUP_REQUIRES,
         tests_require=['pytest', 'ruamel.yaml', 'pyyaml', 'pandas', 'numpy'],
+        entry_points={
+            'console_scripts': [
+                'combine-ini-files = pydrobert.param.command_line:'
+                'combine_ini_files',
+                'combine-json-files = pydrobert.param.command_line:'
+                'combine_json_files',
+                'combine-yaml-files = pydrobert.param.command_line:'
+                'combine_yaml_files',
+            ],
+        }
     )
 
 
