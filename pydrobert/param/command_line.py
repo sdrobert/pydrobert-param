@@ -108,6 +108,22 @@ def _combine_json_files_parse_args(args):
     return parser.parse_args(args)
 
 
+def _combine_clobber_dict(dicts, warn):
+    dict_ = OrderedDict()
+    for dict_2 in dicts:
+        if warn:
+            for key, value in dict_2.items():
+                if (
+                        key in dict_ and
+                        not isinstance(value, type(dict_[key])) and
+                        not isinstance(dict_[key], type(value))):
+                    warnings.warn(
+                        'clobbered value at key={} not the same type'
+                        ''.format(key))
+                dict_[key] = value
+        else:
+            dict_.update(dict_2)
+    return dict_
 
 
 def _combine_nested_dicts(dicts, warn, multiindex=tuple()):
