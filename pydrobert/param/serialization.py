@@ -949,7 +949,7 @@ deserialize_from_yaml
 YAML_MODULE_PRIORITIES = ('ruamel.yaml', 'ruamel_yaml', 'pyyaml')
 
 
-def _serialize_to_ruamel_yaml(ruamel_yaml, fp, dict_, help_dict):
+def _serialize_to_ruamel_yaml_help_dict(ruamel_yaml, fp, dict_, help_dict):
     cdict = ruamel_yaml.comments.CommentedMap()
     c_stack = [cdict]
     d_stack = [dict_]
@@ -969,10 +969,20 @@ def _serialize_to_ruamel_yaml(ruamel_yaml, fp, dict_, help_dict):
                 c_stack.append(c2)
                 d_stack.append(dval)
                 h_stack.append(hval)
-    ruamel_yaml.round_trip_dump(cdict, stream=fp)
+    ruamel_yaml.YAML().dump(cdict, stream=fp)
 
 
-def _serialize_to_pyyaml(yaml, fp, dict_, help_dict):
+def _serialize_to_ruamel_yaml(ruamel_yaml, fp, obj, help_dict=None):
+    if help_dict:
+        return _serialize_to_ruamel_yaml_help_dict(
+            ruamel_yaml, fp, obj, help_dict)
+    elif isinstance(obj, OrderedDict):
+        # round-trip dump will use !!omap if an ordered dict. Don't want that
+        obj = ruamel_yaml.comments.CommentedMap(obj)
+    ruamel_yaml.YAML().dump(obj, stream=fp)
+
+
+def _serialize_to_pyyaml(yaml, fp, obj, help_dict=None):
     if help_dict:
         help_string_io = StringIO()
         yaml.dump(help_dict, stream=help_string_io, default_flow_style=False)
@@ -980,6 +990,7 @@ def _serialize_to_pyyaml(yaml, fp, dict_, help_dict):
         help_string = '# == Help ==\n# ' + help_string + '\n'
         fp.write(help_string)
     # https://stackoverflow.com/questions/5121931/in-python-how-can-you-load-yaml-mappings-as-ordereddicts
+
     class OrderedDumper(yaml.SafeDumper):
         pass
 
@@ -989,29 +1000,29 @@ def _serialize_to_pyyaml(yaml, fp, dict_, help_dict):
             data.items())
 
     OrderedDumper.add_representer(OrderedDict, dict_representer)
-    yaml.dump(dict_, Dumper=OrderedDumper, stream=fp, default_flow_style=False)
+    yaml.dump(obj, Dumper=OrderedDumper, stream=fp, default_flow_style=False)
 
 
-def _serialize_dict_to_yaml(fp, dict_, help_dict):
+def _serialize_to_yaml(fp, obj, help_dict=None):
     for name in YAML_MODULE_PRIORITIES:
         if name == 'ruamel.yaml':
             try:
                 import ruamel.yaml
-                _serialize_to_ruamel_yaml(ruamel.yaml, fp, dict_, help_dict)
+                _serialize_to_ruamel_yaml(ruamel.yaml, fp, obj, help_dict)
                 return
             except ImportError:
                 pass
         elif name == 'ruamel_yaml':
             try:
                 import ruamel_yaml
-                _serialize_to_ruamel_yaml(ruamel_yaml, fp, dict_, help_dict)
+                _serialize_to_ruamel_yaml(ruamel_yaml, fp, obj, help_dict)
                 return
             except ImportError:
                 pass
         elif name == 'pyyaml':
             try:
                 import yaml
-                _serialize_to_pyyaml(yaml, fp, dict_, help_dict)
+                _serialize_to_pyyaml(yaml, fp, obj, help_dict)
                 return
             except ImportError:
                 pass
@@ -1082,7 +1093,7 @@ def serialize_to_yaml(
         dict_, help_dict = dict_
     else:
         help_dict = dict()
-    _serialize_dict_to_yaml(file, dict_, help_dict)
+    _serialize_to_yaml(file, dict_, help_dict)
 
 
 def _serialize_to_json_fp(
@@ -2127,19 +2138,17 @@ def deserialize_from_ini(
         on_missing=on_missing)
 
 
-def _deserialize_yaml_to_dict(fp):
+def _deserialize_from_yaml(fp, round_trip=True):
     yaml_loader = None
     for name in YAML_MODULE_PRIORITIES:
-        if name == 'ruamel.yaml':
+        if name in {'ruamel.yaml', 'ruamel_yaml'}:
             try:
-                from ruamel.yaml import YAML
+                if name == 'ruamel.yaml':
+                    from ruamel.yaml import YAML
+                else:
+                    from ruamel_yaml import YAML
                 yaml_loader = YAML().load
-            except ImportError:
-                pass
-        elif name == 'ruamel_yaml':
-            try:
-                from ruamel_yaml import YAML
-                yaml_loader = YAML().load
+                break
             except ImportError:
                 pass
         elif name == 'pyyaml':
@@ -2161,6 +2170,7 @@ def _deserialize_yaml_to_dict(fp):
 
                 def yaml_loader(x):
                     return yaml.load(x, Loader=OrderedLoader)
+                break
             except ImportError:
                 pass
         else:
@@ -2211,7 +2221,7 @@ def deserialize_from_yaml(
             return deserialize_from_yaml(
                 fp, parameterized,
                 deserializer_name_dict, deserializer_type_dict, on_missing)
-    dict_ = _deserialize_yaml_to_dict(file)
+    dict_ = _deserialize_from_yaml(file)
     deserialize_from_dict(
         dict_, parameterized,
         deserializer_name_dict=deserializer_name_dict,
