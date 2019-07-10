@@ -976,11 +976,12 @@ def _serialize_to_ruamel_yaml(ruamel_yaml, fp, obj, help_dict=None):
     if help_dict:
         return _serialize_to_ruamel_yaml_help_dict(
             ruamel_yaml, fp, obj, help_dict)
-    elif isinstance(obj, OrderedDict):
+    elif isinstance(obj, dict):
         # round-trip dump will use !!omap if an ordered dict. Don't want that.
         # py2.7 seems to think OrderedDict is unordered, so we update
         new = ruamel_yaml.comments.CommentedMap()
         new.update(obj)
+        obj = new
     ruamel_yaml.YAML().dump(obj, stream=fp)
 
 

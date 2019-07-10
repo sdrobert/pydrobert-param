@@ -98,7 +98,6 @@ def _combine_json_files_parse_args(args):
     )
     parser.add_argument(
         '--quiet', action='store_true', default=False,
-        help='If set, will not warn when ``sources`` are all lists'
     )
     parser.add_argument(
         '--compact', action='store_true', default=False,
@@ -107,6 +106,46 @@ def _combine_json_files_parse_args(args):
         'possible'
     )
     return parser.parse_args(args)
+
+
+
+
+def _combine_nested_dicts(dicts, warn, multiindex=tuple()):
+    dict_ = type(dicts[0])()
+    for dict_2 in dicts:
+        for key, value in dict_2.items():
+            if key in dict_:
+                orig = dict_[key]
+                if isinstance(value, dict) and isinstance(orig, dict):
+                    value = _combine_nested_dicts(
+                        [orig, value], warn, multiindex + (key,))
+                elif warn and (
+                        not isinstance(value, type(orig)) or
+                        not isinstance(orig, type(value))):
+                    warnings.warn(
+                        'clobbered value at multiindex={} not the same type'
+                        ''.format(multiindex))
+            dict_[key] = value
+    return dict_
+
+
+def _combine_container_vals(vals, warn):
+    if len(vals) == 1:
+        ret = vals[0]
+    elif all(isinstance(x, list) for x in vals):
+        if warn:
+            warnings.warn(
+                'Source files are all lists. Source files will merely '
+                'be appended together')
+        ret = list(chain(*vals))
+    elif all(isinstance(x, dict) for x in vals):
+        ret = _combine_clobber_dict(vals, warn)
+    else:
+        raise ValueError(
+            'More than one source and sources encode neither a '
+            'dict or list, or some encode dicts and some encode lists. Unable '
+            'to merge')
+    return ret
 
 
 def combine_json_files(args=None):
@@ -127,28 +166,9 @@ def combine_json_files(args=None):
     except SystemExit as ex:
         return ex.code
     vals = []
-    names = []
     for fp in options.sources:
-        names.append(fp.name)
         vals.append(json.load(fp, object_pairs_hook=OrderedDict))
-    if len(vals) == 1:
-        v = vals[0]
-    elif all(isinstance(x, list) for x in vals):
-        if not options.quiet:
-            warnings.warn(
-                'Source files are all JSON lists. Source files will merely '
-                'be appended together')
-        v = list(chain(*vals))
-    elif all(isinstance(x, OrderedDict) for x in vals):
-        v = OrderedDict()
-        for x in vals:
-            v.update(x)
-    else:
-        print(
-            'More than one source and either JSON files encode neither a '
-            'dict or list, or some encode dicts and some encode lists. Unable '
-            'to merge', file=sys.stderr)
-        return 1
+    v = _combine_container_vals(vals, not options.quiet)
     if options.compact:
         json.dump(v, options.dest)
     else:

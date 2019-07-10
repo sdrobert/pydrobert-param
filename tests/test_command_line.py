@@ -2,6 +2,8 @@
 
 import os
 
+import pytest
+
 from pydrobert.param import command_line
 
 
@@ -108,12 +110,13 @@ def test_combine_json_files(temp_dir):
         assert not command_line.combine_json_files([path, out])
         with open(path) as f, open(out) as g:
             assert f.read().strip() == g.read().strip()
-    assert command_line.combine_json_files([paths['a'], paths['b'], out])
+    with pytest.raises(ValueError):
+        command_line.combine_json_files([paths['a'], paths['b'], out])
     assert not command_line.combine_json_files(
         [paths['b'], paths['c'], out, '--compact', '--quiet'])
     with open(out) as f:
         assert f.read().strip() == '["foo", {"bar": "baz"}, {"bar": "bum"}]'
     assert not command_line.combine_json_files(
-        [paths['d'], paths['e'], out, '--compact'])
+        [paths['d'], paths['e'], out, '--compact', '--quiet'])
     with open(out) as f:
         assert f.read().strip() == '{"a": null, "c": 1, "d": {"foo": "bar"}}'
