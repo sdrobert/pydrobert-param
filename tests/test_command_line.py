@@ -134,3 +134,87 @@ def test_combine_json_files(temp_dir):
             '"c": 1, "d": {"foo": "bar"}}'
         )
 
+
+def test_combine_yaml_files(temp_dir, yaml_loader):
+    paths = dict(
+        (x, os.path.join(temp_dir, x + '.yaml'))
+        for x in 'abcde'
+    )
+    out = os.path.join(temp_dir, 'out.yaml')
+    with open(paths['a'], 'w') as f:
+        f.write('1\n...\n')
+    with open(paths['b'], 'w') as f:
+        f.write('''\
+- foo
+- bar: zoop
+''')
+    with open(paths['c'], 'w') as f:
+        f.write('''\
+- foo: bar
+- baz
+''')
+    with open(paths['d'], 'w') as f:
+        f.write('''\
+a:
+  b: we dont test comments
+  a: because
+  c:
+    d: ruamel_yaml and
+    e: pyyaml
+e: a
+c:
+- 1
+- 2
+- 3
+''')
+    with open(paths['e'], 'w') as f:
+        f.write('''\
+e: 1
+a:
+  a: or multilines
+  c:
+    f: handle them differently
+''')
+    for key, path in paths.items():
+        assert not command_line.combine_yaml_files([path, out])
+        with open(path) as f, open(out) as g:
+            assert f.read().strip() == g.read().strip()
+    with pytest.raises(ValueError):
+        assert command_line.combine_yaml_files([paths['a'], paths['b'], out])
+    assert not command_line.combine_yaml_files(
+        [paths['b'], paths['c'], out, '--quiet'])
+    with open(out) as f:
+        assert f.read().strip() == '''\
+- foo
+- bar: zoop
+- foo: bar
+- baz'''
+    assert not command_line.combine_yaml_files(
+        [paths['d'], paths['e'], out, '--quiet'])
+    with open(out) as f:
+        assert f.read().strip() == '''\
+a:
+  a: or multilines
+  c:
+    f: handle them differently
+e: 1
+c:
+- 1
+- 2
+- 3'''
+    assert not command_line.combine_yaml_files(
+        [paths['d'], paths['e'], out, '--quiet', '--nested'])
+    with open(out) as f:
+        assert f.read().strip() == '''\
+a:
+  b: we dont test comments
+  a: or multilines
+  c:
+    d: ruamel_yaml and
+    e: pyyaml
+    f: handle them differently
+e: 1
+c:
+- 1
+- 2
+- 3'''

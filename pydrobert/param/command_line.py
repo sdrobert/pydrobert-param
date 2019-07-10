@@ -25,6 +25,8 @@ import warnings
 
 from collections import OrderedDict
 from itertools import chain
+from pydrobert.param.serialization import _serialize_to_yaml
+from pydrobert.param.serialization import _deserialize_from_yaml
 
 __author__ = "Sean Robertson"
 __email__ = "sdrobert@cs.toronto.edu"
@@ -33,6 +35,7 @@ __copyright__ = "Copyright 2019 Sean Robertson"
 __all__ = [
     'combine_ini_files',
     'combine_json_files',
+    'combine_yaml_files',
 ]
 
 
@@ -210,4 +213,57 @@ def combine_json_files(args=None):
         json.dump(v, options.dest)
     else:
         json.dump(v, options.dest, indent=2, separators=(',', ': '))
+    return 0
+
+
+def _combine_yaml_files_parse_args(args):
+    parser = argparse.ArgumentParser(
+        description=combine_yaml_files.__doc__,
+    )
+    parser.add_argument(
+        'sources', nargs='+', type=argparse.FileType('r'),
+        help='Paths to read from'
+    )
+    parser.add_argument(
+        'dest', type=argparse.FileType('w'),
+        help='Path to write to'
+    )
+    parser.add_argument('--quiet', action='store_true', default=False)
+    parser.add_argument(
+        '--nested', action='store_true', default=False,
+        help='Resolve dict collisions by descending into children. See '
+        'command documentation for more info'
+    )
+    return parser.parse_args(args)
+
+
+def combine_yaml_files(args=None):
+    '''Combine YAML files
+
+    This command provides a content-agnostic way of combining
+    `YAML files <https://en.wikipedia.org/wiki/YAML>`__.
+
+    All but the last positional argument consist of input files. Earlier values
+    are clobbered by later values.
+
+    If all source files are lists, we merely append the lists together.
+
+    If all documents' root data types are dictionaries, the default behaviour,
+    given a collision of keys, is to clobber the old value with the new one. If
+    the ``--nested`` flag is set, and both values are dictionaries, the
+    values of the old dictionary will be updated with the values of the new
+    one, but old keys not present in the new dictionary will persist. See
+    ``combine-json-files`` for an example
+
+    Whether comments are ignored depends on the parsing backend.
+    '''
+    try:
+        options = _combine_yaml_files_parse_args(args)
+    except SystemExit as ex:
+        return ex.code
+    vals = []
+    for fp in options.sources:
+        vals.append(_deserialize_from_yaml(fp))
+    v = _combine_container_vals(vals, not options.quiet, options.nested)
+    _serialize_to_yaml(options.dest, v)
     return 0

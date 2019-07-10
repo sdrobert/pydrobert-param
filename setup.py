@@ -55,7 +55,9 @@ def main():
                 'combine_ini_files',
                 'combine-json-files = pydrobert.param.command_line:'
                 'combine_json_files',
-            ]
+                'combine-yaml-files = pydrobert.param.command_line:'
+                'combine_yaml_files',
+            ],
         }
     )
 

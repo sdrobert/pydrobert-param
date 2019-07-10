@@ -32,4 +32,4 @@ def yaml_loader(request):
 def temp_dir():
     dir_name = mkdtemp()
     yield dir_name
-    rmtree(dir_name)
+    rmtree(dir_name, ignore_errors=True)
