@@ -88,11 +88,9 @@ def test_combine_json_files(temp_dir):
 {
   "a": {
     "b": 1,
-    "a": [
-      1,
-      2,
-      3
-    ]
+    "a": {
+      "c": 2
+    }
   },
   "c": 1
 }
@@ -103,10 +101,14 @@ def test_combine_json_files(temp_dir):
   "d": {
     "foo": "bar"
   },
-  "a": null
+  "a": {
+    "a": {
+      "d": null
+    }
+  }
 }
 ''')
-    for path in list(paths.values()):
+    for path in paths.values():
         assert not command_line.combine_json_files([path, out])
         with open(path) as f, open(out) as g:
             assert f.read().strip() == g.read().strip()
@@ -119,4 +121,16 @@ def test_combine_json_files(temp_dir):
     assert not command_line.combine_json_files(
         [paths['d'], paths['e'], out, '--compact', '--quiet'])
     with open(out) as f:
-        assert f.read().strip() == '{"a": null, "c": 1, "d": {"foo": "bar"}}'
+        assert (
+            f.read().strip() ==
+            '{"a": {"a": {"d": null}}, "c": 1, "d": {"foo": "bar"}}'
+        )
+    assert not command_line.combine_json_files(
+        [paths['d'], paths['e'], out, '--compact', '--quiet', '--nested'])
+    with open(out) as f:
+        assert (
+            f.read().strip() ==
+            '{"a": {"b": 1, "a": {"c": 2, "d": null}}, '
+            '"c": 1, "d": {"foo": "bar"}}'
+        )
+

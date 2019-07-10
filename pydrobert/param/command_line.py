@@ -84,30 +84,6 @@ def combine_ini_files(args=None):
     return 0
 
 
-def _combine_json_files_parse_args(args):
-    parser = argparse.ArgumentParser(
-        description=combine_json_files.__doc__
-    )
-    parser.add_argument(
-        'sources', nargs='+', type=argparse.FileType('r'),
-        help='Paths to read from'
-    )
-    parser.add_argument(
-        'dest', type=argparse.FileType('w'),
-        help='Path to write to'
-    )
-    parser.add_argument(
-        '--quiet', action='store_true', default=False,
-    )
-    parser.add_argument(
-        '--compact', action='store_true', default=False,
-        help='By default, JSON dicts will have newlines and 2-space '
-        'indentation. If set, will encode structures in the most compact way '
-        'possible'
-    )
-    return parser.parse_args(args)
-
-
 def _combine_clobber_dict(dicts, warn):
     dict_ = OrderedDict()
     for dict_2 in dicts:
@@ -145,7 +121,7 @@ def _combine_nested_dicts(dicts, warn, multiindex=tuple()):
     return dict_
 
 
-def _combine_container_vals(vals, warn):
+def _combine_container_vals(vals, warn, nested):
     if len(vals) == 1:
         ret = vals[0]
     elif all(isinstance(x, list) for x in vals):
@@ -155,7 +131,10 @@ def _combine_container_vals(vals, warn):
                 'be appended together')
         ret = list(chain(*vals))
     elif all(isinstance(x, dict) for x in vals):
-        ret = _combine_clobber_dict(vals, warn)
+        if nested:
+            ret = _combine_nested_dicts(vals, warn)
+        else:
+            ret = _combine_clobber_dict(vals, warn)
     else:
         raise ValueError(
             'More than one source and sources encode neither a '
@@ -164,18 +143,60 @@ def _combine_container_vals(vals, warn):
     return ret
 
 
+def _combine_json_files_parse_args(args):
+    parser = argparse.ArgumentParser(
+        description=combine_json_files.__doc__
+    )
+    parser.add_argument(
+        'sources', nargs='+', type=argparse.FileType('r'),
+        help='Paths to read from'
+    )
+    parser.add_argument(
+        'dest', type=argparse.FileType('w'),
+        help='Path to write to'
+    )
+    parser.add_argument('--quiet', action='store_true', default=False)
+    parser.add_argument(
+        '--compact', action='store_true', default=False,
+        help='By default, JSON dicts will have newlines and 2-space '
+        'indentation. If set, will encode structures in the most compact way '
+        'possible'
+    )
+    parser.add_argument(
+        '--nested', action='store_true', default=False,
+        help='Resolve dict collisions by descending into children. See '
+        'command documentation for more info'
+    )
+    return parser.parse_args(args)
+
+
 def combine_json_files(args=None):
     '''Combine JSON files
 
     This command provides a content-agnostic way of combining
     `JSON files <https://en.wikipedia.org/wiki/JSON>`__.
 
-    This command is intended to be used with JSON files whose root data type is
-    a dictionary, at which point the combination is ambiguous: later source
-    files clobber the values of earlier ones. If all source files are lists,
-    we merely append the lists together. Mixing root data types of sources or
-    specifying more than one source for a root type that is not a dict or list
-    will result in an error
+    If all source files are lists, we merely append the lists together.
+
+    If all documents' root data types are dictionaries, the default behaviour,
+    given a collision of keys, is to clobber the old value with the new one. If
+    the ``--nested`` flag is set, and both values are dictionaries, the
+    values of the old dictionary will be updated with the values of the new
+    one, but old keys not present in the new dictionary will persist. For
+    example, without the ``--nested`` flag::
+
+        {"a": {"b": {"c": null}, "d": true}} +
+        {"a": {"b": {"e": 1}}, "f": "g"} =
+        {"a": {"b": {"e": 1}}, "f": "g"}
+
+    but with the nested flag::
+
+        {"a": {"b": {"c": null}, "d": true}} +
+        {"a": {"b": {"e": 1}}, "f": "g"} =
+        {"a": {"b": {"c": null, "e": 1}, "d": true}, "f": "g"}
+
+    Mixing root data types of sources or specifying more than one source for a
+    root type that is not a dict or list will result in an error.
     '''
     try:
         options = _combine_json_files_parse_args(args)
@@ -184,7 +205,7 @@ def combine_json_files(args=None):
     vals = []
     for fp in options.sources:
         vals.append(json.load(fp, object_pairs_hook=OrderedDict))
-    v = _combine_container_vals(vals, not options.quiet)
+    v = _combine_container_vals(vals, not options.quiet, options.nested)
     if options.compact:
         json.dump(v, options.dest)
     else:
