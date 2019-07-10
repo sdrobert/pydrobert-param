@@ -979,7 +979,17 @@ def _serialize_to_pyyaml(yaml, fp, dict_, help_dict):
         help_string = help_string_io.getvalue().replace('\n', '\n# ')
         help_string = '# == Help ==\n# ' + help_string + '\n'
         fp.write(help_string)
-    yaml.dump(dict_, stream=fp, default_flow_style=False)
+    # https://stackoverflow.com/questions/5121931/in-python-how-can-you-load-yaml-mappings-as-ordereddicts
+    class OrderedDumper(yaml.SafeDumper):
+        pass
+
+    def dict_representer(dumper, data):
+        return dumper.represent_mapping(
+            yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
+            data.items())
+
+    OrderedDumper.add_representer(OrderedDict, dict_representer)
+    yaml.dump(dict_, Dumper=OrderedDumper, stream=fp, default_flow_style=False)
 
 
 def _serialize_dict_to_yaml(fp, dict_, help_dict):
@@ -2136,8 +2146,21 @@ def _deserialize_yaml_to_dict(fp):
             try:
                 import yaml
 
+                # https://stackoverflow.com/questions/5121931/in-python-how-can-you-load-yaml-mappings-as-ordereddicts
+                class OrderedLoader(yaml.FullLoader):
+                    pass
+
+                def construct_mapping(loader, node):
+                    loader.flatten_mapping(node)
+                    return OrderedDict(loader.construct_pairs(node))
+
+                OrderedLoader.add_constructor(
+                    yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
+                    construct_mapping
+                )
+
                 def yaml_loader(x):
-                    return yaml.load(x, Loader=yaml.FullLoader)
+                    return yaml.load(x, Loader=OrderedLoader)
             except ImportError:
                 pass
         else:
