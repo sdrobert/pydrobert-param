@@ -32,6 +32,7 @@ __email__ = "sdrobert@cs.toronto.edu"
 __license__ = "Apache 2.0"
 __copyright__ = "Copyright 2019 Sean Robertson"
 __all__ = [
+    'add_parameterized_read_group',
     'ParameterizedFileReadAction',
     'ParameterizedIniPrintAction',
     'ParameterizedIniReadAction',
@@ -297,6 +298,177 @@ class ParameterizedJsonReadAction(ParameterizedFileReadAction):
             deserializer_type_dict=self.deserializer_type_dict,
             on_missing=self.on_missing,
         )
+
+
+def add_parameterized_read_group(
+        parser, ini_option_strings=('--read-ini',), parameterized=None,
+        type=None, include_yaml=None, json_option_strings=('--read-json',),
+        yaml_option_strings=('--read-yaml',), dest='params',
+        ini_kwargs=dict(), json_kwargs=dict(), yaml_kwargs=dict()):
+    r'''Add flags to read configs from INI, JSON, or YAML sources
+
+    This convenience function adds a mutually exclusive group of read actions
+    to `parser` to read in parameters from 3 file types: INI, JSON, or YAML.
+
+    What to read into is determined by the keywords `type` or `parameterized`.
+
+    1. If `type` is specified, it will be instantiated and populated
+    2. If `parameterized` is specified and is a ``param.Parameterized``
+       instance, it will be populated directly.
+    3. If `parameterized` is a dictionary whose leaves are
+       ``param.Parameterized``, sections of the config whose keys match the
+       keys of the dictionary will populate the corresponding
+       ``param.Parameterized`` instances. `parameterized` can nest those
+       instances repeatedly, but only a shallow dict will be able to be
+       parsed from an INI file
+
+    Parameters
+    ----------
+    parser : argparse.ArgumentParser
+    type : type, optional
+    parametrized : param.Parameterized or dict, optional
+    include_yaml : bool, optional
+        Whether to include the YAML config flags. YAML requires either
+        ``ruamel_yaml/ruamel.yaml`` or ``pyyaml`` to be installed. If unset,
+        we will include the flags if it is possible to import a YAML module.
+    ini_option_strings : sequence, optional
+        Zero or more option strings specifying that the next argument is an
+        INI file to be read. If no option strings are specified, INI reading
+        is disabled
+    json_option_strings : sequence, optional
+        Zero or more option strings specifying that the next argument is an
+        YAML file to be read. If no option strings are specified, YAML reading
+        is disabled
+    yaml_option_strings : sequence, optional
+        Zero or more option strings specifying that the next argument is an
+        YAML file to be read. If no option strings are specified, YAML reading
+        is disabled
+    dest : str, optional
+        Under what name to store parameters in the returned namespace of
+        ``parser.parse_args(...)``
+    ini_kwargs : dict, optional
+        Additional keyword arguments to use when creating the INI flag.
+        See ``ParameterizedIniReadAction`` for more info
+    json_kwargs : dict, optional
+        Additional keyword arguments to use when creating the JSON flag.
+        See ``ParameterizedJsonReadAction`` for more info
+    yaml_kwargs : dict, optional
+        Additional keyword arguments to use when creating the YAML flag.
+        See ``ParameterizedYamlReadAction`` for more info
+
+    Returns
+    -------
+    group
+        The mutually exclusive group containing the flags
+
+    Examples
+    --------
+
+    >>> # write some configs
+    >>> with open('config.ini', 'w') as f:
+    >>>     f.write('[DEFAULT]\nfoo = a\n')
+    >>> with open('config.json', 'w') as f:
+    >>>     f.write('{"foo": "b"}\n')
+    >>> # make our Parameterized type
+    >>> import param
+    >>> class MyParams(param.Parameterized):
+    >>>     foo = param.String(None)
+    >>> # make our parser
+    >>> parser = ArgumentParser()
+    >>> add_parameterized_read_group(parser, type=MyParams)
+    >>> # parse an INI
+    >>> options = parser.parse_args(['--read-ini', 'config.ini'])
+    >>> assert options.params.foo == "a"
+    >>> # parse a JSON
+    >>> options = parser.parse_args(['--read-json', 'config.json'])
+    >>> assert options.params.foo == "b"
+
+    >>> # write a hierarchical config
+    >>> with open('config.yaml', 'w') as f:
+    >>>     f.write("""
+    ... A:
+    ...   foo: bar
+    ...   baz: 1
+    ... B:
+    ...   B.1:
+    ...     me: I may
+    ...   B.2:
+    ...     me: me me mee
+    ... """)
+    >>> # make our Parameterized types
+    >>> class A(param.Parameterized):
+    >>>     foo = param.String(None)
+    >>>     bar = param.Integer(None)
+    >>> class B(param.Parameterized):
+    >>>     me = param.String(None)
+    >>> parameterized = {'A': A(), 'B': {'B.1': B(), 'B.2': B()}}
+    >>> # make our parser
+    >>> parser = ArgumentParser()
+    >>> add_parameterized_read_group(parser, parameterized=parameterized)
+    >>> # parse YAML (requires package ruamel.yaml/ruamel_yaml or pyyaml)
+    >>> parser.parse_args(['--read-yaml', 'config.yaml'])
+    >>> assert parameterized['A'].baz == 1
+    >>> assert parameterized['B']['B.2'].me == 'me me mee'
+    '''
+    if parameterized is None and type is None:
+        raise TypeError('one of parameterized or type must be set')
+    if parameterized is not None and type is not None:
+        raise TypeError('only one of parameterized or type can be set')
+    for name, dict_ in (
+            ('ini', ini_kwargs), ('json', json_kwargs), ('yaml', yaml_kwargs)):
+        keys = set(dict_) & {'dest', 'type', 'parameterized'}
+        if keys:
+            raise TypeError(
+                '{}_kwargs contains unexpected keyword arguments: {}'
+                ''.format(name, ', '.join(sorted(keys))))
+    if parameterized is None:
+        parameterized = type(name=dest)
+    group = parser.add_mutually_exclusive_group()
+    if ini_option_strings:
+        group.add_argument(
+            *ini_option_strings,
+            action=ParameterizedIniReadAction,
+            dest=dest, parameterized=parameterized,
+            **ini_kwargs
+        )
+    if json_option_strings:
+        group.add_argument(
+            *json_option_strings,
+            action=ParameterizedJsonReadAction,
+            dest=dest, parameterized=parameterized,
+            **json_kwargs
+        )
+    if include_yaml is None and len(yaml_option_strings):
+        for name in serialization.YAML_MODULE_PRIORITIES:
+            if name == 'ruamel.yaml':
+                try:
+                    import ruamel.yaml
+                    include_yaml = True
+                    break
+                except ImportError:
+                    pass
+            elif name == 'ruamel_yaml':
+                try:
+                    import ruamel_yaml
+                    include_yaml = True
+                    break
+                except ImportError:
+                    pass
+            elif name == 'pyyaml':
+                try:
+                    import yaml
+                    include_yaml = True
+                    break
+                except ImportError:
+                    pass
+    if include_yaml and len(yaml_option_strings):
+        group.add_argument(
+            *yaml_option_strings,
+            action=ParameterizedYamlReadAction,
+            dest=dest, parameterized=parameterized,
+            **yaml_kwargs
+        )
+    return group
 
 
 class ParameterizedPrintAction(with_metaclass(abc.ABCMeta, argparse.Action)):

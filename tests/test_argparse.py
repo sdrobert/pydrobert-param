@@ -266,3 +266,40 @@ bar:
   - 2
   - 3
 baz: {}'''
+
+
+def test_add_parameterized_read_group(temp_dir, with_yaml):
+    ini_path = os.path.join(temp_dir, 'config.ini')
+    json_path = os.path.join(temp_dir, 'config.json')
+    yaml_path = os.path.join(temp_dir, 'config.yaml')
+    with open(ini_path, 'w') as f:
+        f.write('''\
+[DEFAULT]
+who = notme
+
+[flurp]
+who = ini
+''')
+    with open(json_path, 'w') as f:
+        f.write('{"who": "json"}\n')
+    with open(yaml_path, 'w') as f:
+        f.write('who: yaml\n')
+
+    class MyParams(param.Parameterized):
+        who = param.ObjectSelector(None, objects=["ini", "json", "yaml"])
+
+    parser = ArgumentParser()
+    pargparse.add_parameterized_read_group(
+        parser, type=MyParams, ini_kwargs={'one_param_section': 'flurp'})
+    options = parser.parse_args([])
+    assert options.params.who is None
+    options = parser.parse_args(['--read-ini', ini_path])
+    assert options.params.who == "ini"
+    options = parser.parse_args(['--read-json', json_path])
+    assert options.params.who == "json"
+    if with_yaml:
+        options = parser.parse_args(['--read-yaml', yaml_path])
+        assert options.params.who == "yaml"
+    else:
+        with pytest.raises(SystemExit):
+            parser.parse_args(['--read-yaml', yaml_path])
