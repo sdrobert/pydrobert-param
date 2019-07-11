@@ -273,6 +273,20 @@ def test_serialize_to_dict():
         'number': 'here is a number',
         'dynamic': 'left on time'
     }
+    # some corner cases
+    dict_ = serial.serialize_to_dict(
+        {'a': parameterized_a, 'b': parameterized_b},
+        only={'a': {}, 'b': {}},
+    )
+    assert dict_ == {'a': dict(), 'b': dict()}
+    dict_ = serial.serialize_to_dict(
+        {'a': parameterized_a, 'b': parameterized_b},
+        only={'a': {'number'}, 'b': {}},
+        serializer_type_dict={param.Number: _StupidNumberSerializer()},
+    )
+    assert len(dict_) == 2
+    assert not len(dict_['b'])
+    assert dict_['a']['number'] == 3.
 
 
 def test_serialize_to_ini():

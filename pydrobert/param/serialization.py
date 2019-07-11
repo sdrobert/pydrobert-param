@@ -707,11 +707,11 @@ def serialize_to_dict(
     or nested dictionaries. The returned dictionary will have the same
     hierarchical dictionary structure as `parameterized`, but with the
     ``param.Parameterized`` values replaced with serialized dictionaries. In
-    this case, `only` and `deserializer_name_dict` are expected to be
+    this case, `only` and `serializer_name_dict` are expected to be
     dictionaries with the same hierarchical structure
     (though they can still be ``None``, which propagates to children), whose
     leaves correspond to the arguments used to serialize the leaves of
-    `parameterized`. `deserializer_type_dict` can also be hierarchical, can
+    `parameterized`. `serializer_type_dict` can also be hierarchical, can
     be flat, or be some combination.
 
     Parameters
@@ -721,8 +721,8 @@ def serialize_to_dict(
         If specified, only the parameters with their names in this set will
         be serialized into the return dictionary. If unset, all parameters
         except ``"name"`` will be serialized.
-    deserializer_name_dict : dict, optional
-    deserializer_type_dict : dict, optional
+    serializer_name_dict : dict, optional
+    serializer_type_dict : dict, optional
     on_missing : {'ignore', 'warn', 'raise'}, optional
         What to do if the parameterized instance does not have a parameter
         listed in `only`
