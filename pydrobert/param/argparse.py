@@ -20,6 +20,7 @@ from __future__ import print_function
 
 import argparse
 import abc
+import sys
 
 import param
 import pydrobert.param.serialization as serialization
@@ -35,6 +36,7 @@ __all__ = [
     'ParameterizedIniReadAction',
     'ParameterizedJsonReadAction',
     'ParameterizedYamlReadAction',
+    'ParameterizedPrintAction',
 ]
 
 
@@ -47,7 +49,7 @@ class ParameterizedFileReadAction(
     file path passed as an argument via command line and use the contents
     of the file to populate ``param.Parameterized`` instances. The subclass
     deserializes the contents of the file according to the
-    ``pydrobert.param.serialization.deserializing_from_filetype`` function,
+    ``pydrobert.param.serialization.deserialize_from_filetype`` function,
     where ``filetype`` is replaced with the subclass' file type.
 
     There are three ways to specify parameterized objects to populate. They
@@ -65,9 +67,10 @@ class ParameterizedFileReadAction(
     3. Set the keyword `parameterized` as a hierarchical dictionary of
        ``param.Parameterized`` instances. The leaves of the dictionary will
        be populated according to the "hierarchical mode" specified in the
-       documentation of ``pydrobert.param.serialization.serialize_from_dict``.
-       The same dictionary will be returned in the parsed namespace's attribute
-       whose name matches `dest`.
+       documentation of
+       ``pydrobert.param.serialization.deserialize_from_dict``. The same
+       dictionary will be returned in the parsed namespace's attribute whose
+       name matches `dest`.
 
     Parameters
     ----------
@@ -290,4 +293,271 @@ class ParameterizedJsonReadAction(ParameterizedFileReadAction):
             deserializer_name_dict=self.deserializer_name_dict,
             deserializer_type_dict=self.deserializer_type_dict,
             on_missing=self.on_missing,
+        )
+
+
+class ParameterizedPrintAction(with_metaclass(abc.ABCMeta, argparse.Action)):
+    '''Base class for printing parameters to stdout and exiting
+
+    Subclasses of this class can be added as the 'action' keyword to an
+    ``argparse.ArgumentParser.add_argument()`` call. Like the ``--help`` flag,
+    after this action is called, the program will try to exit, but not before
+    printing out parameters.
+
+    There are three ways to specify what parameters to print, analogous to how
+    they are specified in ``ParameterizedFileReadAction``:
+
+    1. Set the keyword `type` with a subclass of ``param.Parameterized``. A
+       new instance of that type will be created to be printed
+
+    2. Set the keyword `parameterized` with an instance of
+       ``param.Parameterized``. That instance will be printed.
+
+    3.  Set the keyword `parameterized` as a hierarchical dictionary of
+       ``param.Parameterized`` instances. The leaves of the dictionary will
+       be populated according to the "hierarchical mode" specified in the
+       documentation of ``pydrobert.param.serialization.serialize_to_dict``.
+
+    Note that if a ``ParameterizedFileReadAction`` has been called on the
+    command line prior to the print that shares the same `parameterized` value
+    as in 2. or 3., `parameterized` will be populated by that file's contents.
+
+    Parameters
+    ----------
+    option_strings : list
+        A list of command-line option strings which should be associated with
+        this action.
+    dest : str
+        Will specify the 'name' attribute when `type` is specified. Otherwise
+        ignored
+    parameterized : param.Parameterized or dict, optional
+    type : type, optional
+    serializer_name_dict : dict, optional
+        Use specific serializers for parameters with specific names
+    serializer_type_dict : dict, optional
+        Use specific serializers for parameters with exactly matching types
+    only : set or dict, optional
+        If specified, only the parameters with their names in this set will
+        be printed
+    on_missing : {'ignore', 'warn', 'raise'}, optional
+        What to do if the parameterized instance does not have a parameter
+        listed in `only`
+    include_help : bool, optional
+        Whether to print parameter help when printing parameters
+    help : str, optional
+        The help string describing the argument
+    out_stream : file_ptr, optional
+        Where to print the parameters to
+
+    Attributes
+    ----------
+    parameterized : param.Parameterized or dict
+        The parameters to be printed
+    serializer_name_dict : dict
+    serializer_type_dict : dict
+    only : set or dict
+    on_missing : {'ignore', 'warn', 'raise'}
+    include_help : boolean
+    out_stream : file_ptr
+    '''
+
+    def __init__(
+            self, option_strings, dest,
+            parameterized=None, type=None, serializer_name_dict=None,
+            serializer_type_dict=None, only=None, on_missing='raise',
+            include_help=True, help=None, out_stream=sys.stdout):
+        if parameterized is None and type is None:
+            raise TypeError('one of parameterized or type must be set')
+        if parameterized is not None and type is not None:
+            raise TypeError('only one of parameterized or type can be set')
+        if parameterized is None:
+            self.parameterized = type(name=dest)
+        else:
+            self.parameterized = parameterized
+        self.serializer_name_dict = serializer_name_dict
+        self.serializer_type_dict = serializer_type_dict
+        self.only = only
+        self.on_missing = on_missing
+        self.include_help = include_help
+        self.out_stream = out_stream
+        super(ParameterizedPrintAction, self).__init__(
+            option_strings, dest, help=help, nargs=0)
+
+    @abc.abstractmethod
+    def print_parameters(self):
+        '''Print the parameters
+
+        Called during the callable section of this class. Should print to the
+        attribute `out_stream`
+        '''
+        raise NotImplementedError()
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        self.print_parameters()
+        parser.exit()
+
+
+class ParameterizedIniPrintAction(ParameterizedPrintAction):
+    '''Print parameters as INI and exit
+
+    Parameters
+    ----------
+    option_strings : list
+    dest : str
+    parameterized : param.Parameterized or dict, optional
+    type : type, optional
+    serializer_name_dict : dict, optional
+    serializer_type_dict : dict, optional
+    only : set or dict, optional
+    on_missing : {'ignore', 'warn', 'raise'}, optional
+    include_help : bool, optional
+    help : str, optional
+    out_stream : file_ptr, optional
+    help_prefix : str, optional
+    one_param_section : str, optional
+
+    Attributes
+    ----------
+    parameterized : param.Parameterized or dict
+    serializer_name_dict : dict
+    serializer_type_dict : dict
+    only : set or dict
+    on_missing : {'ignore', 'warn', 'raise'}
+    include_help : boolean
+    out_stream : file_ptr
+    help_prefix : str
+    one_param_section : str
+
+    See Also
+    --------
+    ParameterizedPrintAction
+        A full description of the parameters and behaviour of like actions
+    pydrobert.param.serialization.serialize_to_ini
+        A description of the serialization process and of the additional
+        parameters
+    '''
+
+    def __init__(
+            self, option_strings, dest,
+            parameterized=None, type=None, serializer_name_dict=None,
+            serializer_type_dict=None, only=None, on_missing='raise',
+            include_help=True, help=None, out_stream=sys.stdout,
+            help_prefix='#', one_param_section=None):
+        self.help_prefix = help_prefix
+        self.one_param_section = one_param_section
+        super(ParameterizedIniPrintAction, self).__init__(
+            option_strings, dest,
+            parameterized=parameterized, type=type,
+            serializer_name_dict=serializer_name_dict,
+            serializer_type_dict=serializer_type_dict, only=only,
+            on_missing=on_missing, include_help=include_help, help=help,
+            out_stream=out_stream,
+        )
+
+    def print_parameters(self):
+        serialization.serialize_to_ini(
+            self.out_stream, self.parameterized, only=self.only,
+            serializer_name_dict=self.serializer_name_dict,
+            serializer_type_dict=self.serializer_type_dict,
+            on_missing=self.on_missing, include_help=self.include_help,
+            help_prefix=self.help_prefix,
+            one_param_section=self.one_param_section,
+        )
+
+
+class ParameterizedJsonPrintAction(ParameterizedPrintAction):
+    '''Print parameters as JSON and exit
+
+    Parameters
+    ----------
+    option_strings : list
+    dest : str
+    parameterized : param.Parameterized or dict, optional
+    type : type, optional
+    serializer_name_dict : dict, optional
+    serializer_type_dict : dict, optional
+    only : set or dict, optional
+    on_missing : {'ignore', 'warn', 'raise'}, optional
+    out_stream : file_ptr, optional
+    indent : int, optional
+
+    Attributes
+    ----------
+    parameterized : param.Parameterized or dict
+    serializer_name_dict : dict
+    serializer_type_dict : dict
+    only : set or dict
+    on_missing : {'ignore', 'warn', 'raise'}
+    include_help : False
+        Ignored. JSON can't print help
+    out_stream : file_ptr
+    indent : int
+
+    See Also
+    --------
+    ParameterizedPrintAction
+        A full description of the parameters and behaviour of like actions
+    pydrobert.param.serialization.serialize_to_json
+        A description of the serialization process and of the additional
+        parameters
+    '''
+
+    def __init__(
+            self, option_strings, dest,
+            parameterized=None, type=None, serializer_name_dict=None,
+            serializer_type_dict=None, only=None, on_missing='raise',
+            help=None, out_stream=sys.stdout, indent=2):
+        self.indent = indent
+        super(ParameterizedJsonPrintAction, self).__init__(
+            option_strings, dest,
+            parameterized=parameterized, type=type,
+            serializer_name_dict=serializer_name_dict,
+            serializer_type_dict=serializer_type_dict, only=only,
+            on_missing=on_missing, include_help=False, help=help,
+            out_stream=out_stream,
+        )
+
+    def print_parameters(self):
+        serialization.serialize_to_json(
+            self.out_stream, self.parameterized, only=self.only,
+            serializer_name_dict=self.serializer_name_dict,
+            serializer_type_dict=self.serializer_type_dict,
+            on_missing=self.on_missing, indent=self.indent,
+        )
+
+
+class ParameterizedYamlPrintAction(ParameterizedPrintAction):
+    '''Print parameters as YAML and exit
+
+    Parameters
+    ----------
+    option_strings : list
+    dest : str
+    parameterized : param.Parameterized or dict, optional
+    type : type, optional
+    serializer_name_dict : dict, optional
+    serializer_type_dict : dict, optional
+    only : set or dict, optional
+    on_missing : {'ignore', 'warn', 'raise'}, optional
+    include_help : bool, optional
+    help : str, optional
+    out_stream : file_ptr, optional
+
+    Attributes
+    ----------
+    parameterized : param.Parameterized or dict
+    serializer_name_dict : dict
+    serializer_type_dict : dict
+    only : set or dict
+    on_missing : {'ignore', 'warn', 'raise'}
+    include_help : boolean
+    out_stream : file_ptr
+    '''
+
+    def print_parameters(self):
+        serialization.serialize_to_yaml(
+            self.out_stream, self.parameterized, only=self.only,
+            serializer_name_dict=self.serializer_name_dict,
+            serializer_type_dict=self.serializer_type_dict,
+            on_missing=self.on_missing, include_help=self.include_help,
         )

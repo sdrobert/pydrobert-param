@@ -7,35 +7,63 @@ from __future__ import print_function
 import os
 
 from argparse import ArgumentParser
+from collections import OrderedDict
 
 import pytest
 import param
 import pydrobert.param.argparse as pargparse
 
+try:
+    # python 2.7 wants us to write bytes
+    from cStringIO import StringIO
+except ImportError:
+    from io import StringIO
+
 FILE_DIR = os.path.dirname(os.path.realpath(__file__))
 
 
-def ParamsA(name=None):
+def ParamsA(**kwargs):
     class _ParamsA(param.Parameterized):
         bingo = param.String(None)
         bango = param.Number(None)
         bongo = param.List(None)
-    return _ParamsA(name=name)
+    return _ParamsA(**kwargs)
 
 
-def ParamsB(name=None):
+def ParamsB(**kwargs):
     class _ParamsB(param.Parameterized):
         object_selector = param.ObjectSelector(None, objects=[1, '2'])
         dont_try_this = param.Callable(None)
         date_range = param.DateRange(None)
         list_ = param.List(None)
-    return _ParamsB(name=name)
+    return _ParamsB(**kwargs)
 
 
 class CommaListDeserializer(object):
     def deserialize(self, name, block, parameterized):
         block = block.split(',')
         parameterized.param.set_param(name, block)
+
+
+class CommaListSerializer(object):
+    def help_string(self, name, parameterized):
+        return ""
+
+    def serialize(self, name, parameterized):
+        val = getattr(parameterized, name)
+        return ','.join([str(x) for x in val])
+
+
+class ZeroSerializer(object):
+    def help_string(self, name, parameterized):
+        return ""
+
+    def serialize(self, name, parameterized):
+        val = getattr(parameterized, name)
+        if val == 0:
+            return "zero"
+        else:
+            return "not zero"
 
 
 def test_ini_read_action():
@@ -118,3 +146,123 @@ def test_json_read_action():
     )
     parsed = parser.parse_args([os.path.join(FILE_DIR, 'param.json')])
     assert parsed.zoo['params_b'].object_selector == 1
+
+
+def test_ini_print_action():
+    parser = ArgumentParser()
+    ss = StringIO()
+    parser.add_argument(
+        '--print',
+        action=pargparse.ParameterizedIniPrintAction,
+        out_stream=ss,
+        type=ParamsA,
+        only={'bongo'},  # ordered output not guaranteed in 2.7, 3.5, so only 1
+    )
+    parser.parse_args([])
+    with pytest.raises(SystemExit):
+        parser.parse_args(['--print'])
+    ss.seek(0)
+    assert ss.read().strip() == '''\
+# == Help ==
+# [DEFAULT]
+# bongo: A JSON object
+
+
+[DEFAULT]
+bongo = null'''
+    ss.seek(0)
+    ss.truncate()
+    parser = ArgumentParser()
+    parameterized = OrderedDict()
+    parameterized['params_a'] = ParamsA(bongo=['I', 'am', 'a', 'bongo'])
+    parameterized['params_b'] = ParamsB(
+        list_=['I', 'am', 'comma-d'], object_selector='2')
+    parser.add_argument(
+        '--print',
+        action=pargparse.ParameterizedIniPrintAction, out_stream=ss,
+        parameterized=parameterized,
+        only={'params_a': {'bongo'}, 'params_b': {'list_'}},
+        include_help=False,
+        serializer_name_dict={'params_b': {'list_': CommaListSerializer()}},
+    )
+    with pytest.raises(SystemExit):
+        parser.parse_args(['--print'])
+    ss.seek(0)
+    assert ss.read().strip() == '''\
+[params_a]
+bongo = ["I", "am", "a", "bongo"]
+
+[params_b]
+list_ = I,am,comma-d'''
+
+
+def test_json_print_action():
+    parser = ArgumentParser()
+    ss = StringIO()
+    parser.add_argument(
+        '--print',
+        action=pargparse.ParameterizedJsonPrintAction,
+        out_stream=ss,
+        type=ParamsB,
+        only={"object_selector"},
+    )
+    parser.parse_args([])
+    with pytest.raises(SystemExit):
+        parser.parse_args(['--print'])
+    ss.seek(0)
+    assert ss.read().strip() == '''\
+{
+  "object_selector": null
+}'''
+    ss.seek(0)
+    ss.truncate()
+    parameterized = {'nesting': OrderedDict()}
+    parameterized['nesting']['params_b'] = ParamsB(list_=['foo', 'bar'])
+    parameterized['nesting']['params_a'] = ParamsA(bingo="BINGO!")
+    parser = ArgumentParser()
+    parser.add_argument(
+        '--print',
+        action=pargparse.ParameterizedJsonPrintAction, out_stream=ss,
+        parameterized=parameterized, only={
+            'nesting': {'params_a': {'bingo'}, 'params_b': {'list_'}}
+        },
+        indent=None,
+    )
+    with pytest.raises(SystemExit):
+        parser.parse_args(['--print'])
+    ss.seek(0)
+    assert (
+        ss.read().strip() ==
+        '{"nesting": {"params_b": {"list_": ["foo", "bar"]}, '
+        '"params_a": {"bingo": "BINGO!"}}}')
+
+
+def test_yaml_print_action(yaml_loader):
+    parser = ArgumentParser()
+    ss = StringIO()
+    parameterized = OrderedDict()
+    parameterized['foo'] = ParamsA(bango=1.1)
+    parameterized['bar'] = ParamsA(bongo=[1, 2, 3])
+    parameterized['baz'] = ParamsB()
+    parser.add_argument(
+        '--print',
+        action=pargparse.ParameterizedYamlPrintAction,
+        include_help=False,
+        parameterized=parameterized,
+        only={'foo': {'bango'}, 'bar': {'bongo'}, 'baz': {}},
+        serializer_type_dict={param.Number: ZeroSerializer()},
+        out_stream=ss,
+    )
+    parser.parse_args([])
+    with pytest.raises(SystemExit):
+        parser.parse_args(['--print'])
+    ss.seek(0)
+    assert ss.read().strip() == '''\
+foo:
+  bango: not zero
+bar:
+  bongo:
+  - 1
+  - 2
+  - 3
+baz: {}'''

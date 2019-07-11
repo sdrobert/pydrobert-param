@@ -527,9 +527,9 @@ def _to_json_string_serializer(cls, typename):
             s = super(_JSONStringSerializer, self).help_string(
                 name, parameterized)
             if s is None:
-                return 'A JSON string'
+                return 'A JSON object'
             else:
-                return 'A JSON string. ' + s
+                return 'A JSON object. ' + s
 
         def serialize(self, name, parameterized):
             val = super(_JSONStringSerializer, self).serialize(
