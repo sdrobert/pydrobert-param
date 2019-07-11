@@ -949,8 +949,8 @@ deserialize_from_yaml
 YAML_MODULE_PRIORITIES = ('ruamel.yaml', 'ruamel_yaml', 'pyyaml')
 
 
-def _serialize_to_ruamel_yaml_help_dict(ruamel_yaml, fp, dict_, help_dict):
-    cdict = ruamel_yaml.comments.CommentedMap()
+def _serialize_to_ruamel_yaml_dict(yaml, type_, fp, dict_, help_dict):
+    cdict = type_()
     c_stack = [cdict]
     d_stack = [dict_]
     h_stack = [help_dict]
@@ -964,28 +964,32 @@ def _serialize_to_ruamel_yaml_help_dict(ruamel_yaml, fp, dict_, help_dict):
                 c.insert(len(c), key, dval, comment=hval)
             else:
                 assert len(d)
-                c2 = ruamel_yaml.comments.CommentedMap()
+                c2 = type_()
                 c.insert(len(c), key, c2)
                 c_stack.append(c2)
                 d_stack.append(dval)
                 h_stack.append(hval)
-    ruamel_yaml.YAML().dump(cdict, stream=fp)
+    yaml.dump(cdict, stream=fp)
 
 
-def _serialize_to_ruamel_yaml(ruamel_yaml, fp, obj, help_dict=None):
+def _serialize_to_ruamel_yaml(ruamel_yaml, fp, obj, help_dict):
+    # yaml has an !!omap tag for ordered dictionaries. We don't *need* an
+    # ordering when deserializing, but we want an order when serializing. This
+    # is a hack to ensure an OrderedDict is serialized like any other dict
+    yaml = ruamel_yaml.YAML()
+
+    class MyRepresenter(yaml.Representer):
+        pass
+
+    yaml.Representer = MyRepresenter  # don't pollute the base class
+    yaml.representer.add_representer(OrderedDict, MyRepresenter.represent_dict)
     if help_dict:
-        return _serialize_to_ruamel_yaml_help_dict(
-            ruamel_yaml, fp, obj, help_dict)
-    elif isinstance(obj, dict):
-        # round-trip dump will use !!omap if an ordered dict. Don't want that.
-        # py2.7 seems to think OrderedDict is unordered, so we update
-        new = ruamel_yaml.comments.CommentedMap()
-        new.update(obj)
-        obj = new
-    ruamel_yaml.YAML().dump(obj, stream=fp)
+        return _serialize_to_ruamel_yaml_dict(
+            yaml, ruamel_yaml.comments.CommentedMap, fp, obj, help_dict)
+    yaml.dump(obj, stream=fp)
 
 
-def _serialize_to_pyyaml(yaml, fp, obj, help_dict=None):
+def _serialize_to_pyyaml(yaml, fp, obj, help_dict):
     if help_dict:
         help_string_io = StringIO()
         yaml.dump(help_dict, stream=help_string_io, default_flow_style=False)
@@ -993,6 +997,9 @@ def _serialize_to_pyyaml(yaml, fp, obj, help_dict=None):
         help_string = '# == Help ==\n# ' + help_string + '\n'
         fp.write(help_string)
     # https://stackoverflow.com/questions/5121931/in-python-how-can-you-load-yaml-mappings-as-ordereddicts
+    # we also always serialize "None" in order to be consistent with
+    # ruamel_yaml using the method from
+    # https://stackoverflow.com/questions/37200150/can-i-dump-blank-instead-of-null-in-yaml-pyyaml
 
     class OrderedDumper(yaml.SafeDumper):
         pass
@@ -1002,11 +1009,15 @@ def _serialize_to_pyyaml(yaml, fp, obj, help_dict=None):
             yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
             data.items())
 
+    def none_representer(dumper, data):
+        return dumper.represent_scalar('tag:yaml.org,2002:null', '')
+
     OrderedDumper.add_representer(OrderedDict, dict_representer)
+    OrderedDumper.add_representer(type(None), none_representer)
     yaml.dump(obj, Dumper=OrderedDumper, stream=fp, default_flow_style=False)
 
 
-def _serialize_to_yaml(fp, obj, help_dict=None):
+def _serialize_to_yaml(fp, obj, help_dict=dict()):
     for name in YAML_MODULE_PRIORITIES:
         if name == 'ruamel.yaml':
             try:

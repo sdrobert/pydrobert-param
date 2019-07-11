@@ -389,6 +389,22 @@ def test_serialize_to_yaml(yaml_loader):
     assert dict_['a']['list_'] == [2, 4, 6, 8]
     assert np.allclose(dict_['b']['c']['series'], pd.Series(range(20)))
     assert dict_['b']['c']['tuple_'] == ['a', 'b', 'c']
+    # we don't want !!omap tags in our output. For parameter files, the
+    # hieriarchical dict ordering isn't necessary, just aesthetic
+    sbuff.seek(0)
+    sbuff.truncate(0)
+    serial.serialize_to_yaml(
+        sbuff,
+        OrderedDict({'a': parameterized_a}),
+        only={'a': {'dict_'}},
+        include_help=False,
+    )
+    sbuff.seek(0)
+    assert sbuff.read().strip() == '''\
+a:
+  dict_:
+    foo:
+      bar:'''
 
 
 def test_serialize_to_json():
