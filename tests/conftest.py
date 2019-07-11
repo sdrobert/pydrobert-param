@@ -28,6 +28,17 @@ def yaml_loader(request):
     serial.YAML_MODULE_PRIORITIES = old_props
 
 
+@pytest.fixture(params=[True, False])
+def with_yaml(request):
+    if request.param:
+        yield True
+    else:
+        old_props = serial.YAML_MODULE_PRIORITIES
+        serial.YAML_MODULE_PRIORITIES = tuple()
+        yield False
+        serial.YAML_MODULE_PRIORITIES = old_props
+
+
 @pytest.fixture
 def temp_dir():
     dir_name = mkdtemp()
