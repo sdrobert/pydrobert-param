@@ -303,3 +303,51 @@ who = ini
     else:
         with pytest.raises(SystemExit):
             parser.parse_args(['--read-yaml', yaml_path])
+    with pytest.raises(SystemExit):
+        parser.parse_args(['--read-ini', ini_path, '--read-json', json_path])
+
+
+def test_add_parameterized_print_group(with_yaml):
+
+    class MyParams(param.Parameterized):
+        zoomba = param.Integer(30000, doc="Best fitness level")
+
+    parser = ArgumentParser()
+    ss = StringIO()
+    pargparse.add_parameterized_print_group(
+        parser, type=MyParams,
+        ini_kwargs={'out_stream': ss},
+        json_kwargs={'out_stream': ss, 'indent': None},
+        yaml_kwargs={'out_stream': ss, 'include_help': False},
+    )
+    parser.parse_args([])
+    with pytest.raises(SystemExit):
+        parser.parse_args(['--print-ini'])
+    ss.seek(0)
+    assert ss.read().strip() == '''\
+# == Help ==
+# [DEFAULT]
+# zoomba: Best fitness level
+
+
+[DEFAULT]
+zoomba = 30000'''
+    ss.seek(0)
+    ss.truncate()
+    with pytest.raises(SystemExit):
+        parser.parse_args(['--print-json'])
+    ss.seek(0)
+    assert ss.read().strip() == '{"zoomba": 30000}'
+    ss.seek(0)
+    ss.truncate()
+    with pytest.raises(SystemExit) as ex:
+        parser.parse_args(['--print-yaml'])
+    ss.seek(0)
+    if with_yaml:
+        assert not ex.value.code
+        assert ss.read().strip() == "zoomba: 30000"
+        ss.seek(0)
+        ss.truncate()
+    else:
+        assert ex.value.code
+        assert not ss.read()

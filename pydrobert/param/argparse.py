@@ -32,6 +32,7 @@ __email__ = "sdrobert@cs.toronto.edu"
 __license__ = "Apache 2.0"
 __copyright__ = "Copyright 2019 Sean Robertson"
 __all__ = [
+    'add_parameterized_print_group',
     'add_parameterized_read_group',
     'ParameterizedFileReadAction',
     'ParameterizedIniPrintAction',
@@ -300,17 +301,46 @@ class ParameterizedJsonReadAction(ParameterizedFileReadAction):
         )
 
 
+def _yaml_ok():
+    yaml_ok = False
+    for name in serialization.YAML_MODULE_PRIORITIES:
+        if name == 'ruamel.yaml':
+            try:
+                import ruamel.yaml
+                yaml_ok = True
+                break
+            except ImportError:
+                pass
+        elif name == 'ruamel_yaml':
+            try:
+                import ruamel_yaml
+                yaml_ok = True
+                break
+            except ImportError:
+                pass
+        elif name == 'pyyaml':
+            try:
+                import yaml
+                yaml_ok = True
+                break
+            except ImportError:
+                pass
+    return yaml_ok
+
+
 def add_parameterized_read_group(
-        parser, ini_option_strings=('--read-ini',), parameterized=None,
-        type=None, include_yaml=None, json_option_strings=('--read-json',),
-        yaml_option_strings=('--read-yaml',), dest='params',
-        ini_kwargs=dict(), json_kwargs=dict(), yaml_kwargs=dict()):
+        parser, parameterized=None,
+        type=None, include_yaml=None, ini_option_strings=('--read-ini',),
+        json_option_strings=('--read-json',),
+        yaml_option_strings=('--read-yaml',), dest='params', ini_kwargs=dict(),
+        json_kwargs=dict(), yaml_kwargs=dict()):
     r'''Add flags to read configs from INI, JSON, or YAML sources
 
     This convenience function adds a mutually exclusive group of read actions
     to `parser` to read in parameters from 3 file types: INI, JSON, or YAML.
 
-    What to read into is determined by the keywords `type` or `parameterized`.
+    What to read into is determined by the keyword args `type` or
+    `parameterized`.
 
     1. If `type` is specified, it will be instantiated and populated
     2. If `parameterized` is specified and is a ``param.Parameterized``
@@ -337,7 +367,7 @@ def add_parameterized_read_group(
         is disabled
     json_option_strings : sequence, optional
         Zero or more option strings specifying that the next argument is an
-        YAML file to be read. If no option strings are specified, YAML reading
+        JSON file to be read. If no option strings are specified, JSON reading
         is disabled
     yaml_option_strings : sequence, optional
         Zero or more option strings specifying that the next argument is an
@@ -370,11 +400,11 @@ def add_parameterized_read_group(
     >>> with open('config.json', 'w') as f:
     >>>     f.write('{"foo": "b"}\n')
     >>> # make our Parameterized type
-    >>> import param
+    >>> import param, argparse
     >>> class MyParams(param.Parameterized):
     >>>     foo = param.String(None)
     >>> # make our parser
-    >>> parser = ArgumentParser()
+    >>> parser = argparse.ArgumentParser()
     >>> add_parameterized_read_group(parser, type=MyParams)
     >>> # parse an INI
     >>> options = parser.parse_args(['--read-ini', 'config.ini'])
@@ -403,7 +433,7 @@ def add_parameterized_read_group(
     >>>     me = param.String(None)
     >>> parameterized = {'A': A(), 'B': {'B.1': B(), 'B.2': B()}}
     >>> # make our parser
-    >>> parser = ArgumentParser()
+    >>> parser = argparse.ArgumentParser()
     >>> add_parameterized_read_group(parser, parameterized=parameterized)
     >>> # parse YAML (requires package ruamel.yaml/ruamel_yaml or pyyaml)
     >>> parser.parse_args(['--read-yaml', 'config.yaml'])
@@ -439,28 +469,7 @@ def add_parameterized_read_group(
             **json_kwargs
         )
     if include_yaml is None and len(yaml_option_strings):
-        for name in serialization.YAML_MODULE_PRIORITIES:
-            if name == 'ruamel.yaml':
-                try:
-                    import ruamel.yaml
-                    include_yaml = True
-                    break
-                except ImportError:
-                    pass
-            elif name == 'ruamel_yaml':
-                try:
-                    import ruamel_yaml
-                    include_yaml = True
-                    break
-                except ImportError:
-                    pass
-            elif name == 'pyyaml':
-                try:
-                    import yaml
-                    include_yaml = True
-                    break
-                except ImportError:
-                    pass
+        include_yaml = _yaml_ok()
     if include_yaml and len(yaml_option_strings):
         group.add_argument(
             *yaml_option_strings,
@@ -736,3 +745,143 @@ class ParameterizedYamlPrintAction(ParameterizedPrintAction):
             serializer_type_dict=self.serializer_type_dict,
             on_missing=self.on_missing, include_help=self.include_help,
         )
+
+
+def add_parameterized_print_group(
+        parser, type=None, parameterized=None, include_yaml=None,
+        ini_option_strings=('--print-ini',),
+        json_option_strings=('--print-json',),
+        yaml_option_strings=('--print-yaml',),
+        ini_kwargs=dict(), json_kwargs=dict(), yaml_kwargs=dict()):
+    '''Add flags to print parameters as INI, JSON, or YAML
+
+    This convenience function adds a group of print actions to `parser` to
+    print parameters and exit in one of INI, JSON, or YAML format.
+
+    What to print is determined by the keyword args `type` or `parameterized`.
+
+    1. If `type` is specified, it will be instantiated and printed with
+       whatever defaults it has
+    2. If `parameterized` is a ``param.Parameterized`` instance, that instance
+       will be printed
+    3. If `parameterized` is a dictionary of `param.Parameterized` instances,
+       those instances will be serialized to dictionaries, then the dictionary
+       of dictionaries will be printed. `parameterized` can contain nested
+       dictionaries of ``param.Parameterized`` instances, but it will be unable
+       to be printed as an INI file, only JSON or YAML
+
+    Parameters
+    ----------
+    parser : argparse.ArgumentParser
+    type : type, optional
+    parametrized : param.Parameterized or dict, optional
+    include_yaml : bool, optional
+        Whether to include the YAML print flags. YAML requires either
+        ``ruamel_yaml/ruamel.yaml`` or ``pyyaml`` to be installed. If unset,
+        we will include the flags if it is possible to import a YAML module.
+    ini_option_strings : sequence, optional
+        Zero or more option strings specifying that INI format should be
+        printed. If no option strings are specified, INI printing is disabled
+    json_option_strings : sequence, optional
+        Zero or more option strings specifying that JSON format should be
+        printed. If no option strings are specified, JSON printing is disabled
+    yaml_option_strings : sequence, optional
+        Zero or more option strings specifying that YAML format should be
+        printed. If no option strings are specified, YAML printing is disabled
+    ini_kwargs : dict, optional
+        Additional keyword arguments to use when creating the INI flag.
+        See ``ParameterizedIniPrintAction`` for more info
+    json_kwargs : dict, optional
+        Additional keyword arguments to use when creating the JSON flag.
+        See ``ParameterizedJsonPrintAction`` for more info
+    yaml_kwargs : dict, optional
+        Additional keyword arguments to use when creating the YAML flag.
+        See ``ParameterizedYamlPrintAction`` for more info
+
+    Returns
+    -------
+    group
+        The group containing the flags
+
+    Examples
+    --------
+
+    >>> import param, argparse
+    >>> class MyParams(param.Parameterized):
+    ...     an_int = param.Integer(1)
+    ...     a_bool = param.Boolean(True)
+    >>> parser = argparse.ArgumentParser()
+    >>> add_parameterized_print_group(parser, type=MyParams)
+    >>> try:
+    ...     parser.parse_args(['--print-ini'])
+    ... except SystemExit:
+    ...     pass
+    [DEFAULT]
+    an_int = 1
+    a_bool = true
+    >>> try:
+    ...     # only works if ruamel.yaml/ruamel_yaml or pyyaml installed
+    ...     parser.parse_args(['--print-yaml'])
+    ... except SystemExit:
+    ...     pass
+    an_int: 1
+    a_bool: true
+
+    >>> import param, argparse
+    >>> class A(param.Parameterized):
+    ...     something = param.Integer(None)
+    ...     else_ = param.List([1, 2])
+    >>> class B(param.Parameterized):
+    ...     float_ = param.Number(3.14)
+    >>> parameterized = {'A': {'AA': A()}, 'B': B()}
+    >>> parser = argparse.ArgumentParser()
+    >>> add_parameterized_print_group(
+    ...     parser, parameterized=parameterized, json_kwargs={'indent': None})
+    >>> try:
+    ...     parser.parse_args(['--print-json'])
+    ... except SystemExit:
+    ...     pass
+    {"A": {"AA": {"something": null, "else_": [1, 2]}}, "B": {"float_": 3.14}}
+
+    Notes
+    -----
+    The returned `group` is technically mutally exclusive. However, since the
+    print action ends with a ``SystemExit`` call, mutual exclusivity will never
+    be enforced
+    '''
+    if parameterized is None and type is None:
+        raise TypeError('one of parameterized or type must be set')
+    if parameterized is not None and type is not None:
+        raise TypeError('only one of parameterized or type can be set')
+    for name, dict_ in (
+            ('ini', ini_kwargs), ('json', json_kwargs), ('yaml', yaml_kwargs)):
+        keys = set(dict_) & {'type', 'parameterized'}
+        if keys:
+            raise TypeError(
+                '{}_kwargs contains unexpected keyword arguments: {}'
+                ''.format(name, ', '.join(sorted(keys))))
+    group = parser.add_mutually_exclusive_group()
+    if ini_option_strings:
+        group.add_argument(
+            *ini_option_strings,
+            action=ParameterizedIniPrintAction,
+            type=type, parameterized=parameterized,
+            **ini_kwargs
+        )
+    if json_option_strings:
+        group.add_argument(
+            *json_option_strings,
+            action=ParameterizedJsonPrintAction,
+            type=type, parameterized=parameterized,
+            **json_kwargs
+        )
+    if include_yaml is None and len(yaml_option_strings):
+        include_yaml = _yaml_ok()
+    if include_yaml and len(yaml_option_strings):
+        group.add_argument(
+            *yaml_option_strings,
+            action=ParameterizedYamlPrintAction,
+            type=type, parameterized=parameterized,
+            **yaml_kwargs
+        )
+    return group
