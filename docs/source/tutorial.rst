@@ -49,12 +49,12 @@ where we get
         "model_regex": "model-{epoch:05d}.pkl"
       },
       "model": {
+        "activations": "relu",
         "layers": [
           "conv",
           "conv",
           "fc"
-        ],
-        "activations": "relu"
+        ]
       }
     }
 
@@ -70,11 +70,11 @@ or
       max_epochs: 10
       model_regex: model-{epoch:05d}.pkl # Regular exp for storing model weights after every epoch
     model:
+      activations: relu  # Choices: "tanh", "relu"
       layers:  # Sequence of layers by type, bottom-first. Element choices: "conv", "fc", "recurrent"
         - conv
         - conv
         - fc
-      activations: relu  # Choices: "tanh", "relu"
 
 or
 
@@ -82,8 +82,8 @@ or
 
     # == Help ==
     # [training]
-    # model_regex: Regular exp for storing model weights after every epoch
     # lr: The learning rate
+    # model_regex: Regular exp for storing model weights after every epoch
 
     # [model]
     # activations: Choices: "tanh", "relu"
@@ -91,9 +91,9 @@ or
 
 
     [training]
-    model_regex = model-{epoch:05d}.pkl
-    max_epochs = 10
     lr = 1e-05
+    max_epochs = 10
+    model_regex = model-{epoch:05d}.pkl
 
     [model]
     activations = relu
@@ -173,8 +173,8 @@ With ``conf.ini``:
 
     [training]
     max_epochs = 10
-    lr = 1e-05
     model_regex = model-{epoch:05d}.pkl
+    lr = 1e-05
 
     [model]
     activations = relu
