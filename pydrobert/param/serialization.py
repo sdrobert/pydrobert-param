@@ -514,8 +514,11 @@ def _to_json_string_serializer(cls, typename):
     class _JsonStringSerializer(cls):
         '''Converts a {} to a JSON string
 
-        The default serializer used in INI files. This does the same as
-        ``{}``, but then converts it to a json string
+        The default serializer used in INI files. This:
+
+        1. Follows the process of ``{}``
+        2. If the resulting value is ``None``, return that
+        3. Otherwise, converts it to a string of JSON
 
         See Also
         --------
@@ -534,6 +537,8 @@ def _to_json_string_serializer(cls, typename):
         def serialize(self, name, parameterized):
             val = super(_JsonStringSerializer, self).serialize(
                 name, parameterized)
+            if val is None:
+                return val
             try:
                 return json.dumps(val)
             except (TypeError, ValueError) as e:
@@ -795,20 +800,17 @@ def serialize_to_dict(
 
 
 def serialize_to_ini(
-        file, parameterized,
-        only=None,
-        serializer_name_dict=None,
-        serializer_type_dict=None,
-        on_missing='raise',
-        include_help=True,
-        help_prefix='#',
-        one_param_section=None):
+        file, parameterized, only=None, serializer_name_dict=None,
+        serializer_type_dict=None, on_missing='raise', include_help=True,
+        help_prefix='#', one_param_section=None):
     '''Serialize a parameterized instance into an INI (config) file
 
-    `.INI syntax <https://en.wikipedia.org/wiki/INI_file>`, also including
-    `interpolation <https://docs.python.org/3.7/library/configparser.html>`.
-    This function converts `parameterized` to a dictionary, then fills an INI
-    file with the contents of this dictionary.
+    `.INI syntax <https://en.wikipedia.org/wiki/INI_file>`, extended with
+    `ConfigParser <https://docs.python.org/3.7/library/configparser.html>`.
+    ``ConfigParser`` extends the INI syntax with value interpolation. Further,
+    keys missing a value will be interpreted as having the value ``None``. This
+    function converts `parameterized` to a dictionary, then fills an INI file
+    with the contents of this dictionary.
 
     INI files are broken up into sections; all key-value pairs must belong to a
     section. If `parameterized` is a ``param.Parameterized`` instance (rather
@@ -881,12 +883,11 @@ def serialize_to_ini(
         help_dict = dict()
     try:
         from ConfigParser import SafeConfigParser
-        parser = SafeConfigParser()
+        parser = SafeConfigParser(allow_no_value=True)
     except ImportError:
         from configparser import ConfigParser
         parser = ConfigParser(
-            comment_prefixes=(help_prefix,),
-        )
+            comment_prefixes=(help_prefix,), allow_no_value=True)
     if isinstance(parameterized, param.Parameterized):
         if one_param_section is None:
             one_param_section = 'DEFAULT'
@@ -912,7 +913,10 @@ def serialize_to_ini(
             if h:
                 help_string_io.write('{} [{}]\n'.format(help_prefix, section))
             for key, val in d.items():
-                parser.set(section, key, str(val))
+                if val is None:
+                    parser.set(section, key)
+                else:
+                    parser.set(section, key, str(val))
                 if key in h:
                     help_string_io.write('{} {}: {}\n'.format(
                         help_prefix, key, h[key]))
@@ -1224,9 +1228,7 @@ class ParamConfigDeserializer(with_metaclass(abc.ABCMeta, object)):
 
         1. The parameter allows ``None`` values (the ``allow_None``
            attribute is ``True``)
-        2. One of:
-           1. `block` is ``None``
-           2. `block` is a string matching ``"None"`` or ``"none"``
+        2. `block` is ``None``
 
         If one of these conditions wasn't met, the parameter remains unset
         and the method returns ``False``.
@@ -1235,11 +1237,7 @@ class ParamConfigDeserializer(with_metaclass(abc.ABCMeta, object)):
         referred to as a "none check".
         '''
         p = parameterized.params()[name]
-        if (
-                (
-                    block is None or
-                    (isinstance(block, str) and (block in {'None', 'none'}))
-                ) and p.allow_None):
+        if block is None and p.allow_None:
             parameterized.param.set_param(name, None)
             return True
         else:
@@ -1776,11 +1774,12 @@ class DefaultTupleDeserializer(_CastDeserializer):
 class JsonStringDataFrameDeserializer(DefaultDataFrameDeserializer):
     '''Parses block as JSON before converting to ``pandas.DataFrame``
 
-    The default deserializer used in INI files. Input is always assumed to
-    be a string. It parses the value as JSON, then does the same as
-    ``DefaultDataFrameSerializer``. However, if the input ends in a file
-    suffix like ".csv", ".xls", etc., the input will be immediately passed
-    to ``DefaultDataFrameSerializer``
+    The default deserializer used in INI files. Input is always assumed to be a
+    string or ``None``. If ``None``, a none check is performed. Otherwise, it
+    parses the value as JSON, then does the same as
+    ``DefaultDataFrameSerializer``. However, if the input ends in a file suffix
+    like ".csv", ".xls", etc., the input will be immediately passed to
+    ``DefaultDataFrameSerializer``
 
     See Also
     --------
@@ -1793,6 +1792,8 @@ class JsonStringDataFrameDeserializer(DefaultDataFrameDeserializer):
     }
 
     def deserialize(self, name, block, parameterized):
+        if self.check_if_allow_none_and_set(name, block, parameterized):
+            return
         bs = block.split('.')
         if len(bs) > 1 and bs[-1] in self.file_suffixes:
             return super(JsonStringDataFrameDeserializer, self).deserialize(
@@ -1810,8 +1811,11 @@ def _to_json_string_deserializer(cls, typename):
     class _JsonStringDeserializer(cls):
         '''Parses block as json before converting into {}
 
-        The default deserializer used in INI files. It parses the value as
-        JSON, then does the same as ``{}``
+        The default deserializer used in INI files.
+
+        1. None check
+        2. It parses the value as a JSON string
+        3. Does the same as ``{}``
 
         See Also
         --------
@@ -1820,6 +1824,8 @@ def _to_json_string_deserializer(cls, typename):
         '''.format(typename, cls.__name__)
 
         def deserialize(self, name, block, parameterized):
+            if self.check_if_allow_none_and_set(name, block, parameterized):
+                return
             try:
                 block = json.loads(block)
             except json.JSONDecodeError as e:
@@ -2064,9 +2070,11 @@ def deserialize_from_ini(
         one_param_section=None):
     '''Deserialize an INI (config) file into a parameterized instance
 
-    `.INI syntax <https://en.wikipedia.org/wiki/INI_file>`, also including
-    `interpolation <https://docs.python.org/3.7/library/configparser.html>`.
-    This function converts an INI file to a dictionary, then populates
+    `.INI syntax <https://en.wikipedia.org/wiki/INI_file>`, extended with
+    `ConfigParser <https://docs.python.org/3.7/library/configparser.html>`.
+    ``ConfigParser`` extends the INI syntax with value interpolation. Further,
+    keys missing a value will be interpreted as having the value ``None``. This
+    function converts an INI file to a dictionary, then populates
     `parameterized` with the contents of this dictionary.
 
     INI files are broken up into sections; all key-value pairs must belong to a
@@ -2134,6 +2142,7 @@ def deserialize_from_ini(
             defaults=defaults,
             comment_prefixes=comment_prefixes,
             inline_comment_prefixes=inline_comment_prefixes,
+            allow_no_value=True,
         )
     if one_param_section is None:
         one_param_section = 'DEFAULT'

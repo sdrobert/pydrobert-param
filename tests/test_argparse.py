@@ -168,9 +168,9 @@ def test_ini_print_action():
 
 
 [DEFAULT]
-bango = None
-bingo = None
-bongo = null'''
+bango
+bingo
+bongo'''
     ss.seek(0)
     ss.truncate()
     parser = ArgumentParser()
@@ -250,7 +250,7 @@ def test_yaml_print_action(yaml_loader):
         action=pargparse.ParameterizedYamlPrintAction,
         include_help=False,
         parameterized=parameterized,
-        only={'foo': {'bango'}, 'bar': {'bongo'}, 'baz': {}},
+        only={'foo': {'bango'}, 'bar': {'bongo'}},
         serializer_type_dict={param.Number: ZeroSerializer()},
         out_stream=ss,
     )
@@ -266,7 +266,11 @@ bar:
   - 1
   - 2
   - 3
-baz: {}'''
+baz:
+  date_range:
+  dont_try_this:
+  list_:
+  object_selector:'''
 
 
 def test_add_parameterized_read_group(temp_dir, with_yaml):
