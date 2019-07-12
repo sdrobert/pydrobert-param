@@ -2108,8 +2108,8 @@ def deserialize_from_ini(
     one_param_section : str or None, optional
         If `parameterized` refers to a single ``param.Parameterized`` instance,
         this keyword is used to indicate which section of the INI file will
-        be deserialized. If ``None``, the INI file's default section
-        (``"DEFAULT"``) will be used
+        be deserialized. If unspecified, will default to the ``name``
+        attribute of `parameterized`
 
     See Also
     --------
@@ -2135,13 +2135,13 @@ def deserialize_from_ini(
         inline_comment_prefixes=inline_comment_prefixes,
         allow_no_value=True,
     )
-    if one_param_section is None:
-        one_param_section = 'DEFAULT'
     try:
         parser.read_file(file)
     except AttributeError:
         parser.readfp(file)
     if isinstance(parameterized, param.Parameterized):
+        if one_param_section is None:
+            one_param_section = parameterized.name
         dict_ = OrderedDict(parser.items(one_param_section))
     else:
         dict_ = OrderedDict(
