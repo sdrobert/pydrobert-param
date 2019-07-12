@@ -19,10 +19,7 @@ try:
     from cStringIO import StringIO
 except ImportError:
     from io import StringIO
-try:
-    from ConfigParser import SafeConfigParser as ConfigParser
-except ImportError:
-    from configparser import ConfigParser
+from configparser import ConfigParser
 
 import pytest
 import param

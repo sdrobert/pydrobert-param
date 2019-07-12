@@ -20,8 +20,9 @@ from __future__ import print_function
 
 import abc
 import json
+import configparser
 
-from builtins import bytes
+from builtins import bytes, str as unicode
 from collections import OrderedDict
 try:
     from cStringIO import StringIO
@@ -881,16 +882,11 @@ def serialize_to_ini(
         dict_, help_dict = dict_
     else:
         help_dict = dict()
-    try:
-        from ConfigParser import SafeConfigParser
-        parser = SafeConfigParser(allow_no_value=True)
-    except ImportError:
-        from configparser import ConfigParser
-        parser = ConfigParser(
-            comment_prefixes=(help_prefix,), allow_no_value=True)
+    parser = configparser.ConfigParser(
+        comment_prefixes=(help_prefix,), allow_no_value=True)
     if isinstance(parameterized, param.Parameterized):
         if one_param_section is None:
-            one_param_section = 'DEFAULT'
+            one_param_section = configparser.DEFAULTSECT
         parameterized = {one_param_section: parameterized}
         dict_ = {one_param_section: dict_}
         help_dict = {one_param_section: help_dict}
@@ -908,15 +904,15 @@ def serialize_to_ini(
             assert len(s_queue)
             assert d is not None
             section = s_queue.pop()
-            if section != 'DEFAULT':
-                parser.add_section(section)
+            if section != parser.default_section:
+                parser.add_section(unicode(section))
             if h:
                 help_string_io.write('{} [{}]\n'.format(help_prefix, section))
             for key, val in d.items():
                 if val is None:
-                    parser.set(section, key)
+                    parser.set(unicode(section), unicode(key))
                 else:
-                    parser.set(section, key, str(val))
+                    parser.set(unicode(section), unicode(key), unicode(val))
                 if key in h:
                     help_string_io.write('{} {}: {}\n'.format(
                         help_prefix, key, h[key]))
@@ -2133,17 +2129,12 @@ def deserialize_from_ini(
         deserializer_type_dict = d
     else:
         deserializer_type_dict = JSON_STRING_DESERIALIZER_DICT
-    try:
-        from ConfigParser import SafeConfigParser
-        parser = SafeConfigParser(defaults=defaults)
-    except ImportError:
-        from configparser import ConfigParser
-        parser = ConfigParser(
-            defaults=defaults,
-            comment_prefixes=comment_prefixes,
-            inline_comment_prefixes=inline_comment_prefixes,
-            allow_no_value=True,
-        )
+    parser = configparser.ConfigParser(
+        defaults=defaults,
+        comment_prefixes=comment_prefixes,
+        inline_comment_prefixes=inline_comment_prefixes,
+        allow_no_value=True,
+    )
     if one_param_section is None:
         one_param_section = 'DEFAULT'
     try:
