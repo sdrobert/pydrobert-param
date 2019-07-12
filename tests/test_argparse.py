@@ -163,11 +163,11 @@ def test_ini_print_action():
     ss.seek(0)
     assert ss.read().strip() == '''\
 # == Help ==
-# [print]
+# [ParamsA]
 # bongo: A JSON object
 
 
-[print]
+[ParamsA]
 bango
 bingo
 bongo'''
@@ -331,11 +331,11 @@ def test_add_parameterized_print_group(with_yaml):
     ss.seek(0)
     assert ss.read().strip() == '''\
 # == Help ==
-# [print_ini]
+# [MyParams]
 # zoomba: Best fitness level
 
 
-[print_ini]
+[MyParams]
 zoomba = 30000'''
     ss.seek(0)
     ss.truncate()

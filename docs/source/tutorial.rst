@@ -33,7 +33,7 @@ We can serialize these easily into JSON, YAML, or INI:
 
 .. code-block:: python
 
-    from pydrobert.param import serialization as serial
+    import pydrobert.param.serialization as serial
     serial.serialize_to_json('conf.json', param_dict)
     serial.serialize_to_yaml('conf.yaml', param_dict)  # requires ruamel.yaml or pyyaml
     serial.serialize_to_ini('conf.ini', param_dict)
@@ -111,8 +111,16 @@ existing parameterized instances.
     serial.deserialize_from_yaml('conf.yaml', param_dict)
     assert t_params.lr == 1e-05
 
-``pydrobert.param.argparse`` contains convenience methods for deserializing
-config files right from the command line. Wow, neat-o!
+``pydrobert.param.argparse`` contains convenience functions for (de)serializing
+config files right from the command line.
+
+.. code-block:: python
+
+    import argparse, pydrobert.param.argparse as pargparse
+    parser = argparse.ArgumentParser()
+    pargparse.add_parameterized_read_group(parser, parameterized=param_dict)
+    pargparse.add_parameterized_print_group(parser, parameterized=param_dict)
+
 
 Sometimes, the default (de)serialization routines are unsuited for the data.
 For example, INI files do not have a standard format for lists of values. For
