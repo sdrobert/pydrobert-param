@@ -46,9 +46,11 @@ def main():
             'Programming Language :: Python :: 3.6',
             'Programming Language :: Python :: 3.7',
         ],
-        install_requires=['param>=1.8', 'future'],
+        install_requires=['param>=1.9', 'future'],
         setup_requires=SETUP_REQUIRES,
-        tests_require=['pytest', 'ruamel.yaml', 'pyyaml', 'pandas', 'numpy'],
+        tests_require=[
+            'pytest', 'ruamel.yaml >= 0.15', 'pyyaml >= 4.2',
+            'pandas', 'numpy'],
         entry_points={
             'console_scripts': [
                 'combine-ini-files = pydrobert.param.command_line:'
