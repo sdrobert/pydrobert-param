@@ -850,8 +850,8 @@ def serialize_to_ini(
     one_param_section : str or None, optional
         If `parameterized` refers to a single ``param.Parameterized`` instance,
         this keyword is used to indicate which section of the INI file
-        `parameterized` will be serialized to. If ``None``, the INI file's
-        default section (``"DEFAULT"``) will be used
+        `parameterized` will be serialized to. If ``None``, the ``name``
+        attribute of the `parameterized` instance will be the used
 
     See Also
     --------
@@ -886,7 +886,7 @@ def serialize_to_ini(
         comment_prefixes=(help_prefix,), allow_no_value=True)
     if isinstance(parameterized, param.Parameterized):
         if one_param_section is None:
-            one_param_section = configparser.DEFAULTSECT
+            one_param_section = parameterized.name
         parameterized = {one_param_section: parameterized}
         dict_ = {one_param_section: dict_}
         help_dict = {one_param_section: help_dict}
