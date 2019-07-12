@@ -156,7 +156,6 @@ def test_ini_print_action():
         action=pargparse.ParameterizedIniPrintAction,
         out_stream=ss,
         type=ParamsA,
-        only={'bongo'},  # ordered output not guaranteed in 2.7, 3.5, so only 1
     )
     parser.parse_args([])
     with pytest.raises(SystemExit):
@@ -169,6 +168,8 @@ def test_ini_print_action():
 
 
 [DEFAULT]
+bango = None
+bingo = None
 bongo = null'''
     ss.seek(0)
     ss.truncate()

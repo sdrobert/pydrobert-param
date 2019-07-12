@@ -817,15 +817,15 @@ def add_parameterized_print_group(
     ... except SystemExit:
     ...     pass
     [DEFAULT]
-    an_int = 1
     a_bool = true
+    an_int = 1
     >>> try:
     ...     # only works if ruamel.yaml/ruamel_yaml or pyyaml installed
     ...     parser.parse_args(['--print-yaml'])
     ... except SystemExit:
     ...     pass
-    an_int: 1
     a_bool: true
+    an_int: 1
 
     >>> import param, argparse
     >>> class A(param.Parameterized):
@@ -841,7 +841,7 @@ def add_parameterized_print_group(
     ...     parser.parse_args(['--print-json'])
     ... except SystemExit:
     ...     pass
-    {"A": {"AA": {"something": null, "else_": [1, 2]}}, "B": {"float_": 3.14}}
+    {"A": {"AA": {"else_": [1, 2], "something": null}}, "B": {"float_": 3.14}}
 
     Notes
     -----

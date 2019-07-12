@@ -669,6 +669,8 @@ def _serialize_to_dict_flat(
                 help_dict[name] = help_string_doc
         elif help_string_serial:
             help_dict[name] = help_string_serial
+    # deterministic output
+    dict_ = OrderedDict(sorted((k, v) for (k, v) in dict_.items()))
     return dict_, help_dict
 
 
@@ -738,7 +740,8 @@ def serialize_to_dict(
         A dictionary of serialized parameters or a pair of dictionaries if
         `include_help` was ``True`` (the latter is the help dictionary). If
         `parameterized` was an ordered dictionary, the returned serialized
-        dictionary will have the same order
+        dictionary will have the same order. Parameters from a
+        ``param.Parameterized`` instance are sorted alphabeticallly
 
     Raises
     ------
