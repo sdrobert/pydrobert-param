@@ -24,7 +24,7 @@ requirements:
     - setuptools_scm
   run:
     - python
-    - param >= 1.9.0
+    - param >=1.9.0
     - future
     - configparser
 
