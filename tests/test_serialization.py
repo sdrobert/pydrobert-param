@@ -19,10 +19,7 @@ try:
     from cStringIO import StringIO
 except ImportError:
     from io import StringIO
-try:
-    from ConfigParser import SafeConfigParser as ConfigParser
-except ImportError:
-    from configparser import ConfigParser
+from configparser import ConfigParser
 
 import pytest
 import param
@@ -438,8 +435,7 @@ def test_serialize_to_json():
     assert dict_['b']['q']['string'] is None
 
 
-@pytest.mark.parametrize('block', [None, 'None'])
-def test_can_deserialize_none(block):
+def test_can_deserialize_none():
     parameterized = BigDumbParams(name='test_can_deserialize_none')
     for name, p in parameterized.params().items():
         if name in {
@@ -451,7 +447,7 @@ def test_can_deserialize_none(block):
             deserializer = serial.DEFAULT_DESERIALIZER_DICT[type(p)]
         else:
             deserializer = serial.DEFAULT_BACKUP_DESERIALIZER
-        deserializer.deserialize(name, block, parameterized)
+        deserializer.deserialize(name, None, parameterized)
         assert getattr(parameterized, name) is None
 
 

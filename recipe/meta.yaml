@@ -24,8 +24,9 @@ requirements:
     - setuptools_scm
   run:
     - python
-    - param
+    - param >= 1.9.0
     - future
+    - configparser
 
 build:
   noarch: python
@@ -47,8 +48,8 @@ test:
     - setup.py
   requires:
     - pytest
-    - ruamel_yaml
-    - pyyaml
+    - ruamel_yaml >= 0.15
+    - pyyaml >= 4.2
     - pandas
     - numpy
   imports:

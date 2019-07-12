@@ -25,6 +25,8 @@ import warnings
 
 from collections import OrderedDict
 from itertools import chain
+from configparser import ConfigParser
+
 from pydrobert.param.serialization import _serialize_to_yaml
 from pydrobert.param.serialization import _deserialize_from_yaml
 
@@ -69,15 +71,10 @@ def combine_ini_files(args=None):
         options = _combine_ini_files_parse_args(args)
     except SystemExit as ex:
         return ex.code
-    try:
-        from ConfigParser import SafeConfigParser
-        parser = SafeConfigParser()
-    except ImportError:
-        from configparser import ConfigParser
-        parser = ConfigParser(
-            comment_prefixes=('#', ';'),
-            inline_comment_prefixes=('#', ';'),
-        )
+    parser = ConfigParser(
+        comment_prefixes=('#', ';'),
+        inline_comment_prefixes=('#', ';'),
+    )
     for fp in options.sources:
         try:
             parser.read_file(fp)
