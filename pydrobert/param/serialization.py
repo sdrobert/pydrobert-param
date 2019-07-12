@@ -1767,6 +1767,38 @@ class DefaultTupleDeserializer(_CastDeserializer):
     class_ = tuple
 
 
+class JsonStringArrayDeserializer(DefaultArrayDeserializer):
+    '''Parses a block as JSON before converting it into a numpy array
+
+    The default deserializer used in INI files. Input is always assumed to be a
+    string or ``None``. If ``None``, a none check is performed. Otherwise, it
+    parses the value as JSON, then does the same as
+    ``DefaultArrayDeserializer``. However, if the input ends in the file
+    suffix ".npy", the input will be immediately passed to
+    ``DefaultArrayDeserializer``
+
+    See Also
+    --------
+    deserialize_to_json
+        To deserialize JSON into ``param.Parameterized`` instances
+    '''
+    file_suffixes = {'csv'}
+
+    def deserialize(self, name, block, parameterized):
+        if self.check_if_allow_none_and_set(name, block, parameterized):
+            return
+        bs = block.split('.')
+        if len(bs) > 1 and bs[-1] in self.file_suffixes:
+            return super(JsonStringArrayDeserializer, self).deserialize(
+                name, block, parameterized)
+        try:
+            block = json.loads(block)
+        except json.JSONDecodeError as e:
+            raise_from(ParamConfigTypeError(parameterized, name), e)
+        super(JsonStringArrayDeserializer, self).deserialize(
+            name, block, parameterized)
+
+
 class JsonStringDataFrameDeserializer(DefaultDataFrameDeserializer):
     '''Parses block as JSON before converting to ``pandas.DataFrame``
 
@@ -1780,7 +1812,7 @@ class JsonStringDataFrameDeserializer(DefaultDataFrameDeserializer):
     See Also
     --------
     deserialize_to_json
-        To deserialize json into ``param.Parameterized`` instances
+        To deserialize JSON into ``param.Parameterized`` instances
     '''
     file_suffixes = {
         'csv', 'json', 'html', '.xls', 'h5', 'feather', 'parquet',
@@ -1831,9 +1863,6 @@ def _to_json_string_deserializer(cls, typename):
 
     return _JsonStringDeserializer
 
-
-JsonStringArrayDeserializer = _to_json_string_deserializer(
-    DefaultArrayDeserializer, 'numpy array')
 
 JsonStringDateRangeDeserializer = _to_json_string_deserializer(
     DefaultDateRangeDeserializer, 'date range')
