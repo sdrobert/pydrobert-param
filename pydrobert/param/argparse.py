@@ -62,8 +62,8 @@ class ParameterizedFileReadAction(
 
     1. Set the keyword `type` with the subclass of ``param.Parameterized`` you
        want to deserialize into. A new instance of that subclass will be
-       created with a name matching `dest`. The instance will be returned in
-       the parsed namespace's attribute whose name matches `dest` as well.
+       created with the name ``type.__name__``. The instance will be returned
+       in the parsed namespace's attribute whose name matches `dest` as well.
 
     2. Set the keyword `parameterized` with an instance of
        ``param.Parameterized``. That instance will be populated and also
@@ -135,7 +135,7 @@ class ParameterizedFileReadAction(
         if parameterized is not None and type is not None:
             raise TypeError('only one of parameterized or type can be set')
         if parameterized is None:
-            self.parameterized = type(name=dest)
+            self.parameterized = type(name=type.__name__)
         else:
             self.parameterized = parameterized
         self.deserializer_name_dict = deserializer_name_dict
@@ -342,7 +342,8 @@ def add_parameterized_read_group(
     What to read into is determined by the keyword args `type` or
     `parameterized`.
 
-    1. If `type` is specified, it will be instantiated and populated
+    1. If `type` is specified, it will be instantiated and populated. Its name
+       will match ``type.__name__``
     2. If `parameterized` is specified and is a ``param.Parameterized``
        instance, it will be populated directly.
     3. If `parameterized` is a dictionary whose leaves are
@@ -452,7 +453,7 @@ def add_parameterized_read_group(
                 '{}_kwargs contains unexpected keyword arguments: {}'
                 ''.format(name, ', '.join(sorted(keys))))
     if parameterized is None:
-        parameterized = type(name=dest)
+        parameterized = type(name=type.__name__)
     group = parser.add_mutually_exclusive_group()
     if ini_option_strings:
         group.add_argument(
@@ -492,7 +493,8 @@ class ParameterizedPrintAction(with_metaclass(abc.ABCMeta, argparse.Action)):
     they are specified in ``ParameterizedFileReadAction``:
 
     1. Set the keyword `type` with a subclass of ``param.Parameterized``. A
-       new instance of that type will be created to be printed
+       new instance of that type will be created to be printed. Its name will
+       be ``type.__name__``
 
     2. Set the keyword `parameterized` with an instance of
        ``param.Parameterized``. That instance will be printed.
@@ -512,8 +514,7 @@ class ParameterizedPrintAction(with_metaclass(abc.ABCMeta, argparse.Action)):
         A list of command-line option strings which should be associated with
         this action.
     dest : str
-        Will specify the 'name' attribute when `type` is specified. Otherwise
-        ignored
+        Ignored
     parameterized : param.Parameterized or dict, optional
     type : type, optional
     serializer_name_dict : dict, optional
@@ -555,7 +556,7 @@ class ParameterizedPrintAction(with_metaclass(abc.ABCMeta, argparse.Action)):
         if parameterized is not None and type is not None:
             raise TypeError('only one of parameterized or type can be set')
         if parameterized is None:
-            self.parameterized = type(name=dest)
+            self.parameterized = type(name=type.__name__)
         else:
             self.parameterized = parameterized
         self.serializer_name_dict = serializer_name_dict
@@ -761,7 +762,8 @@ def add_parameterized_print_group(
     What to print is determined by the keyword args `type` or `parameterized`.
 
     1. If `type` is specified, it will be instantiated and printed with
-       whatever defaults it has
+       whatever defaults it has. The instance will have the name
+       ``type.__name__``
     2. If `parameterized` is a ``param.Parameterized`` instance, that instance
        will be printed
     3. If `parameterized` is a dictionary of `param.Parameterized` instances,
@@ -816,7 +818,7 @@ def add_parameterized_print_group(
     ...     parser.parse_args(['--print-ini'])
     ... except SystemExit:
     ...     pass
-    [DEFAULT]
+    [MyParams]
     a_bool = true
     an_int = 1
     >>> try:
@@ -860,19 +862,21 @@ def add_parameterized_print_group(
             raise TypeError(
                 '{}_kwargs contains unexpected keyword arguments: {}'
                 ''.format(name, ', '.join(sorted(keys))))
+    if type is not None:
+        parameterized = type(name=type.__name__)
     group = parser.add_mutually_exclusive_group()
     if ini_option_strings:
         group.add_argument(
             *ini_option_strings,
             action=ParameterizedIniPrintAction,
-            type=type, parameterized=parameterized,
+            parameterized=parameterized,
             **ini_kwargs
         )
     if json_option_strings:
         group.add_argument(
             *json_option_strings,
             action=ParameterizedJsonPrintAction,
-            type=type, parameterized=parameterized,
+            parameterized=parameterized,
             **json_kwargs
         )
     if include_yaml is None and len(yaml_option_strings):
@@ -881,7 +885,7 @@ def add_parameterized_print_group(
         group.add_argument(
             *yaml_option_strings,
             action=ParameterizedYamlPrintAction,
-            type=type, parameterized=parameterized,
+            parameterized=parameterized,
             **yaml_kwargs
         )
     return group

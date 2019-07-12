@@ -302,8 +302,8 @@ def test_serialize_to_ini():
         parser.read_file(sbuff)
     except AttributeError:
         parser.readfp(sbuff)
-    assert parser.getfloat('DEFAULT', 'number') == 1e-4
-    assert not parser.getboolean('DEFAULT', 'boolean')
+    assert parser.getfloat('test_serialize_to_ini_a', 'number') == 1e-4
+    assert not parser.getboolean('test_serialize_to_ini_a', 'boolean')
     parameterized_a.boolean = True
     parameterized_b = BigDumbParams(name='test_serialize_to_ini_b')
     parameterized_b.string = "I'm gonna get get get you drunk"
