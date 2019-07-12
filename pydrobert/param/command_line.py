@@ -74,6 +74,7 @@ def combine_ini_files(args=None):
     parser = ConfigParser(
         comment_prefixes=('#', ';'),
         inline_comment_prefixes=('#', ';'),
+        allow_no_value=True,
     )
     for fp in options.sources:
         try:

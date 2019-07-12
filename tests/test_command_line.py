@@ -19,6 +19,7 @@ def test_combine_ini_files(temp_dir):
 foo = a  ; inline comment
 bar = this  ; don't take this
 \tcontinues
+baz  ; none should be ok
 
 [a second]
 foo = d
@@ -40,6 +41,7 @@ foo = another
 foo = a
 bar = this
 \tcontinues
+baz
 
 [a second]
 foo = d'''
@@ -51,6 +53,7 @@ foo = another
 \tmultiline
 bar = this
 \tcontinues
+baz
 
 [a second]
 foo = d
