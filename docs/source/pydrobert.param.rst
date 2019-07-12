@@ -12,6 +12,14 @@ pydrobert.param.argparse module
    :undoc-members:
    :show-inheritance:
 
+pydrobert.param.command_line module
+-----------------------------------
+
+.. automodule:: pydrobert.param.command_line
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 pydrobert.param.serialization module
 ------------------------------------
 
@@ -19,7 +27,6 @@ pydrobert.param.serialization module
    :members:
    :undoc-members:
    :show-inheritance:
-
 
 Module contents
 ---------------

@@ -497,7 +497,7 @@ class ParameterizedPrintAction(with_metaclass(abc.ABCMeta, argparse.Action)):
     2. Set the keyword `parameterized` with an instance of
        ``param.Parameterized``. That instance will be printed.
 
-    3.  Set the keyword `parameterized` as a hierarchical dictionary of
+    3. Set the keyword `parameterized` as a hierarchical dictionary of
        ``param.Parameterized`` instances. The leaves of the dictionary will
        be populated according to the "hierarchical mode" specified in the
        documentation of ``pydrobert.param.serialization.serialize_to_dict``.
