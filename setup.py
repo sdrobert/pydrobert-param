@@ -50,7 +50,7 @@ def main():
         setup_requires=SETUP_REQUIRES,
         tests_require=[
             'pytest', 'ruamel.yaml >= 0.15', 'pyyaml >= 4.2',
-            'pandas', 'numpy'],
+            'pandas', 'numpy', 'configparser'],
         entry_points={
             'console_scripts': [
                 'combine-ini-files = pydrobert.param.command_line:'
