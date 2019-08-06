@@ -39,7 +39,7 @@ More complicated examples can be found in the documentation.
 - [Latest](https://pydrobert-param.readthedocs.io/en/latest/)
 - [Stable](https://pydrobert-param.readthedocs.io/en/stable/)
 
-# Installation
+## Installation
 
 _pydrobert-param_ is available via both PyPI and Conda.
 
@@ -48,3 +48,8 @@ conda install -c sdrobert pydrobert-param
 pip install pydrobert-param
 pip install git+https://github.com/sdrobert/pydrobert-param # bleeding edge
 ```
+
+## Licensing and How to Cite
+
+Please see the [pydrobert page](https://github.com/sdrobert/pydrobert) for more
+details.
