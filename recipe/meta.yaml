@@ -55,6 +55,7 @@ test:
   imports:
     - pydrobert
     - pydrobert.param
+    - pydrobert.param.abc
     - pydrobert.param.argparse
     - pydrobert.param.command_line
     - pydrobert.param.optuna

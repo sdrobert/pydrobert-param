@@ -81,3 +81,58 @@ def test_tunable_parameterized_interface(check_type):
     assert not check(ForceTheIssue, poptuna.TunableParameterized)
     poptuna.TunableParameterized.register(ForceTheIssue)
     assert check(ForceTheIssue, poptuna.TunableParameterized)
+
+
+def test_get_param_dict_tunable():
+
+    class FirstObject(object):
+        @classmethod
+        def get_tunable(cls):
+            return {'lookit', 'me'}
+
+        @classmethod
+        def suggest_params(cls):
+            pass
+
+    class SecondObject(object):
+        @classmethod
+        def get_tunable(cls):
+            return {'watch', 'me'}
+
+        @classmethod
+        def suggest_params(cls):
+            pass
+
+    param_dict = {
+        'ignore_me': 1,
+        'not_me': {"ive_got_nested": FirstObject()},
+        'me': FirstObject(),
+        'too': SecondObject(),
+    }
+    tunable = poptuna.get_param_dict_tunable(param_dict)
+    assert tunable == {
+        'not_me.ive_got_nested.me', 'not_me.ive_got_nested.lookit',
+        'me.me', 'me.lookit',
+        'too.watch', 'too.me',
+    }
+    param_dict['me.too'] = FirstObject()
+    with pytest.raises(ValueError, match='me.too'):
+        poptuna.get_param_dict_tunable(param_dict, on_decimal='raise')
+    with pytest.warns(UserWarning) as record:
+        tunable = poptuna.get_param_dict_tunable(
+            param_dict, on_decimal='ignore')
+        assert not record
+        poptuna.get_param_dict_tunable(param_dict)  # this warns
+    del param_dict['me.too']
+
+    class Renegade(object):
+        @classmethod
+        def get_tunable(cls):
+            return {'uh oh', 'bad.boy'}
+
+        @classmethod
+        def suggest_params(cls):
+            pass
+    param_dict['nice'] = Renegade()
+    with pytest.warns(UserWarning, match='bad.boy'):
+        poptuna.get_param_dict_tunable(param_dict)

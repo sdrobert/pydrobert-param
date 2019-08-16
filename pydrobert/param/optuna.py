@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 '''Utilities for optimizing param.Parameterized via Optuna
 
 `Optuna <https://optuna.org/>`__ is a define-by-run hyperparameter optimization
@@ -87,15 +88,24 @@ from __future__ import division
 from __future__ import print_function
 
 import abc
+import warnings
 
 import pydrobert.param.abc
 import param
+
+from collections import OrderedDict
+
+try:
+    import collections.abc as collections_abc
+except ImportError:
+    import collections as collections_abc
 
 __author__ = "Sean Robertson"
 __email__ = "sdrobert@cs.toronto.edu"
 __license__ = "Apache 2.0"
 __copyright__ = "Copyright 2018 Sean Robertson"
 __all__ = [
+    'get_param_dict_tunable',
     'TunableParameterized',
 ]
 
@@ -121,7 +131,11 @@ class TunableParameterized(pydrobert.param.abc.AbstractParameterized):
     @classmethod
     @abc.abstractmethod
     def get_tunable(cls):
-        '''Get a set of names of tunable parameters'''
+        '''Get a set of names of tunable parameters
+
+        The values are intended to be names of parameters. Values should not
+        contain "."
+        '''
         return set()
 
     @classmethod
@@ -141,6 +155,9 @@ class TunableParameterized(pydrobert.param.abc.AbstractParameterized):
         only : collection or :obj:`None`, optional
             Only sample parameters with names in this set. If :obj:`None`,
             all the parameters from :func:`get_tunable()` will be sampled
+        prefix : str, optional
+            A value to be prepended to the names from `only` when sampling
+            those parameters from `trial`
 
         Returns
         -------
@@ -156,6 +173,84 @@ class TunableParameterized(pydrobert.param.abc.AbstractParameterized):
         if cls is TunableParameterized:
             return _check_methods(C, "get_tunable", "suggest_params")
         return NotImplemented
+
+
+def get_param_dict_tunable(param_dict, on_decimal="warn"):
+    '''Return a set of all the tunable parameters in a parameter dictionary
+
+    This function crawls through a (possibly nested) dictionary of objects,
+    looks for any that implement the :class:`TunableParameterized` interface,
+    collects the results of calls to :func:`get_tunable`, and returns the set
+    `tunable`.
+
+    Elements of `tunable` are strings with the format
+    ``"<key_0>.<key_1>.<...>.<parameter_name>"``, where ``parameter_name`` is
+    a parameter from ``param_dict[<key_0>][<key_1>][...].get_tunable()``
+
+    Parameters
+    ----------
+    param_dict : dict
+    on_decimal : {"warn", "raise", "ignore"}, optional
+        '.' can produce ambiguous entries in `tunable`. When one is found as a
+        key in `param_dict` or as a tunable parameter: "raise" means a
+        :class:`ValueError` will be raised; "warn" means a warning will be
+        issued via :mod:`warnings`; and "ignore" just ignores it
+
+    Returns
+    -------
+    tunable : OrderedDict
+    '''
+    if on_decimal not in {'ignore', 'warn', 'raise'}:
+        raise ValueError("on_decimal must be 'ignore', 'warn', or 'raise'")
+    tunable_params = _tunable_params_from_param_dict(param_dict, on_decimal)
+    tunable = set()
+    for prefix, params in tunable_params.items():
+        new_tunable = params.get_tunable()
+        if on_decimal != 'ignore':
+            decimal_tunable = tuple(x for x in new_tunable if '.' in x)
+            if decimal_tunable:
+                msg = (
+                    "Found parameters in param_dict{} with '.' in their name: "
+                    "{}. These can lead to ambiguities in suggest_param_dict "
+                    "and should be avoided".format(
+                        _to_multikey(prefix), decimal_tunable))
+                if on_decimal == 'raise':
+                    raise ValueError(msg)
+                else:
+                    warnings.warn(msg)
+        tunable |= {'.'.join([prefix, x]) for x in new_tunable}
+    return tunable
+
+
+def _to_multikey(s):
+    # turn '.'-delimited string into one ["that"]["looks"]["like"]["this"]
+    return '["' + s.replace('.', '"]["') + '"]'
+
+
+def _tunable_params_from_param_dict(param_dict, on_decimal, prefix=''):
+    # crawl a possibly nested dictionary for TunableParameterized instances
+    # and return a dictionary where values are TunableParameterized and keys
+    # are a '.'-delimited list of the multi-keys that got us there
+    tunable_params = OrderedDict()
+    for key, value in param_dict.items():
+        if '.' in key and on_decimal != 'ignore':
+            msg = (
+                "Found key{} with '.' in its name: '{}'. This can lead to "
+                "ambiguities in suggest_param_dict and should be avoided"
+                "".format(
+                    " at param_dict" + _to_multikey(prefix) if prefix else "",
+                    key))
+            if on_decimal == "raise":
+                raise ValueError(msg)
+            else:
+                warnings.warn(msg)
+        key = '.'.join([prefix, key] if prefix else [key])
+        if isinstance(value, TunableParameterized):
+            tunable_params[key] = value
+        elif isinstance(value, collections_abc.Mapping):
+            tunable_params.update(_tunable_params_from_param_dict(
+                value, on_decimal, key))
+    return tunable_params
 
 
 # from

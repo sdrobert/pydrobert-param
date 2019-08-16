@@ -3,8 +3,9 @@
 :class:`param.Parameterized` instances use their own metaclass. Here, we've
 almost exactly copied the code from the `Python repository
 <https://raw.githubusercontent.com/python/cpython/346964ba0586e402610ea886e70bee1294874781/Lib/_py_abc.py>`__,
-with some changes made for python 2.7 and the metaclass inherits from
-:class:`param.parameterized.ParameterizedMetaclass`
+with some changes made for `python 2.7
+<https://github.com/python/cpython/blob/2.7/Lib/abc.py>`__ and the metaclass
+inherits from :class:`param.parameterized.ParameterizedMetaclass`
 '''
 
 from __future__ import absolute_import
