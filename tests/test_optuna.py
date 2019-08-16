@@ -136,3 +136,17 @@ def test_get_param_dict_tunable():
     param_dict['nice'] = Renegade()
     with pytest.warns(UserWarning, match='bad.boy'):
         poptuna.get_param_dict_tunable(param_dict)
+
+
+def test_parameterized_class_from_tunable_set():
+    class Base(param.Parameterized):
+        pass
+    tunable = {'it', 'does', 'not', 'matter'}
+    Derived = poptuna.parameterized_class_from_tunable_set(
+        tunable, base=Base, default=['not', 'matter'])
+    derived = Derived()
+    assert derived.only == ['not', 'matter']
+    derived.only = ['not', 'matter', 'it', 'does']
+    derived.only = []
+    with pytest.raises(ValueError):
+        derived.only = ['foo']

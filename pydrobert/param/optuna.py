@@ -107,6 +107,7 @@ __copyright__ = "Copyright 2018 Sean Robertson"
 __all__ = [
     'get_param_dict_tunable',
     'TunableParameterized',
+    'parameterized_class_from_tunable_set',
 ]
 
 
@@ -220,6 +221,56 @@ def get_param_dict_tunable(param_dict, on_decimal="warn"):
                     warnings.warn(msg)
         tunable |= {'.'.join([prefix, x]) for x in new_tunable}
     return tunable
+
+
+def parameterized_class_from_tunable_set(
+        tunable, base=param.Parameterized, default=[]):
+    '''Construct a param.Parameterized class to store parameters to optimize
+
+    This function creates a subclass of :class:`param.Parameterized` that has
+    only one parameter: `only`. `only` is a :class:`param.ListSelector` that
+    allows values from `tunable`
+
+    Parameters
+    ----------
+    tunable : collection
+    base : class, optional
+        The parent class of the returned class
+    default : list, optional
+        The default value for the `only` parameter
+
+    Returns
+    -------
+    Derived : base
+        The derived class
+
+    Examples
+    --------
+    Group what hyperparameters you wish to optimize in the same param dict as
+    the rest of your parameters
+
+    >>> class ModelParams(param.Parameterized):
+    >>>     lr = param.Number(1e-4, bounds=(1e-8, None))
+    >>>     num_layers = param.Integer(3, bounds=(1, None))
+    >>>     @classmethod
+    >>>     def get_tunable(cls):
+    >>>         return {'num_layers', 'lr'}
+    >>>     @classmethod
+    >>>     def suggest_params(cls, trial, base=None, only=None, prefix=None):
+    >>>         pass  # do this
+    >>>
+    >>> param_dict = {'model': ModelParams()}
+    >>> tunable = get_param_dict_tunable(param_dict)
+    >>> OptimParams = parameterized_class_from_tunable_set(tunable)
+    >>> param_dict['optim'] = OptimParams()
+    '''
+    class Derived(base):
+        only = param.ListSelector(
+            default, objects=list(tunable),
+            doc='When performing hyperparameter optimization, only optimize '
+            'these parameters')
+
+    return Derived
 
 
 def _to_multikey(s):
