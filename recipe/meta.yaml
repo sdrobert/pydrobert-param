@@ -55,7 +55,14 @@ test:
   imports:
     - pydrobert
     - pydrobert.param
+    - pydrobert.param.argparse
+    - pydrobert.param.command_line
+    - pydrobert.param.optuna
+    - pydrobert.param.serialization
   commands:
+    - combine-ini-files --help
+    - combine-json-files --help
+    - combine-yaml-files --help
     - pytest
 
 about:
