@@ -17,8 +17,9 @@
 __author__ = "Sean Robertson"
 __email__ = "sdrobert@cs.toronto.edu"
 __license__ = "Apache 2.0"
-__copyright__ = "Copyright 2018 Sean Robertson"
+__copyright__ = "Copyright 2019 Sean Robertson"
 __all__ = [
+    'abc',
     'argparse',
     'command_line',
     'optuna',

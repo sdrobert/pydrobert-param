@@ -20,7 +20,7 @@ modular way.
 Examples
 --------
 
-Critically, we implement the :class:`TunableParameterized` interface. For a
+Critically, we implement the :class:`Tunable` interface. For a
 single :class:`param.Parameterized` instance, we can build it directly in the
 objective function:
 
@@ -81,3 +81,100 @@ environments, too
 >>> best_params = suggest_param_dict(
 ...     study.best_trial, global_dict, {'foo.tune_this'})
 '''
+
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
+import abc
+
+import pydrobert.param.abc
+import param
+
+__author__ = "Sean Robertson"
+__email__ = "sdrobert@cs.toronto.edu"
+__license__ = "Apache 2.0"
+__copyright__ = "Copyright 2018 Sean Robertson"
+__all__ = [
+    'TunableParameterized',
+]
+
+
+class TunableParameterized(pydrobert.param.abc.AbstractParameterized):
+    '''An interface for Optuna to tune param.Parameterized instances
+
+    The :class:`TunableParameterized` interface requires two class methods:
+
+    - :func:`get_tunable`
+    - :func:`suggest_params`
+
+    Any object with both is a :class:`TunableParameterized`. Just like in
+    :mod:`collections.abc`, the class need not directly subclass
+    :class:`TunableParameterized` for :func:`isinstance` and :func:`issubclass`
+    to return :obj:`True`. However, subclassing :class:`TunableParameterized`
+    will
+    '''
+
+    __abstract = True  # this is how param handles abstract classes for now
+    __slots__ = tuple()
+
+    @classmethod
+    @abc.abstractmethod
+    def get_tunable(cls):
+        '''Get a set of names of tunable parameters'''
+        return set()
+
+    @classmethod
+    @abc.abstractmethod
+    def suggest_params(cls, trial, base=None, only=None, prefix=''):
+        '''Populate an instance of this class with parameters based on trial
+
+        Parameters
+        ----------
+        trial : optuna.trial.Trial
+            The current optuna trial. Parameter values will be sampled from
+            this
+        base : Tunable or :obj:`None`, optional
+            If set, parameter values will be loaded into this instance. If
+            :obj:`None`, a new instance will be created matching this class
+            type
+        only : collection or :obj:`None`, optional
+            Only sample parameters with names in this set. If :obj:`None`,
+            all the parameters from :func:`get_tunable()` will be sampled
+
+        Returns
+        -------
+        Tunable
+            Either `base` if not :obj:`None`, or a new instance of this class
+            with parameters matching sampled values
+        '''
+        params = cls() if base is None else base
+        return params
+
+    @classmethod
+    def __subclasshook__(cls, C):
+        if cls is TunableParameterized:
+            return _check_methods(C, "get_tunable", "suggest_params")
+        return NotImplemented
+
+
+# from
+# https://github.com/python/cpython/blob/2085bd0877e17ad4d98a4586d5eabb6faecbb190/Lib/_collections_abc.py
+# combined with
+# https://github.com/python/cpython/blob/1a7c3571c789d704503135fe7c20d6e6f78aec86/Lib/_abcoll.py
+def _check_methods(C, *methods):
+    try:
+        mro = C.__mro__
+        for method in methods:
+            for B in mro:
+                if method in B.__dict__:
+                    if B.__dict__[method] is None:
+                        return NotImplemented
+                    break
+            else:
+                return NotImplemented
+    except AttributeError:
+        for method in methods:
+            if getattr(C, method, None) is None:
+                return NotImplemented
+    return True
