@@ -138,11 +138,11 @@ def test_get_param_dict_tunable():
         poptuna.get_param_dict_tunable(param_dict)
 
 
-def test_parameterized_class_from_tunable_set():
+def test_parameterized_class_from_tunable():
     class Base(param.Parameterized):
         pass
     tunable = {'it', 'does', 'not', 'matter'}
-    Derived = poptuna.parameterized_class_from_tunable_set(
+    Derived = poptuna.parameterized_class_from_tunable(
         tunable, base=Base, default=['not', 'matter'])
     derived = Derived()
     assert derived.only == ['not', 'matter']

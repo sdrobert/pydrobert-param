@@ -106,8 +106,8 @@ __license__ = "Apache 2.0"
 __copyright__ = "Copyright 2018 Sean Robertson"
 __all__ = [
     'get_param_dict_tunable',
+    'parameterized_class_from_tunable',
     'TunableParameterized',
-    'parameterized_class_from_tunable_set',
 ]
 
 
@@ -223,7 +223,7 @@ def get_param_dict_tunable(param_dict, on_decimal="warn"):
     return tunable
 
 
-def parameterized_class_from_tunable_set(
+def parameterized_class_from_tunable(
         tunable, base=param.Parameterized, default=[]):
     '''Construct a param.Parameterized class to store parameters to optimize
 
@@ -261,7 +261,7 @@ def parameterized_class_from_tunable_set(
     >>>
     >>> param_dict = {'model': ModelParams()}
     >>> tunable = get_param_dict_tunable(param_dict)
-    >>> OptimParams = parameterized_class_from_tunable_set(tunable)
+    >>> OptimParams = parameterized_class_from_tunable(tunable)
     >>> param_dict['optim'] = OptimParams()
     '''
     class Derived(base):
