@@ -37,7 +37,7 @@ objective function:
 >>>         only = cls.get_tunable() if only is None else only
 >>>         if 'tune_this' in only:
 >>>             params.tune_this = trial.suggest_uniform(
->>>                 prefix + 'tune_this', 0.0, 1.0)
+...                 prefix + 'tune_this', 0.0, 1.0)
 >>>         return params
 >>>
 >>> def objective(trial):
@@ -46,7 +46,8 @@ objective function:
 >>>
 >>> study = optuna.create_study()
 >>> study.optimize(objective, n_trials=30)
->>> best_params = Foo.sugget_params(study.best_trial)
+>>> best_params = Foo.suggest_params(
+...     optuna.trial.FixedTrial(study.best_params))
 
 We can use the functions of this submodule to optimize more complicated
 environments, too
@@ -64,7 +65,7 @@ environments, too
 >>>         params = super(Bar, cls).suggest_params(trial, base, only, prefix)
 >>>         if 'something_else' in only:
 >>>             params.something_else = trial.suggest_int(
->>>                 prefix + 'something_else', 1, 3)
+...                 prefix + 'something_else', 1, 3)
 >>>         return params
 >>>
 >>> global_dict = {'foo': Foo(), 'bar': Bar(not_this=True)}
@@ -80,7 +81,8 @@ environments, too
 >>> study = optuna.create_study()
 >>> study.optimize(objective, n_trials=30)
 >>> best_params = suggest_param_dict(
-...     study.best_trial, global_dict, {'foo.tune_this'})
+...     optuna.trial.FixedTrial(study.best_params),
+...     global_dict, {'foo.tune_this'})
 '''
 
 from __future__ import absolute_import

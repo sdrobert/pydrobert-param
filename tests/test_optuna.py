@@ -194,3 +194,47 @@ def test_suggest_param_dict():
         poptuna.suggest_param_dict(object(), global_dict, {'foo'})
     with pytest.warns(UserWarning, match="bar.foo.baz"):
         poptuna.suggest_param_dict(object(), global_dict, {'bar.foo.baz'})
+
+
+def test_with_optuna():
+    optuna = pytest.importorskip('optuna')
+
+    class XHolder(poptuna.TunableParameterized):
+        x = param.Number(None)
+
+        @classmethod
+        def get_tunable(cls):
+            return {'x'}
+
+        @classmethod
+        def suggest_params(cls, trial, base=None, only=None, prefix=''):
+            if only is None:
+                only = cls.get_tunable()
+            params = cls() if base is None else base
+            if 'x' in only:
+                params.x = trial.suggest_uniform(prefix + 'x', 0.0, 1.0)
+            return params
+
+    def objective_1(trial):
+        params = XHolder.suggest_params(trial)
+        return params.x
+
+    sampler = optuna.samplers.RandomSampler(seed=5)
+    study_1 = optuna.create_study(sampler=sampler)
+    study_1.optimize(objective_1, n_trials=10)
+    best_params = XHolder.suggest_params(
+        optuna.trial.FixedTrial(study_1.best_params))
+    assert best_params.x < .5  # what a feat
+
+    global_dict = {'one': XHolder(), 'two': XHolder()}
+
+    def objective_2(trial):
+        param_dict = poptuna.suggest_param_dict(trial, global_dict)
+        return param_dict['one'].x - param_dict['two'].x
+
+    study_2 = optuna.create_study(sampler=sampler)
+    study_2.optimize(objective_2, n_trials=10)
+    best_param_dict = poptuna.suggest_param_dict(
+        optuna.trial.FixedTrial(study_2.best_params), global_dict)
+    assert best_param_dict['one'].x < 0.5
+    assert best_param_dict['two'].x > 0.5
