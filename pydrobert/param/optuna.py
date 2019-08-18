@@ -90,10 +90,11 @@ from __future__ import print_function
 import abc
 import warnings
 
+from collections import OrderedDict
+from copy import deepcopy
+
 import pydrobert.param.abc
 import param
-
-from collections import OrderedDict
 
 try:
     import collections.abc as collections_abc
@@ -107,6 +108,7 @@ __copyright__ = "Copyright 2018 Sean Robertson"
 __all__ = [
     'get_param_dict_tunable',
     'parameterized_class_from_tunable',
+    'suggest_param_dict',
     'TunableParameterized',
 ]
 
@@ -192,8 +194,8 @@ def get_param_dict_tunable(param_dict, on_decimal="warn"):
     ----------
     param_dict : dict
     on_decimal : {"warn", "raise", "ignore"}, optional
-        '.' can produce ambiguous entries in `tunable`. When one is found as a
-        key in `param_dict` or as a tunable parameter: "raise" means a
+        '.' can produce ambiguous parameters in `tunable`. When one is found as
+        a key in `param_dict` or as a tunable parameter: "raise" means a
         :class:`ValueError` will be raised; "warn" means a warning will be
         issued via :mod:`warnings`; and "ignore" just ignores it
 
@@ -262,7 +264,7 @@ def parameterized_class_from_tunable(
     >>> param_dict = {'model': ModelParams()}
     >>> tunable = get_param_dict_tunable(param_dict)
     >>> OptimParams = parameterized_class_from_tunable(tunable)
-    >>> param_dict['optim'] = OptimParams()
+    >>> param_dict['hyperparameter_optimization'] = OptimParams()
     '''
     class Derived(base):
         only = param.ListSelector(
@@ -271,6 +273,66 @@ def parameterized_class_from_tunable(
             'these parameters')
 
     return Derived
+
+
+def suggest_param_dict(
+        trial, global_dict, only=None, on_decimal="warn", warn=True):
+    '''Use Optuna trial to sample values for TunableParameterized in dict
+
+    This function creates a deep copy of the dictionary `global_dict`. Then,
+    for every :class:`TunableParameterized` it finds in the copy, it calls that
+    instance's :func:`suggest_params` to optimize an appropriate subset of
+    parameters.
+
+    Parameters
+    ----------
+    trial : optunal.trial.Trial
+        The trial from an Optuna experiment. This is passed along to each
+        :class:`TunableParameterized` in `global_dict`
+    global_dict : dict
+        A (possibly nested) dictionary containing some
+        :class:`TunableParameterized` as values
+    only : set or :obj:`None`, optional
+        A set containing parameter names to optimize. Names are formatted
+        ``"<key_0>.<key_1>.<...>.<parameter_name>"``, where ``parameter_name``
+        is a parameter from
+        ``global_dict[<key_0>][<key_1>][...].get_tunable()``. If :obj:`None`,
+        the entire set returned by :func:`get_param_dict_tunable`.
+    on_decimal : {"warn", "raise", "ignore"}, optional
+        '.' can produce ambiguous parameters in `only`. When one is found as a
+        key in `global_dict` or as a tunable parameter: "raise" means a
+        :class:`ValueError` will be raised; "warn" means a warning will be
+        issued via :mod:`warnings`; and "ignore" just ignores it
+    warn : bool, optional
+        If `warn` is :obj:`True` and any elements of `only` do not match this
+        description, a warning will be raised via :mod:`warnings`
+
+    Returns
+    -------
+    param_dict : dict
+    '''
+    if only is None:
+        only = get_param_dict_tunable(global_dict, on_decimal)
+        second_pass = True
+    else:
+        only = set(only)  # in case a list, and also allows us to modify
+        second_pass = False
+    param_dict = deepcopy(global_dict)
+    tunable_params = _tunable_params_from_param_dict(
+        param_dict, "ignore" if second_pass else on_decimal)
+    for prefix, param in tunable_params.items():
+        prefix = prefix + '.'
+        prefix_only = {x[len(prefix):] for x in only if x.startswith(prefix)}
+        prefix_only = prefix_only & param.get_tunable()
+        if prefix_only:
+            only -= {prefix + x for x in prefix_only}
+            param.suggest_params(
+                trial, base=param, only=prefix_only, prefix=prefix)
+    if warn and only:
+        warnings.warn(
+            '"only" contained extra parameters: {}. To suppress this warning, '
+            'set warn=False'.format(only))
+    return param_dict
 
 
 def _to_multikey(s):

@@ -150,3 +150,47 @@ def test_parameterized_class_from_tunable():
     derived.only = []
     with pytest.raises(ValueError):
         derived.only = ['foo']
+
+
+def test_suggest_param_dict():
+
+    class FirstObject(object):
+        def __init__(self):
+            self.foo = False
+            self.bar = False
+
+        @classmethod
+        def get_tunable(cls):
+            return {'foo', 'bar'}
+
+        @classmethod
+        def suggest_params(cls, trial, base=None, only=None, prefix=None):
+            assert base is not None
+            assert only is not None
+            assert not (only - {'foo', 'bar'})
+            base.foo = 'foo' in only
+            base.bar = 'bar' in only
+
+    global_dict = {
+        'again': {'no touching': 'me'},
+        'foo': FirstObject(),
+        'bar': {'foo': FirstObject()}
+    }
+    param_dict = poptuna.suggest_param_dict(object(), global_dict)
+    assert param_dict['again']['no touching'] == 'me'
+    assert param_dict['foo'].foo
+    assert param_dict['foo'].bar
+    assert param_dict['bar']['foo'].foo
+    assert param_dict['bar']['foo'].bar
+    assert not global_dict['foo'].foo
+    assert not global_dict['bar']['foo'].bar
+    param_dict = poptuna.suggest_param_dict(
+        object(), global_dict, {'bar.foo.bar'})
+    assert not param_dict['foo'].foo
+    assert not param_dict['foo'].bar
+    assert not param_dict['bar']['foo'].foo
+    assert param_dict['bar']['foo'].bar
+    with pytest.warns(UserWarning, match="'foo'"):
+        poptuna.suggest_param_dict(object(), global_dict, {'foo'})
+    with pytest.warns(UserWarning, match="bar.foo.baz"):
+        poptuna.suggest_param_dict(object(), global_dict, {'bar.foo.baz'})
