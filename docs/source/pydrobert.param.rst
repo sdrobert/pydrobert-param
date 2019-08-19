@@ -4,6 +4,15 @@ pydrobert.param package
 Submodules
 ----------
 
+pydrobert.param.abc module
+--------------------------
+
+.. automodule:: pydrobert.param.abc
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+
 pydrobert.param.argparse module
 -------------------------------
 
@@ -19,6 +28,16 @@ pydrobert.param.command_line module
    :members:
    :undoc-members:
    :show-inheritance:
+
+
+pydrobert.param.optuna module
+-----------------------------
+
+.. automodule:: pydrobert.param.optuna
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 
 pydrobert.param.serialization module
 ------------------------------------

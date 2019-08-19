@@ -14,6 +14,9 @@ import os
 import sys
 import param
 
+param.parameterized.docstring_signature = False
+param.parameterized.docstring_describe_params = False
+
 sys.path.insert(0, os.path.abspath('../..'))
 
 
@@ -35,6 +38,7 @@ language = 'en'
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.napoleon',
+    'sphinx.ext.intersphinx',
 ]
 
 naploeon_numpy_docstring = True
@@ -46,6 +50,11 @@ templates_path = ['_templates']
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = []
+
+intersphinx_mapping = {
+    'python': ('https://docs.python.org/', None),
+    'numpy': ('https://docs.scipy.org/doc/numpy/', None),
+}
 
 
 # -- Options for HTML output -------------------------------------------------

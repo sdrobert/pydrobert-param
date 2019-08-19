@@ -192,4 +192,11 @@ class AbstractParameterizedMetaclass(
 
 class AbstractParameterized(
         with_metaclass(AbstractParameterizedMetaclass, param.Parameterized)):
-    '''A param.Parameterized with metaclass AbstractParameterizedMetaclass'''
+    '''A param.Parameterized with metaclass AbstractParameterizedMetaclass
+
+    Functions similarly to :class:`abc.ABCMeta` in that subclassing an
+    :class:`AbstractParameterized` gives the subclass a
+    :class:`AbstractParameterizedMetaclass` metaclass. Instead of a base class
+    of :class:`object`, however, an :class:`AbstractParameterized` has
+    :class:`param.Parameterized` as a base class
+    '''

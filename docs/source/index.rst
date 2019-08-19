@@ -5,8 +5,8 @@ pydrobert-param
    :maxdepth: 2
    :caption: Contents:
 
-   modules.rst
-   tutorial.rst
+   serialization
+   modules
 
 Indices and tables
 ==================

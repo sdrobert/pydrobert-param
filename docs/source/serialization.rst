@@ -1,5 +1,5 @@
-Tutorial
-========
+Serialization Tutorial
+======================
 
 As an example, suppose we have parameterized classes and instances:
 
