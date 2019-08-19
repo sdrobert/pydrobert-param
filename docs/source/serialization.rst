@@ -29,7 +29,8 @@ As an example, suppose we have parameterized classes and instances:
       'model': m_params,
     }
 
-We can serialize these easily into JSON, YAML, or INI:
+We can serialize these easily into JSON, YAML, or INI using
+:mod:`pydrobert.param.serialization`:
 
 .. code-block:: python
 
@@ -111,8 +112,8 @@ existing parameterized instances.
     serial.deserialize_from_yaml('conf.yaml', param_dict)
     assert t_params.lr == 1e-05
 
-``pydrobert.param.argparse`` contains convenience functions for (de)serializing
-config files right from the command line.
+:mod:`pydrobert.param.argparse` contains convenience functions for
+(de)serializing config files right from the command line.
 
 .. code-block:: python
 

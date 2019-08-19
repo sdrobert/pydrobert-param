@@ -21,7 +21,7 @@ modular way.
 Examples
 --------
 
-Critically, we implement the :class:`Tunable` interface. For a
+Critically, we implement the :class:`TunableParameterized` interface. For a
 single :class:`param.Parameterized` instance, we can build it directly in the
 objective function:
 
@@ -126,8 +126,8 @@ class TunableParameterized(pydrobert.param.abc.AbstractParameterized):
     Any object with both is a :class:`TunableParameterized`. Just like in
     :mod:`collections.abc`, the class need not directly subclass
     :class:`TunableParameterized` for :func:`isinstance` and :func:`issubclass`
-    to return :obj:`True`. However, subclassing :class:`TunableParameterized`
-    will
+    to return :obj:`True`. Subclassing :class:`TunableParameterized` directly
+    will ensure the function also inherits from :class:`param.Parameterized`
     '''
 
     __abstract = True  # this is how param handles abstract classes for now
@@ -153,7 +153,7 @@ class TunableParameterized(pydrobert.param.abc.AbstractParameterized):
         trial : optuna.trial.Trial
             The current optuna trial. Parameter values will be sampled from
             this
-        base : Tunable or :obj:`None`, optional
+        base : TunableParameterized or :obj:`None`, optional
             If set, parameter values will be loaded into this instance. If
             :obj:`None`, a new instance will be created matching this class
             type
@@ -166,7 +166,7 @@ class TunableParameterized(pydrobert.param.abc.AbstractParameterized):
 
         Returns
         -------
-        Tunable
+        TunableParameterized
             Either `base` if not :obj:`None`, or a new instance of this class
             with parameters matching sampled values
         '''
@@ -203,7 +203,7 @@ def get_param_dict_tunable(param_dict, on_decimal="warn"):
 
     Returns
     -------
-    tunable : OrderedDict
+    tunable : collections.OrderedDict
     '''
     if on_decimal not in {'ignore', 'warn', 'raise'}:
         raise ValueError("on_decimal must be 'ignore', 'warn', or 'raise'")
