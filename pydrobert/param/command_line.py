@@ -184,13 +184,17 @@ def combine_json_files(args=None):
     the ``--nested`` flag is set, and both values are dictionaries, the
     values of the old dictionary will be updated with the values of the new
     one, but old keys not present in the new dictionary will persist. For
-    example, without the ``--nested`` flag::
+    example, without the ``--nested`` flag
+
+    .. code-block:: none
 
         {"a": {"b": {"c": null}, "d": true}} +
         {"a": {"b": {"e": 1}}, "f": "g"} =
         {"a": {"b": {"e": 1}}, "f": "g"}
 
-    but with the nested flag::
+    but with the nested flag
+
+    .. code-block:: none
 
         {"a": {"b": {"c": null}, "d": true}} +
         {"a": {"b": {"e": 1}}, "f": "g"} =

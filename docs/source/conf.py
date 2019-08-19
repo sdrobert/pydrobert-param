@@ -73,6 +73,6 @@ else:
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 
-highlight_language = 'none'
+highlight_language = 'python'
 
 master_doc = 'index'

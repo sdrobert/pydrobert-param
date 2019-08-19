@@ -94,6 +94,7 @@ __all__ = [
     'serialize_to_ini',
     'serialize_to_json',
     'serialize_to_yaml',
+    'YAML_MODULE_PRIORITIES',
 ]
 
 try:

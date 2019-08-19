@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Utilitis for python module 'param'"""
+"""Utilities for python module param"""
 
 __author__ = "Sean Robertson"
 __email__ = "sdrobert@cs.toronto.edu"
