@@ -14,6 +14,9 @@ import os
 import sys
 import param
 
+param.parameterized.docstring_signature = False
+param.parameterized.docstring_describe_params = False
+
 sys.path.insert(0, os.path.abspath('../..'))
 
 
@@ -23,8 +26,6 @@ project = 'pydrobert-param'
 copyright = '2019, Sean Robertson'
 author = 'Sean Robertson'
 
-# The full version, including alpha/beta/rc tags
-release = '0.0.1'
 language = 'en'
 
 # -- General configuration ---------------------------------------------------
@@ -34,7 +35,10 @@ language = 'en'
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
+    'sphinx.ext.autosectionlabel',
+    'sphinx.ext.intersphinx',
     'sphinx.ext.napoleon',
+    'sphinx.ext.viewcode',
 ]
 
 naploeon_numpy_docstring = True
@@ -46,6 +50,14 @@ templates_path = ['_templates']
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = []
+
+intersphinx_mapping = {
+    'python': ('https://docs.python.org/', None),
+    'numpy': ('https://docs.scipy.org/doc/numpy/', None),
+    'ruamel.yaml': ('https://yaml.readthedocs.io/en/latest/', None),
+    'pandas': ('https://pandas.pydata.org/pandas-docs/stable/', None),
+    'optuna': ('https://optuna.readthedocs.io/en/latest/', None),
+}
 
 
 # -- Options for HTML output -------------------------------------------------

@@ -14,75 +14,10 @@
 
 '''Utilities for optimizing param.Parameterized via Optuna
 
-`Optuna <https://optuna.org/>`__ is a define-by-run hyperparameter optimization
-framework. This submodule allows one to easily build this optimization in a
-modular way.
-
-Examples
+See Also
 --------
-
-Critically, we implement the :class:`Tunable` interface. For a
-single :class:`param.Parameterized` instance, we can build it directly in the
-objective function:
-
->>> class Foo(TunableParameterized):
->>>     tune_this = param.Number(None)
->>>     not_this = param.Boolean(False)
->>>     @classmethod
->>>     def get_tunable(cls):
->>>         return {'tune_this'}
->>>     @classmethod
->>>     def suggest_params(cls, trial, base=None, only=None, prefix=''):
->>>         params = cls() if base is None else base
->>>         only = cls.get_tunable() if only is None else only
->>>         if 'tune_this' in only:
->>>             params.tune_this = trial.suggest_uniform(
-...                 prefix + 'tune_this', 0.0, 1.0)
->>>         return params
->>>
->>> def objective(trial):
->>>     params = Foo.suggest_params(trial)
->>>     return params.tune_this ** 2
->>>
->>> study = optuna.create_study()
->>> study.optimize(objective, n_trials=30)
->>> best_params = Foo.suggest_params(
-...     optuna.trial.FixedTrial(study.best_params))
-
-We can use the functions of this submodule to optimize more complicated
-environments, too
-
->>> # Foo as above
->>> class Bar(Foo):
->>>     something_else = param.Integer(10)
->>>     @classmethod
->>>     def get_tunable(cls):
->>>         return super(Bar, cls).get_tunable() | {'something_else'}
->>>     @classmethod
->>>     def suggest_params(cls, trial, base=None, only=None, prefix=''):
->>>         if only is None:
->>>             only = cls.get_tunable()
->>>         params = super(Bar, cls).suggest_params(trial, base, only, prefix)
->>>         if 'something_else' in only:
->>>             params.something_else = trial.suggest_int(
-...                 prefix + 'something_else', 1, 3)
->>>         return params
->>>
->>> global_dict = {'foo': Foo(), 'bar': Bar(not_this=True)}
->>> assert get_param_dict_tunable(global_dict) == {
-...     'foo.tune_this', 'bar.tune_this', 'bar.something_else'}
->>>
->>> def objective(trial):
->>>     param_dict = suggest_param_dict(trial, global_dict, {'foo.tune_this'})
->>>     assert param_dict['bar'].not_this  # sets to global_dict val
->>>     param_dict['bar'].not_this = False  # but is deep copy of global_dict
->>>     return param_dict['foo'].tune_this ** 2
->>>
->>> study = optuna.create_study()
->>> study.optimize(objective, n_trials=30)
->>> best_params = suggest_param_dict(
-...     optuna.trial.FixedTrial(study.best_params),
-...     global_dict, {'foo.tune_this'})
+:ref:`Hyperparameter Optimization with Optuna`
+    A tutorial on how to use this module
 '''
 
 from __future__ import absolute_import
@@ -126,8 +61,8 @@ class TunableParameterized(pydrobert.param.abc.AbstractParameterized):
     Any object with both is a :class:`TunableParameterized`. Just like in
     :mod:`collections.abc`, the class need not directly subclass
     :class:`TunableParameterized` for :func:`isinstance` and :func:`issubclass`
-    to return :obj:`True`. However, subclassing :class:`TunableParameterized`
-    will
+    to return :obj:`True`. Subclassing :class:`TunableParameterized` directly
+    will ensure the function also inherits from :class:`param.Parameterized`
     '''
 
     __abstract = True  # this is how param handles abstract classes for now
@@ -153,7 +88,7 @@ class TunableParameterized(pydrobert.param.abc.AbstractParameterized):
         trial : optuna.trial.Trial
             The current optuna trial. Parameter values will be sampled from
             this
-        base : Tunable or :obj:`None`, optional
+        base : TunableParameterized or :obj:`None`, optional
             If set, parameter values will be loaded into this instance. If
             :obj:`None`, a new instance will be created matching this class
             type
@@ -166,7 +101,7 @@ class TunableParameterized(pydrobert.param.abc.AbstractParameterized):
 
         Returns
         -------
-        Tunable
+        TunableParameterized
             Either `base` if not :obj:`None`, or a new instance of this class
             with parameters matching sampled values
         '''
@@ -203,7 +138,7 @@ def get_param_dict_tunable(param_dict, on_decimal="warn"):
 
     Returns
     -------
-    tunable : OrderedDict
+    tunable : collections.OrderedDict
     '''
     if on_decimal not in {'ignore', 'warn', 'raise'}:
         raise ValueError("on_decimal must be 'ignore', 'warn', or 'raise'")

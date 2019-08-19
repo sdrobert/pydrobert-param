@@ -50,30 +50,30 @@ class ParameterizedFileReadAction(
     '''Base class for deserializing files into a param.Parameterized object
 
     Subclasses of this class can be added as the 'action' keyword to an
-    ``argparse.ArgumentParser.add_argument()`` call. The action will read the
-    file path passed as an argument via command line and use the contents
-    of the file to populate ``param.Parameterized`` instances. The subclass
+    :func:`argparse.ArgumentParser.add_argument` call. The action will read the
+    file path passed as an argument via command line and use the contents of
+    the file to populate :class:`param.Parameterized` instances. The subclass
     deserializes the contents of the file according to the
-    ``pydrobert.param.serialization.deserialize_from_filetype`` function,
+    :func:`pydrobert.param.serialization.deserialize_from_filetype` function,
     where ``filetype`` is replaced with the subclass' file type.
 
     There are three ways to specify parameterized objects to populate. They
     are mutually exclusive:
 
-    1. Set the keyword `type` with the subclass of ``param.Parameterized`` you
-       want to deserialize into. A new instance of that subclass will be
+    1. Set the keyword `type` with the subclass of :class:`param.Parameterized`
+       you want to deserialize into. A new instance of that subclass will be
        created with the name ``type.__name__``. The instance will be returned
        in the parsed namespace's attribute whose name matches `dest` as well.
 
     2. Set the keyword `parameterized` with an instance of
-       ``param.Parameterized``. That instance will be populated and also
+       :class:`param.Parameterized`. That instance will be populated and also
        returned in the parsed namespace's attribute whose name matches `dest`.
 
     3. Set the keyword `parameterized` as a hierarchical dictionary of
-       ``param.Parameterized`` instances. The leaves of the dictionary will
-       be populated according to the "hierarchical mode" specified in the
+       :class:`param.Parameterized` instances. The leaves of the dictionary
+       will be populated according to the "hierarchical mode" specified in the
        documentation of
-       ``pydrobert.param.serialization.deserialize_from_dict``. The same
+       :func:`pydrobert.param.serialization.deserialize_from_dict`. The same
        dictionary will be returned in the parsed namespace's attribute whose
        name matches `dest`.
 
@@ -94,13 +94,13 @@ class ParameterizedFileReadAction(
         What to do if the parameterized instance does not have a parameter
         listed in the config file.
     required : bool, optional
-        ``True`` if the action must always be specified at the command line.
+        :obj:`True` if the action must always be specified at the command line.
         This is only meaningful for optional command-line arguments.
     help : str, optional
         The help string describing the argument.
     metavar : str, optional
         The name to be used for the option's argument with the help string.
-        If ``None``, the `dest` value will be used as the name.
+        If :obj:`None`, the `dest` value will be used as the name.
     nargs : str or int, optional
         The number of command line arguments to be consumed. When more than
         one argument is specified, each will be deserialized in the order that
@@ -252,7 +252,7 @@ class ParameterizedYamlReadAction(ParameterizedFileReadAction):
     See Also
     --------
     ParameterizedFileReadAction
-        A full description of the parameters and behaviour of like actions.
+        A full description of the parameters and behaviour of like actions
     pydrobert.param.serialization.deserialize_from_yaml
         A description of the deserialization process.
     '''
@@ -344,12 +344,12 @@ def add_parameterized_read_group(
 
     1. If `type` is specified, it will be instantiated and populated. Its name
        will match ``type.__name__``
-    2. If `parameterized` is specified and is a ``param.Parameterized``
+    2. If `parameterized` is specified and is a :class:`param.Parameterized`
        instance, it will be populated directly.
     3. If `parameterized` is a dictionary whose leaves are
-       ``param.Parameterized``, sections of the config whose keys match the
-       keys of the dictionary will populate the corresponding
-       ``param.Parameterized`` instances. `parameterized` can nest those
+       :class:`param.Parameterized`, sections of the config whose keys match
+       the keys of the dictionary will populate the corresponding
+       :class:`param.Parameterized` instances. `parameterized` can nest those
        instances repeatedly, but only a shallow dict will be able to be
        parsed from an INI file
 
@@ -359,9 +359,9 @@ def add_parameterized_read_group(
     type : type, optional
     parametrized : param.Parameterized or dict, optional
     include_yaml : bool, optional
-        Whether to include the YAML config flags. YAML requires either
-        ``ruamel_yaml/ruamel.yaml`` or ``pyyaml`` to be installed. If unset,
-        we will include the flags if it is possible to import a YAML module.
+        Whether to include the YAML config flags. YAML requires one of
+        :mod:`ruamel.yaml` or :mod:`yaml` to be installed. If unset, we will
+        include the flags if it is possible to import a YAML module.
     ini_option_strings : sequence, optional
         Zero or more option strings specifying that the next argument is an
         INI file to be read. If no option strings are specified, INI reading
@@ -379,13 +379,13 @@ def add_parameterized_read_group(
         ``parser.parse_args(...)``
     ini_kwargs : dict, optional
         Additional keyword arguments to use when creating the INI flag.
-        See ``ParameterizedIniReadAction`` for more info
+        See :class:`ParameterizedIniReadAction` for more info
     json_kwargs : dict, optional
         Additional keyword arguments to use when creating the JSON flag.
-        See ``ParameterizedJsonReadAction`` for more info
+        See :class`ParameterizedJsonReadAction` for more info
     yaml_kwargs : dict, optional
         Additional keyword arguments to use when creating the YAML flag.
-        See ``ParameterizedYamlReadAction`` for more info
+        See :class`ParameterizedYamlReadAction` for more info
 
     Returns
     -------
@@ -485,26 +485,26 @@ class ParameterizedPrintAction(with_metaclass(abc.ABCMeta, argparse.Action)):
     '''Base class for printing parameters to stdout and exiting
 
     Subclasses of this class can be added as the 'action' keyword to an
-    ``argparse.ArgumentParser.add_argument()`` call. Like the ``--help`` flag,
-    after this action is called, the program will try to exit, but not before
-    printing out parameters.
+    :func:`argparse.ArgumentParser.add_argument` call. Like the ``--help``
+    flag, after this action is called, the program will try to exit, but not
+    before printing out parameters.
 
     There are three ways to specify what parameters to print, analogous to how
-    they are specified in ``ParameterizedFileReadAction``:
+    they are specified in :class:`ParameterizedFileReadAction`:
 
-    1. Set the keyword `type` with a subclass of ``param.Parameterized``. A
-       new instance of that type will be created to be printed. Its name will
+    1. Set the keyword `type` with a subclass of :class:`param.Parameterized`.
+       A new instance of that type will be created to be printed. Its name will
        be ``type.__name__``
 
     2. Set the keyword `parameterized` with an instance of
-       ``param.Parameterized``. That instance will be printed.
+       :class:`param.Parameterized`. That instance will be printed.
 
     3. Set the keyword `parameterized` as a hierarchical dictionary of
-       ``param.Parameterized`` instances. The leaves of the dictionary will
-       be populated according to the "hierarchical mode" specified in the
-       documentation of ``pydrobert.param.serialization.serialize_to_dict``.
+       :class:`param.Parameterized` instances. The leaves of the dictionary
+       will be populated according to the "hierarchical mode" specified in the
+       documentation of :func:`pydrobert.param.serialization.serialize_to_dict`
 
-    Note that if a ``ParameterizedFileReadAction`` has been called on the
+    Note that if a :class:`ParameterizedFileReadAction` has been called on the
     command line prior to the print that shares the same `parameterized` value
     as in 2. or 3., `parameterized` will be populated by that file's contents.
 
@@ -764,13 +764,13 @@ def add_parameterized_print_group(
     1. If `type` is specified, it will be instantiated and printed with
        whatever defaults it has. The instance will have the name
        ``type.__name__``
-    2. If `parameterized` is a ``param.Parameterized`` instance, that instance
-       will be printed
-    3. If `parameterized` is a dictionary of `param.Parameterized` instances,
-       those instances will be serialized to dictionaries, then the dictionary
-       of dictionaries will be printed. `parameterized` can contain nested
-       dictionaries of ``param.Parameterized`` instances, but it will be unable
-       to be printed as an INI file, only JSON or YAML
+    2. If `parameterized` is a :class:`param.Parameterized` instance, that
+       instance will be printed
+    3. If `parameterized` is a dictionary of :class:`param.Parameterized`
+       instances, those instances will be serialized to dictionaries, then the
+       dictionary of dictionaries will be printed. `parameterized` can contain
+       nested dictionaries of :class:`param.Parameterized` instances, but it
+       will be unable to be printed as an INI file, only JSON or YAML
 
     Parameters
     ----------
@@ -778,9 +778,9 @@ def add_parameterized_print_group(
     type : type, optional
     parametrized : param.Parameterized or dict, optional
     include_yaml : bool, optional
-        Whether to include the YAML print flags. YAML requires either
-        ``ruamel_yaml/ruamel.yaml`` or ``pyyaml`` to be installed. If unset,
-        we will include the flags if it is possible to import a YAML module.
+        Whether to include the YAML print flags. YAML requires one of
+        :mod:`ruamel.yaml` or :mod:`yaml` to be installed. If unset, we will
+        include the flags if it is possible to import a YAML module.
     ini_option_strings : sequence, optional
         Zero or more option strings specifying that INI format should be
         printed. If no option strings are specified, INI printing is disabled
@@ -792,13 +792,13 @@ def add_parameterized_print_group(
         printed. If no option strings are specified, YAML printing is disabled
     ini_kwargs : dict, optional
         Additional keyword arguments to use when creating the INI flag.
-        See ``ParameterizedIniPrintAction`` for more info
+        See :class:`ParameterizedIniPrintAction` for more info
     json_kwargs : dict, optional
         Additional keyword arguments to use when creating the JSON flag.
-        See ``ParameterizedJsonPrintAction`` for more info
+        See :class:`ParameterizedJsonPrintAction` for more info
     yaml_kwargs : dict, optional
         Additional keyword arguments to use when creating the YAML flag.
-        See ``ParameterizedYamlPrintAction`` for more info
+        See :class:`ParameterizedYamlPrintAction` for more info
 
     Returns
     -------
@@ -848,8 +848,8 @@ def add_parameterized_print_group(
     Notes
     -----
     The returned `group` is technically mutally exclusive. However, since the
-    print action ends with a ``SystemExit`` call, mutual exclusivity will never
-    be enforced
+    print action ends with a :func:`sys.exit` call, mutual exclusivity will
+    never be enforced
     '''
     if parameterized is None and type is None:
         raise TypeError('one of parameterized or type must be set')
