@@ -6,6 +6,7 @@ pydrobert-param
    :caption: Contents:
 
    serialization
+   hyperopt
    modules
 
 Indices and tables

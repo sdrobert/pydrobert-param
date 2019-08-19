@@ -26,8 +26,6 @@ project = 'pydrobert-param'
 copyright = '2019, Sean Robertson'
 author = 'Sean Robertson'
 
-# The full version, including alpha/beta/rc tags
-release = '0.0.1'
 language = 'en'
 
 # -- General configuration ---------------------------------------------------
@@ -37,6 +35,7 @@ language = 'en'
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
+    'sphinx.ext.autosectionlabel',
     'sphinx.ext.intersphinx',
     'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
@@ -57,6 +56,7 @@ intersphinx_mapping = {
     'numpy': ('https://docs.scipy.org/doc/numpy/', None),
     'ruamel.yaml': ('https://yaml.readthedocs.io/en/latest/', None),
     'pandas': ('https://pandas.pydata.org/pandas-docs/stable/', None),
+    'optuna': ('https://optuna.readthedocs.io/en/latest/', None),
 }
 
 

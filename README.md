@@ -32,7 +32,11 @@ serial.deserialize_from_json('foo.json', second)
 assert first.my_int == second.my_int
 ```
 
-More complicated examples can be found in the documentation.
+While the primary purpose of _pydrobert-param_ is for parameter
+(de)serialization, there is also code in `pydrobert.param.optuna` for
+hyperparameter optimization via [Optuna](https://optuna.org/). Check the
+documentation for more complicated examples of serialization, as well as for
+hyperparameter optimization.
 
 ## Documentation
 
