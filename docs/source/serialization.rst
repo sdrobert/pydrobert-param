@@ -62,9 +62,10 @@ where we get
 or
 
 .. currently, there's a bug in YAML syntax (issue #1528 in pygments-main)
-.. that doesn't like the last line of this example. Until fixed, use verbatim
+.. that doesn't like the last line of this example. Seems like it won't throw
+.. an error, though!
 
-::
+.. code-block:: yaml
 
     training:
       lr: 1e-05  # The learning rate
