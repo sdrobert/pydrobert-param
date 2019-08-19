@@ -76,3 +76,33 @@ html_static_path = ['_static']
 highlight_language = 'python'
 
 master_doc = 'index'
+
+
+def my_handler(app, what, name, obj, options, lines):
+    if 'Params' in name.split('.')[-1]:
+        pdict = obj.param.objects(instance=False)
+        del pdict['name']
+        new_lines = []
+        for name, p in pdict.items():
+            doc = p.doc
+            deft = p.default
+            bounds = p.bounds if hasattr(p, 'bounds') else None
+            new_lines.append('- **{}**: {}. *default={}{}*'.format(
+                name, doc, deft,
+                ', bounds={}'.format(bounds) if bounds else ''))
+            new_lines.append('')
+            new_lines.append('')
+        if new_lines:
+            new_lines.insert(0, '')
+            new_lines.insert(0, '')
+            new_lines.insert(1, '**Parameters**')
+            new_lines.insert(2, '')
+            new_lines.insert(2, '')
+            lines += new_lines
+        options['undoc-members'] = False
+    elif 'Parameterized' in name.split('.')[-1]:
+        options['undoc-members'] = False
+
+
+def setup(app):
+    app.connect('autodoc-process-docstring', my_handler)
