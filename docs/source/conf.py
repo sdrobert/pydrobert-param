@@ -37,8 +37,9 @@ language = 'en'
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
-    'sphinx.ext.napoleon',
     'sphinx.ext.intersphinx',
+    'sphinx.ext.napoleon',
+    'sphinx.ext.viewcode',
 ]
 
 naploeon_numpy_docstring = True
