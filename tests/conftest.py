@@ -2,7 +2,11 @@ from shutil import rmtree
 from tempfile import mkdtemp
 
 import pytest
+import param
 import pydrobert.param.serialization as serial
+
+
+param.parameterized.warnings_as_exceptions = True
 
 
 @pytest.fixture(params=["ruamel_yaml", "pyyaml"])
