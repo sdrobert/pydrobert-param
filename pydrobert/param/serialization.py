@@ -209,7 +209,7 @@ class DefaultArraySerializer(ParamConfigSerializer):
 
 
 def _get_name_from_param_range(name, parameterized, val):
-    p = parameterized.params()[name]
+    p = parameterized.param.params()[name]
     val_type = type(val)
     for n, v in p.get_range().items():
         if isinstance(v, val_type) and _equal(v, val):
@@ -235,7 +235,7 @@ class DefaultClassSelectorSerializer(ParamConfigSerializer):
     '''
 
     def help_string(self, name, parameterized):
-        p = parameterized.params()[name]
+        p = parameterized.param.params()[name]
         hashes = tuple(p.get_range())
         if p.is_instance and len(hashes):
             s = 'Choices: '
@@ -246,7 +246,7 @@ class DefaultClassSelectorSerializer(ParamConfigSerializer):
 
     def serialize(self, name, parameterized):
         val = getattr(parameterized, name)
-        p = parameterized.params()[name]
+        p = parameterized.param.params()[name]
         if val is None or p.is_instance:
             return val
         else:
@@ -434,7 +434,7 @@ class DefaultListSelectorSerializer(ParamConfigSerializer):
     '''
 
     def help_string(self, name, parameterized):
-        p = parameterized.params()[name]
+        p = parameterized.param.params()[name]
         hashes = tuple(p.get_range())
         if len(hashes):
             s = 'Element choices: '
@@ -463,7 +463,7 @@ class DefaultObjectSelectorSerializer(ParamConfigSerializer):
     '''
 
     def help_string(self, name, parameterized):
-        p = parameterized.params()[name]
+        p = parameterized.param.params()[name]
         hashes = tuple(p.get_range())
         if len(hashes):
             s = 'Choices: '
@@ -648,12 +648,12 @@ def _serialize_to_dict_flat(
     if serializer_name_dict is None:
         serializer_name_dict = dict()
     if only is None:
-        only = set(parameterized.params())
+        only = set(parameterized.param.params())
         only.remove('name')
     dict_ = dict()
     help_dict = dict()
     for name in only:
-        if name not in parameterized.params():
+        if name not in parameterized.param.params():
             msg = 'No param "{}" to read in "{}"'.format(
                 name, parameterized.name)
             if on_missing == 'warn':
@@ -664,14 +664,14 @@ def _serialize_to_dict_flat(
         if name in serializer_name_dict:
             serializer = serializer_name_dict[name]
         else:
-            type_ = type(parameterized.params()[name])
+            type_ = type(parameterized.param.params()[name])
             if type_ in serializer_type_dict:
                 serializer = serializer_type_dict[type_]
             else:
                 serializer = DEFAULT_BACKUP_SERIALIZER
         dict_[name] = serializer.serialize(name, parameterized)
         help_string_serial = serializer.help_string(name, parameterized)
-        help_string_doc = parameterized.params()[name].doc
+        help_string_doc = parameterized.param.params()[name].doc
         if help_string_doc:
             if help_string_serial:
                 help_string_doc = help_string_doc.strip('. ')
@@ -1234,7 +1234,7 @@ class ParamConfigDeserializer(with_metaclass(abc.ABCMeta, object)):
         In ``Default*Deseriazer`` documentation, a call to this method is
         referred to as a "none check".
         '''
-        p = parameterized.params()[name]
+        p = parameterized.param.params()[name]
         if block is None and p.allow_None:
             parameterized.param.set_param(name, None)
             return True
@@ -1348,7 +1348,7 @@ class DefaultBooleanDeserializer(ParamConfigDeserializer):
 
 
 def _find_object_in_object_selector(name, block, parameterized):
-    p = parameterized.params()[name]
+    p = parameterized.param.params()[name]
     named_objs = p.get_range()
     for val in named_objs.values():
         if _equal(val, block):
@@ -1389,7 +1389,7 @@ class DefaultClassSelectorDeserializer(ParamConfigDeserializer):
     def deserialize(self, name, block, parameterized):
         if self.check_if_allow_none_and_set(name, block, parameterized):
             return
-        p = parameterized.params()[name]
+        p = parameterized.param.params()[name]
         try:
             if p.is_instance:
                 if not isinstance(block, p.class_):
@@ -1634,7 +1634,7 @@ class DefaultListDeserializer(ParamConfigDeserializer):
     def deserialize(self, name, block, parameterized):
         if self.check_if_allow_none_and_set(name, block, parameterized):
             return
-        p = parameterized.params()[name]
+        p = parameterized.param.params()[name]
         try:
             if p.class_:
                 block = [
@@ -1965,7 +1965,7 @@ def _deserialize_from_dict_flat(
     if deserializer_name_dict is None:
         deserializer_name_dict = dict()
     for name, block in dict_.items():
-        if name not in parameterized.params():
+        if name not in parameterized.param.params():
             msg = 'No param "{}" to set in "{}"'.format(
                 name, parameterized.name)
             if on_missing == 'warn':
@@ -1976,7 +1976,7 @@ def _deserialize_from_dict_flat(
         if name in deserializer_name_dict:
             deserializer = deserializer_name_dict[name]
         else:
-            type_ = type(parameterized.params()[name])
+            type_ = type(parameterized.param.params()[name])
             if type_ in deserializer_type_dict:
                 deserializer = deserializer_type_dict[type_]
             else:

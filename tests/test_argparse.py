@@ -75,6 +75,7 @@ def test_ini_read_action():
         nargs='?',
         const=os.path.join(FILE_DIR, 'param.ini'),
         deserializer_type_dict={param.List: CommaListDeserializer()},
+        on_missing="ignore",
     )
     parsed = parser.parse_args(['--zoo'])
     assert parsed.zoo.bingo == 'a'
@@ -86,6 +87,7 @@ def test_ini_read_action():
         action=pargparse.ParameterizedIniReadAction,
         nargs='+',
         parameterized={'params_b': ParamsB()},
+        on_missing="ignore",
     )
     parsed = parser.parse_args([os.path.join(FILE_DIR, 'param.ini')])
     assert parsed.zoo['params_b'].object_selector == 1
@@ -99,6 +101,7 @@ def test_yaml_read_action(yaml_loader):
         nargs='+',
         action=pargparse.ParameterizedYamlReadAction,
         type=ParamsA,
+        on_missing="ignore",
     )
     parsed = parser.parse_args([
         os.path.join(FILE_DIR, 'param.yaml'),
@@ -112,6 +115,7 @@ def test_yaml_read_action(yaml_loader):
         'zoo',
         action=pargparse.ParameterizedYamlReadAction,
         parameterized={'params_b': ParamsB()},
+        on_missing="ignore",
     )
     parsed = parser.parse_args([os.path.join(FILE_DIR, 'param.yaml')])
     assert parsed.zoo['params_b'].object_selector == '2'
@@ -121,6 +125,7 @@ def test_yaml_read_action(yaml_loader):
         nargs='*',
         action=pargparse.ParameterizedYamlReadAction,
         parameterized={'params_a': ParamsB()},  # mismatch if actually parsed
+        on_missing="ignore",
     )
     parsed = parser.parse_args([])
     assert parsed.zoo['params_a'].object_selector is None
@@ -132,6 +137,7 @@ def test_json_read_action():
         'zoo',
         action=pargparse.ParameterizedJsonReadAction,
         type=ParamsA,
+        on_missing="ignore",
     )
     parsed = parser.parse_args([os.path.join(FILE_DIR, 'param.json')])
     assert parsed.zoo.bingo == ""
