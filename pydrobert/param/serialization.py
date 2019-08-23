@@ -2175,7 +2175,7 @@ def deserialize_from_ini(
         dict_ = OrderedDict(parser.items(one_param_section))
     else:
         dict_ = OrderedDict(
-            (s, OrderedDict(parser.items(s)))
+            (s, OrderedDict(parser[s].items()))
             for s in parser.sections()
         )
     deserialize_from_dict(
