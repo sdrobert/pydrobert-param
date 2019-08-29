@@ -158,6 +158,7 @@ def test_suggest_param_dict():
         def __init__(self):
             self.foo = False
             self.bar = False
+            self.touched = False
 
         @classmethod
         def get_tunable(cls):
@@ -170,6 +171,7 @@ def test_suggest_param_dict():
             assert not (only - {'foo', 'bar'})
             base.foo = 'foo' in only
             base.bar = 'bar' in only
+            base.touched = True
 
     global_dict = {
         'again': {'no touching': 'me'},
@@ -180,16 +182,21 @@ def test_suggest_param_dict():
     assert param_dict['again']['no touching'] == 'me'
     assert param_dict['foo'].foo
     assert param_dict['foo'].bar
+    assert param_dict['foo'].touched
     assert param_dict['bar']['foo'].foo
     assert param_dict['bar']['foo'].bar
+    assert param_dict['bar']['foo'].touched
     assert not global_dict['foo'].foo
     assert not global_dict['bar']['foo'].bar
+    assert not global_dict['foo'].touched
     param_dict = poptuna.suggest_param_dict(
         object(), global_dict, {'bar.foo.bar'})
     assert not param_dict['foo'].foo
     assert not param_dict['foo'].bar
+    assert param_dict['foo'].touched
     assert not param_dict['bar']['foo'].foo
     assert param_dict['bar']['foo'].bar
+    assert param_dict['bar']['foo'].touched
     with pytest.warns(UserWarning, match="'foo'"):
         poptuna.suggest_param_dict(object(), global_dict, {'foo'})
     with pytest.warns(UserWarning, match="bar.foo.baz"):

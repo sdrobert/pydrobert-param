@@ -261,10 +261,9 @@ def suggest_param_dict(
         prefix = prefix + '.'
         prefix_only = {x[len(prefix):] for x in only if x.startswith(prefix)}
         prefix_only = prefix_only & param.get_tunable()
-        if prefix_only:
-            only -= {prefix + x for x in prefix_only}
-            param.suggest_params(
-                trial, base=param, only=prefix_only, prefix=prefix)
+        only -= {prefix + x for x in prefix_only}
+        param.suggest_params(
+            trial, base=param, only=prefix_only, prefix=prefix)
     if warn and only:
         warnings.warn(
             '"only" contained extra parameters: {}. To suppress this warning, '
