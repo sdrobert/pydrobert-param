@@ -103,6 +103,12 @@ or all its parameters, determined by the argument passed as `only`. Because we
 passed ``{'foo.tune_this'}`` as `only` to :func:`suggest_param_dict`, the above
 example only optimizes ``global_dict['foo'].tune_this``.
 
+The ``suggest_params`` class method of both the ``Foo`` and ``Bar`` instances
+will be called, though `only` will be empty for the latter. If `global_dict` is
+ordered, this allows one to pass information between
+:class:`TunableParameterized` via an :class:`optuna.trial.Trial` instance's
+``set_user_attr`` method.
+
 If you're already populating dictionaries of parameters viz. the mechanisms
 from :mod:`pydrobert.param.serialization`, it should be very little effort to
 wrap your training/evaluation functions with an Optuna objective, as above.
