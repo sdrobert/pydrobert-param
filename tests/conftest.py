@@ -11,23 +11,25 @@ param.parameterized.warnings_as_exceptions = True
 
 @pytest.fixture(params=["ruamel_yaml", "pyyaml"])
 def yaml_loader(request):
-    if request.param == 'ruamel_yaml':
+    if request.param == "ruamel_yaml":
         try:
             from ruamel_yaml import YAML
+
             yaml_loader = YAML().load
-            module_name = 'ruamel_yaml'
         except ImportError:
-            from ruamel.yaml import YAML
+            from ruamel.yaml import YAML  # type: ignore
+
             yaml_loader = YAML().load
-            module_name = 'ruamel.yaml'
+        module_names = ("ruamel_yaml", "ruamel.yaml")
     else:
         import yaml
 
         def yaml_loader(x):
             return yaml.load(x, Loader=yaml.FullLoader)
-        module_name = 'pyyaml'
+
+        module_names = ("pyyaml",)
     old_props = serial.YAML_MODULE_PRIORITIES
-    serial.YAML_MODULE_PRIORITIES = (module_name,)
+    serial.YAML_MODULE_PRIORITIES = module_names
     yield yaml_loader
     serial.YAML_MODULE_PRIORITIES = old_props
 
