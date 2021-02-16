@@ -9,7 +9,7 @@ python:
 install:
   # - pip install -U pip setuptools setuptools_scm
   - pip install -r requirements.txt
-  - pip install pytest ruamel_yaml pyyaml pandas numpy optuna==0.14.0
+  - pip install pytest ruamel.yaml pyyaml pandas numpy optuna==0.14.0
 
 script:
   - export SETUPTOOLS_SCM_PRETEND_VERSION=0.0.0

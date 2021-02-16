@@ -52,7 +52,7 @@ def main():
             "pytest",
             "ruamel.yaml >= 0.15",
             "pyyaml >= 4.2",
-            "pandas >= 1.2.2",
+            "pandas",
             "numpy",
         ],
         entry_points={
