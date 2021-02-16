@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-'''Utilities for (de)serializing param.Parameterized objects'''
+"""Utilities for (de)serializing param.Parameterized objects"""
 
 from __future__ import absolute_import
 from __future__ import division
@@ -24,8 +24,9 @@ import configparser
 
 from builtins import bytes, str as unicode
 from collections import OrderedDict
+
 try:
-    from cStringIO import StringIO
+    from cStringIO import StringIO  # type: ignore
 except ImportError:
     from io import StringIO
 
@@ -38,63 +39,63 @@ __email__ = "sdrobert@cs.toronto.edu"
 __license__ = "Apache 2.0"
 __copyright__ = "Copyright 2019 Sean Robertson"
 __all__ = [
-    'DEFAULT_BACKUP_SERIALIZER',
-    'DEFAULT_DESERIALIZER_DICT',
-    'DEFAULT_SERIALIZER_DICT',
-    'DefaultArrayDeserializer',
-    'DefaultArraySerializer',
-    'DefaultBooleanDeserializer',
-    'DefaultClassSelectorDeserializer',
-    'DefaultClassSelectorSerializer',
-    'DefaultDataFrameDeserializer',
-    'DefaultDataFrameSerializer',
-    'DefaultDateDeserializer',
-    'DefaultDateRangeDeserializer',
-    'DefaultDateRangeSerializer',
-    'DefaultDateSerializer',
-    'DefaultDeserializer',
-    'DefaultIntegerDeserializer',
-    'DefaultListDeserializer',
-    'DefaultListSelectorDeserializer',
-    'DefaultListSelectorSerializer',
-    'DefaultNumberDeserializer',
-    'DefaultNumericTupleDeserializer',
-    'DefaultObjectSelectorDeserializer',
-    'DefaultObjectSelectorSerializer',
-    'DefaultSerializer',
-    'DefaultSeriesSerializer',
-    'DefaultStringDeserializer',
-    'DefaultTupleSerializer',
-    'deserialize_from_dict',
-    'deserialize_from_ini',
-    'deserialize_from_json',
-    'deserialize_from_yaml',
-    'JSON_STRING_SERIALIZER_DICT',
-    'JsonStringArrayDeserializer',
-    'JsonStringArraySerializer',
-    'JsonStringDataFrameDeserializer',
-    'JsonStringDataFrameSerializer',
-    'JsonStringDateRangeDeserializer',
-    'JsonStringDateRangeSerializer',
-    'JsonStringDictDeserializer',
-    'JsonStringDictSerializer',
-    'JsonStringListDeserializer',
-    'JsonStringListSelectorDeserializer',
-    'JsonStringListSelectorSerializer',
-    'JsonStringListSerializer',
-    'JsonStringNumericTupleDeserializer',
-    'JsonStringSeriesDeserializer',
-    'JsonStringSeriesSerializer',
-    'JsonStringTupleDeserializer',
-    'JsonStringTupleSerializer',
-    'ParamConfigDeserializer',
-    'ParamConfigSerializer',
-    'ParamConfigTypeError',
-    'serialize_to_dict',
-    'serialize_to_ini',
-    'serialize_to_json',
-    'serialize_to_yaml',
-    'YAML_MODULE_PRIORITIES',
+    "DEFAULT_BACKUP_SERIALIZER",
+    "DEFAULT_DESERIALIZER_DICT",
+    "DEFAULT_SERIALIZER_DICT",
+    "DefaultArrayDeserializer",
+    "DefaultArraySerializer",
+    "DefaultBooleanDeserializer",
+    "DefaultClassSelectorDeserializer",
+    "DefaultClassSelectorSerializer",
+    "DefaultDataFrameDeserializer",
+    "DefaultDataFrameSerializer",
+    "DefaultDateDeserializer",
+    "DefaultDateRangeDeserializer",
+    "DefaultDateRangeSerializer",
+    "DefaultDateSerializer",
+    "DefaultDeserializer",
+    "DefaultIntegerDeserializer",
+    "DefaultListDeserializer",
+    "DefaultListSelectorDeserializer",
+    "DefaultListSelectorSerializer",
+    "DefaultNumberDeserializer",
+    "DefaultNumericTupleDeserializer",
+    "DefaultObjectSelectorDeserializer",
+    "DefaultObjectSelectorSerializer",
+    "DefaultSerializer",
+    "DefaultSeriesSerializer",
+    "DefaultStringDeserializer",
+    "DefaultTupleSerializer",
+    "deserialize_from_dict",
+    "deserialize_from_ini",
+    "deserialize_from_json",
+    "deserialize_from_yaml",
+    "JSON_STRING_SERIALIZER_DICT",
+    "JsonStringArrayDeserializer",
+    "JsonStringArraySerializer",
+    "JsonStringDataFrameDeserializer",
+    "JsonStringDataFrameSerializer",
+    "JsonStringDateRangeDeserializer",
+    "JsonStringDateRangeSerializer",
+    "JsonStringDictDeserializer",
+    "JsonStringDictSerializer",
+    "JsonStringListDeserializer",
+    "JsonStringListSelectorDeserializer",
+    "JsonStringListSelectorSerializer",
+    "JsonStringListSerializer",
+    "JsonStringNumericTupleDeserializer",
+    "JsonStringSeriesDeserializer",
+    "JsonStringSeriesSerializer",
+    "JsonStringTupleDeserializer",
+    "JsonStringTupleSerializer",
+    "ParamConfigDeserializer",
+    "ParamConfigSerializer",
+    "ParamConfigTypeError",
+    "serialize_to_dict",
+    "serialize_to_ini",
+    "serialize_to_json",
+    "serialize_to_yaml",
+    "YAML_MODULE_PRIORITIES",
 ]
 
 try:
@@ -107,15 +108,19 @@ try:
             return a.size() == b.size() and np.allclose(a, b)
         except Exception:
             return 0
+
+
 except ImportError:
+
     def _equal_array(a, b):
         try:
             return all(c == d for c, d in zip(a, b))
         except Exception:
             return 0
 
+
 try:
-    basestring
+    basestring  # type: ignore
 except NameError:
     basestring = str
 
@@ -128,16 +133,16 @@ def _equal(a, b):
 
 
 class ParamConfigTypeError(TypeError):
-    '''Raised when failed to (de)serialize Parameterized object'''
+    """Raised when failed to (de)serialize Parameterized object"""
 
-    def __init__(self, parameterized, name, message=''):
+    def __init__(self, parameterized, name, message=""):
         super(ParamConfigTypeError, self).__init__(
-            '{}.{}: {}'.format(parameterized.name, name, message)
+            "{}.{}: {}".format(parameterized.name, name, message)
         )
 
 
 class ParamConfigSerializer(with_metaclass(abc.ABCMeta, object)):
-    '''Serialize a parameter value from a parameterized object
+    """Serialize a parameter value from a parameterized object
 
     Subclasses of :class:`ParamConfigSerializer` are expected to implement
     :func:`serialize`. Instances of the subclass can be passed into
@@ -149,20 +154,20 @@ class ParamConfigSerializer(with_metaclass(abc.ABCMeta, object)):
     :mod:`pydrobert.param.serialization`, there are a number of default
     serializers (matching the pattern ``Default*Serializer``) that are best
     guesses on how to serialize data from a variety of sources
-    '''
+    """
 
     def help_string(self, name, parameterized):
-        '''A string that helps explain this serialization
+        """A string that helps explain this serialization
 
         The return string will be included in the second element of
         the pair returned by :func:`serialize_to_dict`. Helps
         explain the serialized value to the user.
-        '''
+        """
         return None
 
     @abc.abstractmethod
     def serialize(self, name, parameterized):
-        '''Serialize data from a parameterized object and return it
+        """Serialize data from a parameterized object and return it
 
         Parameters
         ----------
@@ -182,24 +187,24 @@ class ParamConfigSerializer(with_metaclass(abc.ABCMeta, object)):
         ------
         ParamConfigTypeError
             If serialization could not be performed
-        '''
+        """
         raise NotImplementedError()
 
 
 class DefaultSerializer(ParamConfigSerializer):
-    '''Default catch-all serializer. Returns value verbatim'''
+    """Default catch-all serializer. Returns value verbatim"""
 
     def serialize(self, name, parameterized):
         return getattr(parameterized, name)
 
 
 class DefaultArraySerializer(ParamConfigSerializer):
-    '''Default numpy array serializer
+    """Default numpy array serializer
 
     The process:
     1. If :obj:`None`, return
     2. Call value's ``tolist()`` method
-    '''
+    """
 
     def serialize(self, name, parameterized):
         val = getattr(parameterized, name)
@@ -216,12 +221,13 @@ def _get_name_from_param_range(name, parameterized, val):
             return n
     parameterized.warning(
         "Could not find value of {} in get_range(), so serializing value "
-        "directly".format(name))
+        "directly".format(name)
+    )
     return val
 
 
 class DefaultClassSelectorSerializer(ParamConfigSerializer):
-    '''Default ClassSelector serializer
+    """Default ClassSelector serializer
 
     The process:
 
@@ -232,14 +238,14 @@ class DefaultClassSelectorSerializer(ParamConfigSerializer):
        :func:`param.ClassSelector.get_range` dictionary and return that name,
        if possibile
     4. Return the value
-    '''
+    """
 
     def help_string(self, name, parameterized):
         p = parameterized.param.params()[name]
         hashes = tuple(p.get_range())
         if p.is_instance and len(hashes):
-            s = 'Choices: '
-            s += ', '.join(('"' + x + '"' for x in hashes))
+            s = "Choices: "
+            s += ", ".join(('"' + x + '"' for x in hashes))
             return s
         else:
             return None
@@ -254,14 +260,14 @@ class DefaultClassSelectorSerializer(ParamConfigSerializer):
 
 
 class DefaultDataFrameSerializer(ParamConfigSerializer):
-    '''Default pandas.DataFrame serializer
+    """Default pandas.DataFrame serializer
 
     The process:
 
     1. If :obj:`None`, return
     2. Call ``tolist()`` on the ``values`` property of the parameter's
        value and return
-    '''
+    """
 
     def help_string(self, name, parameterized):
         val = getattr(parameterized, name)
@@ -290,13 +296,14 @@ def _datetime_to_formatted(parameterized, name, dt, formats):
     except ValueError as e:
         raise_from(ParamConfigTypeError(parameterized, name), e)
     parameterized.warning(
-        'Loss of info for datetime {} in serialized format string'.format(
-            dt, s))
+        "Loss of info for datetime {} in serialized format string".format(dt, s)
+    )
     return s, format
 
 
 def _timestamp(dt):
     import datetime
+
     if dt.tzinfo:
         zero = datetime.timedelta(0)
 
@@ -309,6 +316,7 @@ def _timestamp(dt):
 
             def dst(self, dt):
                 return zero
+
         utc = _UTC()
         return (dt - datetime.datetime(1970, 1, 1, tzinfo=utc)).total_seconds()
     else:
@@ -316,7 +324,7 @@ def _timestamp(dt):
 
 
 class DefaultDateSerializer(ParamConfigSerializer):
-    '''Default datetime.datetime serializer
+    """Default datetime.datetime serializer
 
     The process:
 
@@ -338,11 +346,11 @@ class DefaultDateSerializer(ParamConfigSerializer):
 
     3. If a :class:`numpy.datetime64` instance, return the value cast to a
        string
-    '''
+    """
 
     def __init__(
-            self,
-            format=('%Y-%m-%d', '%Y-%m-%dT%H:%M:%S', '%Y-%m-%dT%H:%M:%S.%f')):
+        self, format=("%Y-%m-%d", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M:%S.%f")
+    ):
         super(DefaultDateSerializer, self).__init__()
         self.format = format
 
@@ -351,12 +359,15 @@ class DefaultDateSerializer(ParamConfigSerializer):
         if val is None:
             return val
         from datetime import datetime
+
         if isinstance(val, datetime):
             if self.format is None:
                 return "Timestamp"
             else:
-                return "Date format string: " + _datetime_to_formatted(
-                    parameterized, name, val, self.format)[1]
+                return (
+                    "Date format string: "
+                    + _datetime_to_formatted(parameterized, name, val, self.format)[1]
+                )
         else:
             return "ISO 8601 format string"
 
@@ -365,25 +376,25 @@ class DefaultDateSerializer(ParamConfigSerializer):
         if val is None:
             return val
         from datetime import datetime
+
         if isinstance(val, datetime):
             if self.format is None:
                 return _timestamp(val)
             else:
-                val = _datetime_to_formatted(
-                    parameterized, name, val, self.format)[0]
+                val = _datetime_to_formatted(parameterized, name, val, self.format)[0]
         return str(val)
 
 
 class DefaultDateRangeSerializer(ParamConfigSerializer):
-    '''Default date range serializer
+    """Default date range serializer
 
     Similar to serializing a single `datetime`, but applied to each element
     separately. Also cast to a list
-    '''
+    """
 
     def __init__(
-            self,
-            format=('%Y-%m-%d', '%Y-%m-%dT%H:%M:%S', '%Y-%m-%dT%H:%M:%S.%f')):
+        self, format=("%Y-%m-%d", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M:%S.%f")
+    ):
         super(DefaultDateRangeSerializer, self).__init__()
         self.format = format
 
@@ -393,12 +404,15 @@ class DefaultDateRangeSerializer(ParamConfigSerializer):
             return val
         val = val[0]  # assuming they're of the same granularity
         from datetime import datetime
+
         if isinstance(val, datetime):
             if self.format is None:
                 return "Timestamp"
             else:
-                return "Date format string: " + _datetime_to_formatted(
-                    parameterized, name, val, self.format)[1]
+                return (
+                    "Date format string: "
+                    + _datetime_to_formatted(parameterized, name, val, self.format)[1]
+                )
         else:
             return "ISO 8601 format string"
 
@@ -407,14 +421,16 @@ class DefaultDateRangeSerializer(ParamConfigSerializer):
         if vals is None:
             return vals
         from datetime import datetime
+
         ret = []
         for val in vals:
             if isinstance(val, datetime):
                 if self.format is None:
                     val = _timestamp(val)
                 else:
-                    val = _datetime_to_formatted(
-                        parameterized, name, val, self.format)[0]
+                    val = _datetime_to_formatted(parameterized, name, val, self.format)[
+                        0
+                    ]
             else:
                 val = str(val)
             ret.append(val)
@@ -422,7 +438,7 @@ class DefaultDateRangeSerializer(ParamConfigSerializer):
 
 
 class DefaultListSelectorSerializer(ParamConfigSerializer):
-    '''Default ListSelector serializer
+    """Default ListSelector serializer
 
     For each element in the value:
 
@@ -431,14 +447,14 @@ class DefaultListSelectorSerializer(ParamConfigSerializer):
        possible
     2. Otherwise, use that element verbatim
 
-    '''
+    """
 
     def help_string(self, name, parameterized):
         p = parameterized.param.params()[name]
         hashes = tuple(p.get_range())
         if len(hashes):
-            s = 'Element choices: '
-            s += ', '.join(('"' + x + '"' for x in hashes))
+            s = "Element choices: "
+            s += ", ".join(('"' + x + '"' for x in hashes))
             return s
         else:
             return None
@@ -451,7 +467,7 @@ class DefaultListSelectorSerializer(ParamConfigSerializer):
 
 
 class DefaultObjectSelectorSerializer(ParamConfigSerializer):
-    '''Default ObjectSelector serializer
+    """Default ObjectSelector serializer
 
     The process:
 
@@ -460,14 +476,14 @@ class DefaultObjectSelectorSerializer(ParamConfigSerializer):
        :func:`param.ObjectSelector.get_range` dictionary and return, if
        possible
     3. Return value verbatim
-    '''
+    """
 
     def help_string(self, name, parameterized):
         p = parameterized.param.params()[name]
         hashes = tuple(p.get_range())
         if len(hashes):
-            s = 'Choices: '
-            s += ', '.join(('"' + x + '"' for x in hashes))
+            s = "Choices: "
+            s += ", ".join(('"' + x + '"' for x in hashes))
             return s
         else:
             return None
@@ -480,14 +496,14 @@ class DefaultObjectSelectorSerializer(ParamConfigSerializer):
 
 
 class DefaultSeriesSerializer(ParamConfigSerializer):
-    '''Default pandas.Series serializer
+    """Default pandas.Series serializer
 
     The process:
 
     1. If :obj:`None`, return
     2. Call ``tolist()`` on the ``values`` property of the parameter's
        value and return
-    '''
+    """
 
     def help_string(self, name, parameterized):
         val = getattr(parameterized, name)
@@ -503,12 +519,12 @@ class DefaultSeriesSerializer(ParamConfigSerializer):
 
 
 class DefaultTupleSerializer(ParamConfigSerializer):
-    '''Default tuple serializer
+    """Default tuple serializer
 
     The process:
     1. If None, return
     2. Casts the value to a list
-    '''
+    """
 
     def serialize(self, name, parameterized):
         val = getattr(parameterized, name)
@@ -516,9 +532,8 @@ class DefaultTupleSerializer(ParamConfigSerializer):
 
 
 def _to_json_string_serializer(cls, typename):
-
     class _JsonStringSerializer(cls):
-        '''Converts a {} to a JSON string
+        """Converts a {} to a JSON string
 
         The default serializer used in INI files. This:
 
@@ -531,19 +546,19 @@ def _to_json_string_serializer(cls, typename):
         serialize_to_json
             To serialize an entire :class:`param.Parameterized` instance as
             json
-        '''.format(typename, cls.__name__)
+        """.format(
+            typename, cls.__name__
+        )
 
         def help_string(self, name, parameterized):
-            s = super(_JsonStringSerializer, self).help_string(
-                name, parameterized)
+            s = super(_JsonStringSerializer, self).help_string(name, parameterized)
             if s is None:
-                return 'A JSON object'
+                return "A JSON object"
             else:
-                return 'A JSON object. ' + s
+                return "A JSON object. " + s
 
         def serialize(self, name, parameterized):
-            val = super(_JsonStringSerializer, self).serialize(
-                name, parameterized)
+            val = super(_JsonStringSerializer, self).serialize(name, parameterized)
             if val is None:
                 return val
             try:
@@ -555,36 +570,38 @@ def _to_json_string_serializer(cls, typename):
 
 
 JsonStringArraySerializer = _to_json_string_serializer(
-    DefaultArraySerializer, 'numpy array')
+    DefaultArraySerializer, "numpy array"
+)
 
 JsonStringDataFrameSerializer = _to_json_string_serializer(
-    DefaultDataFrameSerializer, 'pandas.DataFrame')
+    DefaultDataFrameSerializer, "pandas.DataFrame"
+)
 
 JsonStringDateRangeSerializer = _to_json_string_serializer(
-    DefaultDateRangeSerializer, 'date range')
+    DefaultDateRangeSerializer, "date range"
+)
 
-JsonStringDictSerializer = _to_json_string_serializer(
-    DefaultSerializer, 'dict')
+JsonStringDictSerializer = _to_json_string_serializer(DefaultSerializer, "dict")
 
-JsonStringListSerializer = _to_json_string_serializer(
-    DefaultSerializer, 'list')
+JsonStringListSerializer = _to_json_string_serializer(DefaultSerializer, "list")
 
 JsonStringListSelectorSerializer = _to_json_string_serializer(
-    DefaultListSelectorSerializer, 'list selector')
+    DefaultListSelectorSerializer, "list selector"
+)
 
 JsonStringSeriesSerializer = _to_json_string_serializer(
-    DefaultSeriesSerializer, 'pandas.Series')
+    DefaultSeriesSerializer, "pandas.Series"
+)
 
-JsonStringTupleSerializer = _to_json_string_serializer(
-    DefaultTupleSerializer, 'tuple')
+JsonStringTupleSerializer = _to_json_string_serializer(DefaultTupleSerializer, "tuple")
 
-'''Default serializers by param type
+"""Default serializers by param type
 
 See Also
 --------
 serialize_to_dict
     How these are used
-'''
+"""
 DEFAULT_SERIALIZER_DICT = {
     param.Array: DefaultArraySerializer(),
     param.ClassSelector: DefaultClassSelectorSerializer(),
@@ -601,17 +618,17 @@ DEFAULT_SERIALIZER_DICT = {
     param.XYCoordinates: DefaultTupleSerializer(),
 }
 
-'''Default serializer to use when not type specific
+"""Default serializer to use when not type specific
 
 See Also
 --------
 serialize_to_dict
     How this is used
-'''
+"""
 DEFAULT_BACKUP_SERIALIZER = DefaultSerializer()
 
 
-'''JSON string serializers by param type
+"""JSON string serializers by param type
 
 Used as defaults when writing an INI file
 
@@ -619,7 +636,7 @@ See Also
 --------
 serialize_to_ini
     How these are used
-'''
+"""
 JSON_STRING_SERIALIZER_DICT = {
     param.Array: JsonStringArraySerializer(),
     param.DataFrame: JsonStringDataFrameSerializer(),
@@ -637,8 +654,8 @@ JSON_STRING_SERIALIZER_DICT = {
 
 
 def _serialize_to_dict_flat(
-        parameterized, only, serializer_name_dict, serializer_type_dict,
-        on_missing):
+    parameterized, only, serializer_name_dict, serializer_type_dict, on_missing
+):
     if serializer_type_dict is not None:
         serializer_type_dict2 = dict(DEFAULT_SERIALIZER_DICT)
         serializer_type_dict2.update(serializer_type_dict)
@@ -649,16 +666,15 @@ def _serialize_to_dict_flat(
         serializer_name_dict = dict()
     if only is None:
         only = set(parameterized.param.params())
-        only.remove('name')
+        only.remove("name")
     dict_ = dict()
     help_dict = dict()
     for name in only:
         if name not in parameterized.param.params():
-            msg = 'No param "{}" to read in "{}"'.format(
-                name, parameterized.name)
-            if on_missing == 'warn':
+            msg = 'No param "{}" to read in "{}"'.format(name, parameterized.name)
+            if on_missing == "warn":
                 parameterized.warning(msg)
-            elif on_missing == 'raise':
+            elif on_missing == "raise":
                 raise ValueError(msg)
             continue
         if name in serializer_name_dict:
@@ -674,9 +690,8 @@ def _serialize_to_dict_flat(
         help_string_doc = parameterized.param.params()[name].doc
         if help_string_doc:
             if help_string_serial:
-                help_string_doc = help_string_doc.strip('. ')
-                help_dict[name] = '. '.join(
-                    (help_string_doc, help_string_serial))
+                help_string_doc = help_string_doc.strip(". ")
+                help_dict[name] = ". ".join((help_string_doc, help_string_serial))
             else:
                 help_dict[name] = help_string_doc
         elif help_string_serial:
@@ -687,13 +702,14 @@ def _serialize_to_dict_flat(
 
 
 def serialize_to_dict(
-        parameterized,
-        only=None,
-        serializer_name_dict=None,
-        serializer_type_dict=None,
-        on_missing='raise',
-        include_help=False):
-    '''Serialize a parameterized object into a dictionary
+    parameterized,
+    only=None,
+    serializer_name_dict=None,
+    serializer_type_dict=None,
+    on_missing="raise",
+    include_help=False,
+):
+    """Serialize a parameterized object into a dictionary
 
     This function serializes data into a dictionary format, suitable for
     storage in a dict-like file format such as YAML or JSON. Each parameter
@@ -759,7 +775,7 @@ def serialize_to_dict(
     ------
     ParamConfigTypeError
         If serialization of a value fails
-    '''
+    """
     dict_ = OrderedDict()
     help_dict = dict()
     p_queue = [parameterized]
@@ -790,12 +806,11 @@ def serialize_to_dict(
                     snd_queue.append(None)
                 else:
                     snd_queue.append(snd.get(name, None))
-                if std is None or std.get(name, 'a') is None:
+                if std is None or std.get(name, "a") is None:
                     std_queue.append(None)
                 else:
                     std_name = dict(
-                        (k, v) for (k, v) in std.items()
-                        if isinstance(k, type)
+                        (k, v) for (k, v) in std.items() if isinstance(k, type)
                     )
                     std_name.update(std.get(name, dict()))
                     std_queue.append(std_name)
@@ -807,10 +822,17 @@ def serialize_to_dict(
 
 
 def serialize_to_ini(
-        file, parameterized, only=None, serializer_name_dict=None,
-        serializer_type_dict=None, on_missing='raise', include_help=True,
-        help_prefix='#', one_param_section=None):
-    '''Serialize a parameterized instance into an INI (config) file
+    file,
+    parameterized,
+    only=None,
+    serializer_name_dict=None,
+    serializer_type_dict=None,
+    on_missing="raise",
+    include_help=True,
+    help_prefix="#",
+    one_param_section=None,
+):
+    """Serialize a parameterized instance into an INI (config) file
 
     `.INI syntax <https://en.wikipedia.org/wiki/INI_file>`__, extended with
     :mod:`configparser`. :mod:`configparser` extends the INI syntax with value
@@ -862,13 +884,20 @@ def serialize_to_ini(
     --------
     serialize_to_dict : A description of the serialization process and the
         parameters to this function
-    '''
+    """
     if isinstance(file, str):
-        with open(file, 'w') as fp:
+        with open(file, "w") as fp:
             return serialize_to_ini(
-                fp, parameterized, only, serializer_name_dict,
-                serializer_type_dict, on_missing, include_help, help_prefix,
-                one_param_section)
+                fp,
+                parameterized,
+                only,
+                serializer_name_dict,
+                serializer_type_dict,
+                on_missing,
+                include_help,
+                help_prefix,
+                one_param_section,
+            )
     if serializer_type_dict:
         d = JSON_STRING_SERIALIZER_DICT.copy()
         d.update(serializer_type_dict)
@@ -888,7 +917,8 @@ def serialize_to_ini(
     else:
         help_dict = dict()
     parser = configparser.ConfigParser(
-        comment_prefixes=(help_prefix,), allow_no_value=True)
+        comment_prefixes=(help_prefix,), allow_no_value=True
+    )
     if isinstance(parameterized, param.Parameterized):
         if one_param_section is None:
             one_param_section = parameterized.name
@@ -912,22 +942,22 @@ def serialize_to_ini(
             if section != parser.default_section:
                 parser.add_section(unicode(section))
             if h:
-                help_string_io.write('{} [{}]\n'.format(help_prefix, section))
+                help_string_io.write("{} [{}]\n".format(help_prefix, section))
             for key, val in d.items():
                 if val is None:
                     parser.set(unicode(section), unicode(key))
                 else:
                     parser.set(unicode(section), unicode(key), unicode(val))
                 if key in h:
-                    help_string_io.write('{} {}: {}\n'.format(
-                        help_prefix, key, h[key]))
+                    help_string_io.write("{} {}: {}\n".format(help_prefix, key, h[key]))
             if h:
-                help_string_io.write('\n')
+                help_string_io.write("\n")
         else:
             if len(s_queue):
                 raise IOError(
-                    'INI format cannot serialize hierarchical parameterized '
-                    'dictionaries greater than depth 1')
+                    "INI format cannot serialize hierarchical parameterized "
+                    "dictionaries greater than depth 1"
+                )
             for key in p:
                 if key not in d:
                     continue
@@ -937,13 +967,13 @@ def serialize_to_ini(
                 s_queue.insert(0, key)
     help_string = help_string_io.getvalue()
     if len(help_string):
-        file.write('{} == Help ==\n'.format(help_prefix))
+        file.write("{} == Help ==\n".format(help_prefix))
         file.write(help_string)
-        file.write('\n')
+        file.write("\n")
     parser.write(file)
 
 
-'''Specifies the order with which to try YAML parser modules
+"""Specifies the order with which to try YAML parser modules
 
 A number of different `YAML syntax <https://en.wikipedia.org/wiki/YAML>`__
 parsers exist. This tuple specifies the order by which we attempt to import
@@ -953,8 +983,8 @@ See Also
 --------
 serialize_to_yaml
 deserialize_from_yaml
-'''
-YAML_MODULE_PRIORITIES = ('ruamel.yaml', 'ruamel_yaml', 'pyyaml')
+"""
+YAML_MODULE_PRIORITIES = ("ruamel.yaml", "ruamel_yaml", "pyyaml")
 
 
 def _serialize_to_ruamel_yaml_dict(yaml, type_, fp, dict_, help_dict):
@@ -993,7 +1023,8 @@ def _serialize_to_ruamel_yaml(ruamel_yaml, fp, obj, help_dict):
     yaml.representer.add_representer(OrderedDict, MyRepresenter.represent_dict)
     if help_dict:
         return _serialize_to_ruamel_yaml_dict(
-            yaml, ruamel_yaml.comments.CommentedMap, fp, obj, help_dict)
+            yaml, ruamel_yaml.comments.CommentedMap, fp, obj, help_dict
+        )
     yaml.dump(obj, stream=fp)
 
 
@@ -1001,8 +1032,8 @@ def _serialize_to_pyyaml(yaml, fp, obj, help_dict):
     if help_dict:
         help_string_io = StringIO()
         yaml.dump(help_dict, stream=help_string_io, default_flow_style=False)
-        help_string = help_string_io.getvalue().replace('\n', '\n# ')
-        help_string = '# == Help ==\n# ' + help_string + '\n'
+        help_string = help_string_io.getvalue().replace("\n", "\n# ")
+        help_string = "# == Help ==\n# " + help_string + "\n"
         fp.write(help_string)
     # https://stackoverflow.com/questions/5121931/in-python-how-can-you-load-yaml-mappings-as-ordereddicts
     # we also always serialize "None" in order to be consistent with
@@ -1014,11 +1045,11 @@ def _serialize_to_pyyaml(yaml, fp, obj, help_dict):
 
     def dict_representer(dumper, data):
         return dumper.represent_mapping(
-            yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
-            data.items())
+            yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, data.items()
+        )
 
     def none_representer(dumper, data):
-        return dumper.represent_scalar('tag:yaml.org,2002:null', '')
+        return dumper.represent_scalar("tag:yaml.org,2002:null", "")
 
     OrderedDumper.add_representer(OrderedDict, dict_representer)
     OrderedDumper.add_representer(type(None), none_representer)
@@ -1027,43 +1058,49 @@ def _serialize_to_pyyaml(yaml, fp, obj, help_dict):
 
 def _serialize_to_yaml(fp, obj, help_dict=dict()):
     for name in YAML_MODULE_PRIORITIES:
-        if name == 'ruamel.yaml':
+        if name == "ruamel.yaml":
             try:
-                import ruamel.yaml
+                import ruamel.yaml  # type: ignore
+
                 _serialize_to_ruamel_yaml(ruamel.yaml, fp, obj, help_dict)
                 return
             except ImportError:
                 pass
-        elif name == 'ruamel_yaml':
+        elif name == "ruamel_yaml":
             try:
                 import ruamel_yaml
+
                 _serialize_to_ruamel_yaml(ruamel_yaml, fp, obj, help_dict)
                 return
             except ImportError:
                 pass
-        elif name == 'pyyaml':
+        elif name == "pyyaml":
             try:
                 import yaml
+
                 _serialize_to_pyyaml(yaml, fp, obj, help_dict)
                 return
             except ImportError:
                 pass
         else:
-            raise ValueError(
-                "Invalid value in YAML_MODULE_PRIORITIES: {}".format(name))
+            raise ValueError("Invalid value in YAML_MODULE_PRIORITIES: {}".format(name))
     raise ImportError(
-        'Could not import any of {} for YAML serialization'.format(
-            YAML_MODULE_PRIORITIES))
+        "Could not import any of {} for YAML serialization".format(
+            YAML_MODULE_PRIORITIES
+        )
+    )
 
 
 def serialize_to_yaml(
-        file, parameterized,
-        only=None,
-        serializer_name_dict=None,
-        serializer_type_dict=None,
-        on_missing='raise',
-        include_help=True):
-    '''Serialize a parameterized instance into a YAML file
+    file,
+    parameterized,
+    only=None,
+    serializer_name_dict=None,
+    serializer_type_dict=None,
+    on_missing="raise",
+    include_help=True,
+):
+    """Serialize a parameterized instance into a YAML file
 
     `YAML syntax <https://en.wikipedia.org/wiki/YAML>`__. This function
     converts `parameterized` to a dictionary, then fills a YAML file with
@@ -1094,12 +1131,18 @@ def serialize_to_yaml(
     This function tries to use the YAML (de)serialization module to load the
     YAML file in the order listed in :obj:`YAML_MODULE_PRIORITIES`, falling
     back on the next if there's an :class:`ImportError`
-    '''
+    """
     if isinstance(file, str):
-        with open(file, 'w') as fp:
+        with open(file, "w") as fp:
             return serialize_to_yaml(
-                fp, parameterized, only, serializer_name_dict,
-                serializer_type_dict, on_missing, include_help)
+                fp,
+                parameterized,
+                only,
+                serializer_name_dict,
+                serializer_type_dict,
+                on_missing,
+                include_help,
+            )
     dict_ = serialize_to_dict(
         parameterized,
         only=only,
@@ -1116,8 +1159,14 @@ def serialize_to_yaml(
 
 
 def _serialize_to_json_fp(
-        fp, parameterized, only, serializer_name_dict, serializer_type_dict,
-        on_missing, indent):
+    fp,
+    parameterized,
+    only,
+    serializer_name_dict,
+    serializer_type_dict,
+    on_missing,
+    indent,
+):
     dict_ = serialize_to_dict(
         parameterized,
         only=only,
@@ -1130,13 +1179,15 @@ def _serialize_to_json_fp(
 
 
 def serialize_to_json(
-        file, parameterized,
-        only=None,
-        serializer_name_dict=None,
-        serializer_type_dict=None,
-        on_missing='raise',
-        indent=2):
-    '''Serialize a parameterized instance into a JSON file
+    file,
+    parameterized,
+    only=None,
+    serializer_name_dict=None,
+    serializer_type_dict=None,
+    on_missing="raise",
+    indent=2,
+):
+    """Serialize a parameterized instance into a JSON file
 
     `JSON syntax <https://en.wikipedia.org/wiki/JSON>`__. This function
     converts `parameterized` to a dictionary, then fills an JSON file with
@@ -1164,20 +1215,32 @@ def serialize_to_json(
     -----
     JSON does not have standard "comments," so this function does not write
     help strings as comments
-    '''
+    """
     if isinstance(file, str):
-        with open(file, 'w') as fp:
+        with open(file, "w") as fp:
             _serialize_to_json_fp(
-                fp, parameterized, only, serializer_name_dict,
-                serializer_type_dict, on_missing, indent)
+                fp,
+                parameterized,
+                only,
+                serializer_name_dict,
+                serializer_type_dict,
+                on_missing,
+                indent,
+            )
     else:
         _serialize_to_json_fp(
-            file, parameterized, only, serializer_name_dict,
-            serializer_type_dict, on_missing, indent)
+            file,
+            parameterized,
+            only,
+            serializer_name_dict,
+            serializer_type_dict,
+            on_missing,
+            indent,
+        )
 
 
 class ParamConfigDeserializer(with_metaclass(abc.ABCMeta, object)):
-    '''Deserialize part of a configuration into a parameterized object
+    """Deserialize part of a configuration into a parameterized object
 
     Subclasses of :class:`ParamConfigDeserializer` are expected to implement
     `deserialize`. Instances of the subclass can be passed into
@@ -1189,11 +1252,11 @@ class ParamConfigDeserializer(with_metaclass(abc.ABCMeta, object)):
     :mod:`pydrobert.param.serialization`, there are a number of default
     deserializers (matching the pattern ``Default*Deserializer``) that are best
     guesses on how to deserialize data from a variety of sources
-    '''
+    """
 
     @abc.abstractmethod
     def deserialize(self, name, block, parameterized):
-        '''Deserialize data and store it in a parameterized object
+        """Deserialize data and store it in a parameterized object
 
         Parameters
         ----------
@@ -1211,12 +1274,12 @@ class ParamConfigDeserializer(with_metaclass(abc.ABCMeta, object)):
         ------
         ParamConfigTypeError
             If deserialization could not be performed
-        '''
+        """
         raise NotImplementedError()
 
     @classmethod
     def check_if_allow_none_and_set(cls, name, block, parameterized):
-        '''Check if block can be made none and set it if allowed
+        """Check if block can be made none and set it if allowed
 
         Many :class:`param.Param` parameters allow :obj:`None` as a value. This
         is a convenience method that deserializers can use to quickly
@@ -1233,7 +1296,7 @@ class ParamConfigDeserializer(with_metaclass(abc.ABCMeta, object)):
 
         In ``Default*Deseriazer`` documentation, a call to this method is
         referred to as a "none check".
-        '''
+        """
         p = parameterized.param.params()[name]
         if block is None and p.allow_None:
             parameterized.param.set_param(name, None)
@@ -1243,11 +1306,11 @@ class ParamConfigDeserializer(with_metaclass(abc.ABCMeta, object)):
 
 
 class DefaultDeserializer(ParamConfigDeserializer):
-    '''Catch-all deserializer
+    """Catch-all deserializer
 
     This serializer performs a none check, then tries to set the parameter
     with the value of `block` verbatim.
-    '''
+    """
 
     def deserialize(self, name, block, parameterized):
         if self.check_if_allow_none_and_set(name, block, parameterized):
@@ -1259,7 +1322,7 @@ class DefaultDeserializer(ParamConfigDeserializer):
 
 
 class DefaultArrayDeserializer(ParamConfigDeserializer):
-    '''Default deserializer for numpy arrays
+    """Default deserializer for numpy arrays
 
     Keyword arguments can be passed to referenced methods by initializing this
     deserializer with those keyword arguments.
@@ -1273,7 +1336,7 @@ class DefaultArrayDeserializer(ParamConfigDeserializer):
     4. If bytes, load it with :func:`numpy.frombuffer` and kwargs
     5. If a string, load it with :func:`numpy.fromstring` and kwargs
     6. Try initializing to array with :func:`numpy.array` and kwargs
-    '''
+    """
 
     def __init__(self, **kwargs):
         self.kwargs = kwargs
@@ -1283,10 +1346,11 @@ class DefaultArrayDeserializer(ParamConfigDeserializer):
         if self.check_if_allow_none_and_set(name, block, parameterized):
             return
         import numpy as np
+
         if isinstance(block, np.ndarray):
             parameterized.param.set_param(name, block)
             return
-        if isinstance(block, str) and block.endswith('.npy'):
+        if isinstance(block, str) and block.endswith(".npy"):
             try:
                 block = np.load(block, **self.kwargs)
                 parameterized.param.set_param(name, block)
@@ -1317,7 +1381,7 @@ class DefaultArrayDeserializer(ParamConfigDeserializer):
 
 
 class DefaultBooleanDeserializer(ParamConfigDeserializer):
-    '''Default deserializer for booleans
+    """Default deserializer for booleans
 
     The process:
 
@@ -1326,25 +1390,45 @@ class DefaultBooleanDeserializer(ParamConfigDeserializer):
        (e.g. ``"YES"``, ``"t"``, and ``"on"``) as well as the number 1.
     3. Check `block` against a number of strings commonly meaning :obj:`False`
     4. If a boolean, set it
-    '''
+    """
 
     def deserialize(self, name, block, parameterized):
         if self.check_if_allow_none_and_set(name, block, parameterized):
             return
         if block in {
-                'True', 'true', 't', 'on', 'TRUE', 'T', 'ON', 'yes',
-                'YES', 1, '1'}:
+            "True",
+            "true",
+            "t",
+            "on",
+            "TRUE",
+            "T",
+            "ON",
+            "yes",
+            "YES",
+            1,
+            "1",
+        }:
             block = True
         elif block in {
-                'False', 'false', 'f', 'off', 'FALSE', 'F', 'OFF',
-                'no', 'NO', 0, '0'}:
+            "False",
+            "false",
+            "f",
+            "off",
+            "FALSE",
+            "F",
+            "OFF",
+            "no",
+            "NO",
+            0,
+            "0",
+        }:
             block = False
         if block in {True, False}:
             parameterized.param.set_param(name, block)
         else:
             raise ParamConfigTypeError(
-                parameterized, name,
-                'cannot convert "{}" to bool'.format(block))
+                parameterized, name, 'cannot convert "{}" to bool'.format(block)
+            )
 
 
 def _find_object_in_object_selector(name, block, parameterized):
@@ -1364,7 +1448,7 @@ def _find_object_in_object_selector(name, block, parameterized):
 
 
 class DefaultClassSelectorDeserializer(ParamConfigDeserializer):
-    '''Default ClassSelector deserializer
+    """Default ClassSelector deserializer
 
     The process:
 
@@ -1379,7 +1463,7 @@ class DefaultClassSelectorDeserializer(ParamConfigDeserializer):
 
     3. Look for the block or the block name in the selector's
        :class:`param.ClassSelector.get_range` dictionary
-    '''
+    """
 
     def __init__(self, *args, **kwargs):
         super(DefaultClassSelectorDeserializer, self).__init__()
@@ -1406,7 +1490,7 @@ class DefaultClassSelectorDeserializer(ParamConfigDeserializer):
 
 
 class DefaultDataFrameDeserializer(ParamConfigDeserializer):
-    '''Default pandas.DataFrame deserializer
+    """Default pandas.DataFrame deserializer
 
     Keyword arguments and positional arguments can be passed to referenced
     methods by initializing this deserializer with those keyword arguments.
@@ -1422,7 +1506,7 @@ class DefaultDataFrameDeserializer(ParamConfigDeserializer):
     4. If `block` is a string, try :func:`pandas.read_table`
     5. Try initializing a :class:`pandas.DataFrame` with block as the first
        argument plus the deserializer's extra args and kwargs
-    '''
+    """
 
     def __init__(self, *args, **kwargs):
         self.args = args
@@ -1433,6 +1517,7 @@ class DefaultDataFrameDeserializer(ParamConfigDeserializer):
         if self.check_if_allow_none_and_set(name, block, parameterized):
             return
         import pandas
+
         if isinstance(block, pandas.DataFrame):
             try:
                 parameterized.param.set_param(name, block)
@@ -1441,25 +1526,24 @@ class DefaultDataFrameDeserializer(ParamConfigDeserializer):
                 raise_from(ParamConfigTypeError(parameterized, name), e)
         if isinstance(block, str):
             for suffix, read_func in (
-                    ('.csv', pandas.read_csv),
-                    ('.json', pandas.read_json),
-                    ('.html', pandas.read_html),
-                    ('.xls', pandas.read_excel),
-                    ('.h5', pandas.read_hdf),
-                    ('.feather', pandas.read_feather),
-                    ('.parquet', pandas.read_parquet),
-                    ('.msg', pandas.read_msgpack),
-                    ('.dta', pandas.read_stata),
-                    ('.sas7bdat', pandas.read_sas),
-                    ('.pkl', pandas.read_pickle)):
+                (".csv", pandas.read_csv),
+                (".json", pandas.read_json),
+                (".html", pandas.read_html),
+                (".xls", pandas.read_excel),
+                (".h5", pandas.read_hdf),
+                (".feather", pandas.read_feather),
+                (".parquet", pandas.read_parquet),
+                (".dta", pandas.read_stata),
+                (".sas7bdat", pandas.read_sas),
+                (".pkl", pandas.read_pickle),
+            ):
                 if block.endswith(suffix):
                     try:
                         block = read_func(block, *self.args, **self.kwargs)
                         parameterized.param.set_param(name, block)
                         return
                     except Exception as e:
-                        raise_from(ParamConfigTypeError(
-                            parameterized, name), e)
+                        raise_from(ParamConfigTypeError(parameterized, name), e)
             try:
                 block = pandas.read_table(block, *self.args, **self.kwargs)
                 parameterized.param.set_param(name, block)
@@ -1478,6 +1562,7 @@ def _get_datetime_from_formats(block, formats):
     if isinstance(formats, str):
         formats = (formats,)
     from datetime import datetime
+
     for format in formats:
         try:
             return datetime.strptime(block, format)
@@ -1487,7 +1572,7 @@ def _get_datetime_from_formats(block, formats):
 
 
 class DefaultDateDeserializer(ParamConfigDeserializer):
-    '''Default datetime.datetime deserializer
+    """Default datetime.datetime deserializer
 
     The process:
 
@@ -1512,11 +1597,11 @@ class DefaultDateDeserializer(ParamConfigDeserializer):
        constructor.
     6. If :mod:`numpy` can be imported, try instantiating a
        :obj:`numpy.datetime64` with `block` as an argument to the constructor.
-    '''
+    """
 
     def __init__(
-            self,
-            format=('%Y-%m-%dT%H:%M:%S.%f', '%Y-%m-%dT%H:%M:%S', '%Y-%m-%d')):
+        self, format=("%Y-%m-%dT%H:%M:%S.%f", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d")
+    ):
         super(DefaultDateDeserializer, self).__init__()
         self.format = format
 
@@ -1524,6 +1609,7 @@ class DefaultDateDeserializer(ParamConfigDeserializer):
         if self.check_if_allow_none_and_set(name, block, parameterized):
             return
         from datetime import datetime
+
         if isinstance(block, datetime):
             parameterized.param.set_param(name, block)
             return
@@ -1550,20 +1636,20 @@ class DefaultDateDeserializer(ParamConfigDeserializer):
             except Exception:
                 pass
         raise ParamConfigTypeError(
-            parameterized, name,
-            'cannot convert "{}" to datetime'.format(block))
+            parameterized, name, 'cannot convert "{}" to datetime'.format(block)
+        )
 
 
 class DefaultDateRangeDeserializer(ParamConfigDeserializer):
-    '''Default date range deserializer
+    """Default date range deserializer
 
     Similar to deserializing a single `datetime`, but applied to each element
     separately. Cast to a tuple.
-    '''
+    """
 
     def __init__(
-            self,
-            format=('%Y-%m-%dT%H:%M:%S.%f', '%Y-%m-%dT%H:%M:%S', '%Y-%m-%d')):
+        self, format=("%Y-%m-%dT%H:%M:%S.%f", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d")
+    ):
         super(DefaultDateRangeDeserializer, self).__init__()
         self.format = format
 
@@ -1571,6 +1657,7 @@ class DefaultDateRangeDeserializer(ParamConfigDeserializer):
         if self.check_if_allow_none_and_set(name, block, parameterized):
             return
         from datetime import datetime
+
         val = []
         for elem in block:
             if isinstance(elem, datetime):
@@ -1599,18 +1686,19 @@ class DefaultDateRangeDeserializer(ParamConfigDeserializer):
                 except Exception:
                     pass
             raise ParamConfigTypeError(
-                parameterized, name,
-                'cannot convert "{}" from "{}" to datetime'.format(
-                    elem, block))
+                parameterized,
+                name,
+                'cannot convert "{}" from "{}" to datetime'.format(elem, block),
+            )
         val = tuple(val)
         try:
             parameterized.param.set_param(name, val)
-        except ValueError:
+        except ValueError as e:
             raise_from(ParamConfigTypeError(parameterized, name), e)
 
 
 class DefaultListDeserializer(ParamConfigDeserializer):
-    '''Default list deserializer
+    """Default list deserializer
 
     The process:
 
@@ -1624,7 +1712,7 @@ class DefaultListDeserializer(ParamConfigDeserializer):
           passed to the deserializer on initialization.
 
     3. Cast to a list and set
-    '''
+    """
 
     def __init__(self, *args, **kwargs):
         super(DefaultListDeserializer, self).__init__()
@@ -1638,8 +1726,9 @@ class DefaultListDeserializer(ParamConfigDeserializer):
         try:
             if p.class_:
                 block = [
-                    x if isinstance(x, p.class_) else p.class_(
-                        x, *self.args, **self.kwargs)
+                    x
+                    if isinstance(x, p.class_)
+                    else p.class_(x, *self.args, **self.kwargs)
                     for x in block
                 ]
             else:
@@ -1650,19 +1739,18 @@ class DefaultListDeserializer(ParamConfigDeserializer):
 
 
 class DefaultListSelectorDeserializer(ParamConfigDeserializer):
-    '''Default ListSelector deserializer
+    """Default ListSelector deserializer
 
     For each element in `block` (we assume `block` is iterable), match a
     value or name in the selector's :func:`param.ListSelector.get_range` method
-    '''
+    """
 
     def deserialize(self, name, block, parameterized):
         # a list selector cannot be none, only empty. Therefore, no "None"
         # checks
         try:
             block = [
-                _find_object_in_object_selector(name, x, parameterized)
-                for x in block
+                _find_object_in_object_selector(name, x, parameterized) for x in block
             ]
             parameterized.param.set_param(name, block)
         except TypeError as e:
@@ -1670,7 +1758,7 @@ class DefaultListSelectorDeserializer(ParamConfigDeserializer):
 
 
 class _CastDeserializer(ParamConfigDeserializer):
-    '''Default {0} deserializer
+    """Default {0} deserializer
 
     The process:
 
@@ -1679,7 +1767,7 @@ class _CastDeserializer(ParamConfigDeserializer):
     3. Initialize a(n) {0} instance with `block` as the first argument
        plus any extra positional or keyword arguments passed to the
        deserializer on initialization
-    '''
+    """
 
     def __init__(self, *args, **kwargs):
         super(_CastDeserializer, self).__init__()
@@ -1689,7 +1777,8 @@ class _CastDeserializer(ParamConfigDeserializer):
     @classmethod
     def class_(cls, x, *args, **kwargs):
         raise NotImplementedError(
-            "class_ must be specified in definition of {}".format(cls))
+            "class_ must be specified in definition of {}".format(cls)
+        )
 
     def deserialize(self, name, block, parameterized):
         if self.check_if_allow_none_and_set(name, block, parameterized):
@@ -1704,23 +1793,23 @@ class _CastDeserializer(ParamConfigDeserializer):
 
 
 class DefaultIntegerDeserializer(_CastDeserializer):
-    __doc__ = _CastDeserializer.__doc__.format('int')
+    __doc__ = _CastDeserializer.__doc__.format("int")
     class_ = int
 
 
 class DefaultNumberDeserializer(_CastDeserializer):
-    __doc__ = _CastDeserializer.__doc__.format('float')
+    __doc__ = _CastDeserializer.__doc__.format("float")
     class_ = float
 
 
 class DefaultNumericTupleDeserializer(ParamConfigDeserializer):
-    '''Default numeric tuple deserializer
+    """Default numeric tuple deserializer
 
     The process:
     1. :obj:`None` check
     2. Cast each element of `block` to a :class:`float`
     3. Cast `block` to a :class:`tuple`
-    '''
+    """
 
     def deserialize(self, name, block, parameterized):
         if self.check_if_allow_none_and_set(name, block, parameterized):
@@ -1734,14 +1823,14 @@ class DefaultNumericTupleDeserializer(ParamConfigDeserializer):
 
 
 class DefaultObjectSelectorDeserializer(ParamConfigDeserializer):
-    '''Default ObjectSelector deserializer
+    """Default ObjectSelector deserializer
 
     The process:
 
     1. :obj:`None` check
     2. Match `block` to a value or name in the selector's
        :func:`param.ObjectSelector.get_range` method
-    '''
+    """
 
     def deserialize(self, name, block, parameterized):
         if self.check_if_allow_none_and_set(name, block, parameterized):
@@ -1751,26 +1840,27 @@ class DefaultObjectSelectorDeserializer(ParamConfigDeserializer):
 
 
 class DefaultSeriesDeserializer(_CastDeserializer):
-    __doc__ = _CastDeserializer.__doc__.format('pandas.Series')
+    __doc__ = _CastDeserializer.__doc__.format("pandas.Series")
 
     @property
     def class_(self):
         import pandas
+
         return pandas.Series
 
 
 class DefaultStringDeserializer(_CastDeserializer):
-    __doc__ = _CastDeserializer.__doc__.format('str')
+    __doc__ = _CastDeserializer.__doc__.format("str")
     class_ = str
 
 
 class DefaultTupleDeserializer(_CastDeserializer):
-    __doc__ = _CastDeserializer.__doc__.format('tuple')
+    __doc__ = _CastDeserializer.__doc__.format("tuple")
     class_ = tuple
 
 
 class JsonStringArrayDeserializer(DefaultArrayDeserializer):
-    '''Parses a block as JSON before converting it into a numpy array
+    """Parses a block as JSON before converting it into a numpy array
 
     The default deserializer used in INI files. Input is always assumed to be a
     string or :obj:`None`. If :obj:`None`, a none check is performed.
@@ -1783,26 +1873,27 @@ class JsonStringArrayDeserializer(DefaultArrayDeserializer):
     --------
     deserialize_to_json
         To deserialize JSON into :class:`param.Parameterized` instances
-    '''
-    file_suffixes = {'csv'}
+    """
+
+    file_suffixes = {"csv"}
 
     def deserialize(self, name, block, parameterized):
         if self.check_if_allow_none_and_set(name, block, parameterized):
             return
-        bs = block.split('.')
+        bs = block.split(".")
         if len(bs) > 1 and bs[-1] in self.file_suffixes:
             return super(JsonStringArrayDeserializer, self).deserialize(
-                name, block, parameterized)
+                name, block, parameterized
+            )
         try:
             block = json.loads(block)
         except json.JSONDecodeError as e:
             raise_from(ParamConfigTypeError(parameterized, name), e)
-        super(JsonStringArrayDeserializer, self).deserialize(
-            name, block, parameterized)
+        super(JsonStringArrayDeserializer, self).deserialize(name, block, parameterized)
 
 
 class JsonStringDataFrameDeserializer(DefaultDataFrameDeserializer):
-    '''Parses block as JSON before converting to pandas.DataFrame
+    """Parses block as JSON before converting to pandas.DataFrame
 
     The default deserializer used in INI files. Input is always assumed to be a
     string or :obj:`None`. If :obj:`None`, a none check is performed.
@@ -1815,31 +1906,42 @@ class JsonStringDataFrameDeserializer(DefaultDataFrameDeserializer):
     --------
     deserialize_to_json
         To deserialize JSON into :class:`param.Parameterized` instances
-    '''
+    """
+
     file_suffixes = {
-        'csv', 'json', 'html', '.xls', 'h5', 'feather', 'parquet',
-        'msg', 'dta', 'sas7bdat', 'pkl',
+        "csv",
+        "json",
+        "html",
+        ".xls",
+        "h5",
+        "feather",
+        "parquet",
+        "msg",
+        "dta",
+        "sas7bdat",
+        "pkl",
     }
 
     def deserialize(self, name, block, parameterized):
         if self.check_if_allow_none_and_set(name, block, parameterized):
             return
-        bs = block.split('.')
+        bs = block.split(".")
         if len(bs) > 1 and bs[-1] in self.file_suffixes:
             return super(JsonStringDataFrameDeserializer, self).deserialize(
-                name, block, parameterized)
+                name, block, parameterized
+            )
         try:
             block = json.loads(block)
         except json.JSONDecodeError as e:
             raise_from(ParamConfigTypeError(parameterized, name), e)
         super(JsonStringDataFrameDeserializer, self).deserialize(
-            name, block, parameterized)
+            name, block, parameterized
+        )
 
 
 def _to_json_string_deserializer(cls, typename):
-
     class _JsonStringDeserializer(cls):
-        '''Parses block as json before converting into {}
+        """Parses block as json before converting into {}
 
         The default deserializer used in INI files.
 
@@ -1851,7 +1953,9 @@ def _to_json_string_deserializer(cls, typename):
         --------
         deserialize_to_json
             To deserialize json into :class:`param.Parameterized` instances
-        '''.format(typename, cls.__name__)
+        """.format(
+            typename, cls.__name__
+        )
 
         def deserialize(self, name, block, parameterized):
             if self.check_if_allow_none_and_set(name, block, parameterized):
@@ -1860,41 +1964,45 @@ def _to_json_string_deserializer(cls, typename):
                 block = json.loads(block)
             except json.JSONDecodeError as e:
                 raise_from(ParamConfigTypeError(parameterized, name), e)
-            super(_JsonStringDeserializer, self).deserialize(
-                name, block, parameterized)
+            super(_JsonStringDeserializer, self).deserialize(name, block, parameterized)
 
     return _JsonStringDeserializer
 
 
 JsonStringDateRangeDeserializer = _to_json_string_deserializer(
-    DefaultDateRangeDeserializer, 'date range')
+    DefaultDateRangeDeserializer, "date range"
+)
 
-JsonStringDictDeserializer = _to_json_string_deserializer(
-    DefaultDeserializer, 'dict')
+JsonStringDictDeserializer = _to_json_string_deserializer(DefaultDeserializer, "dict")
 
 JsonStringListDeserializer = _to_json_string_deserializer(
-    DefaultListDeserializer, 'list')
+    DefaultListDeserializer, "list"
+)
 
 JsonStringListSelectorDeserializer = _to_json_string_deserializer(
-    DefaultListSelectorDeserializer, 'list selector')
+    DefaultListSelectorDeserializer, "list selector"
+)
 
 JsonStringNumericTupleDeserializer = _to_json_string_deserializer(
-    DefaultNumericTupleDeserializer, 'numeric tuple')
+    DefaultNumericTupleDeserializer, "numeric tuple"
+)
 
 JsonStringSeriesDeserializer = _to_json_string_deserializer(
-    DefaultSeriesDeserializer, 'pandas.Series')
+    DefaultSeriesDeserializer, "pandas.Series"
+)
 
 JsonStringTupleDeserializer = _to_json_string_deserializer(
-    DefaultTupleDeserializer, 'tuple')
+    DefaultTupleDeserializer, "tuple"
+)
 
 
-'''Default deserializers by parameter type
+"""Default deserializers by parameter type
 
 See Also
 --------
 deserialize_from_dict
     How these are used
-'''
+"""
 DEFAULT_DESERIALIZER_DICT = {
     param.Array: DefaultArrayDeserializer(),
     param.Boolean: DefaultBooleanDeserializer(),
@@ -1918,17 +2026,17 @@ DEFAULT_DESERIALIZER_DICT = {
     param.XYCoordinates: DefaultNumericTupleDeserializer(),
 }
 
-'''Default deserializer that is not type specific
+"""Default deserializer that is not type specific
 
 See Also
 --------
 deserialize_from_dict
     How this is used
-'''
+"""
 DEFAULT_BACKUP_DESERIALIZER = DefaultDeserializer()
 
 
-'''JSON string deserializers by param type
+"""JSON string deserializers by param type
 
 Used as defaults when parsing an INI file
 
@@ -1936,7 +2044,7 @@ See Also
 --------
 deserialize_to_ini
     How these are used
-'''
+"""
 JSON_STRING_DESERIALIZER_DICT = {
     param.Array: JsonStringArrayDeserializer(),
     param.DataFrame: JsonStringDataFrameDeserializer(),
@@ -1954,8 +2062,8 @@ JSON_STRING_DESERIALIZER_DICT = {
 
 
 def _deserialize_from_dict_flat(
-        dict_, parameterized, deserializer_name_dict,
-        deserializer_type_dict, on_missing):
+    dict_, parameterized, deserializer_name_dict, deserializer_type_dict, on_missing
+):
     if deserializer_type_dict is not None:
         deserializer_type_dict2 = dict(DEFAULT_DESERIALIZER_DICT)
         deserializer_type_dict2.update(deserializer_type_dict)
@@ -1966,11 +2074,10 @@ def _deserialize_from_dict_flat(
         deserializer_name_dict = dict()
     for name, block in dict_.items():
         if name not in parameterized.param.params():
-            msg = 'No param "{}" to set in "{}"'.format(
-                name, parameterized.name)
-            if on_missing == 'warn':
+            msg = 'No param "{}" to set in "{}"'.format(name, parameterized.name)
+            if on_missing == "warn":
                 parameterized.warning(msg)
-            elif on_missing == 'raise':
+            elif on_missing == "raise":
                 raise ValueError(msg)
             continue
         if name in deserializer_name_dict:
@@ -1985,10 +2092,13 @@ def _deserialize_from_dict_flat(
 
 
 def deserialize_from_dict(
-        dict_, parameterized,
-        deserializer_name_dict=None, deserializer_type_dict=None,
-        on_missing='warn'):
-    '''Deserialize a dictionary into a parameterized object
+    dict_,
+    parameterized,
+    deserializer_name_dict=None,
+    deserializer_type_dict=None,
+    on_missing="warn",
+):
+    """Deserialize a dictionary into a parameterized object
 
     This function is suitable for deserializing the results of parsing a data
     storage file such as a YAML, JSON, or a section of an INI file (using the
@@ -2041,7 +2151,7 @@ def deserialize_from_dict(
     ------
     ParamConfigTypeError
         If deserialization of a value fails
-    '''
+    """
     d_stack = [dict_]
     p_stack = [parameterized]
     dnd_stack = [deserializer_name_dict]
@@ -2061,12 +2171,12 @@ def deserialize_from_dict(
                 n_stack.append(n + (name,))
                 if p_name is None:
                     msg = (
-                        'dict_ contains hierarchical key chain {} but no '
-                        'parameterized instance to match it'
+                        "dict_ contains hierarchical key chain {} but no "
+                        "parameterized instance to match it"
                     ).format(n_stack[-1])
-                    if on_missing == 'raise':
+                    if on_missing == "raise":
                         raise ValueError(msg)
-                    elif on_missing == 'warn':
+                    elif on_missing == "warn":
                         param.get_logger().warning(msg)
                     continue
                 d_stack.append(d.get(name, dict()))
@@ -2075,27 +2185,28 @@ def deserialize_from_dict(
                     dnd_stack.append(None)
                 else:
                     dnd_stack.append(dnd.get(name, None))
-                if dtd is None or dtd.get(name, 'a') is None:
+                if dtd is None or dtd.get(name, "a") is None:
                     dtd_stack.append(None)
                 else:
                     dtd_name = dict(
-                        (k, v) for (k, v) in dtd.items()
-                        if isinstance(k, type)
+                        (k, v) for (k, v) in dtd.items() if isinstance(k, type)
                     )
                     dtd_name.update(dtd.get(name, dict()))
                     dtd_stack.append(dtd_name)
 
 
 def deserialize_from_ini(
-        file, parameterized,
-        deserializer_name_dict=None,
-        deserializer_type_dict=None,
-        on_missing='warn',
-        defaults=None,
-        comment_prefixes=('#', ';'),
-        inline_comment_prefixes=(';',),
-        one_param_section=None):
-    '''Deserialize an INI (config) file into a parameterized instance
+    file,
+    parameterized,
+    deserializer_name_dict=None,
+    deserializer_type_dict=None,
+    on_missing="warn",
+    defaults=None,
+    comment_prefixes=("#", ";"),
+    inline_comment_prefixes=(";",),
+    one_param_section=None,
+):
+    """Deserialize an INI (config) file into a parameterized instance
 
     `.INI syntax <https://en.wikipedia.org/wiki/INI_file>`__, extended with
     :mod:`configparser`. :mod:`configparser` extends the INI syntax with value
@@ -2145,14 +2256,20 @@ def deserialize_from_ini(
     --------
     deserialize_from_dict : A description of the deserialization process and
         the parameters to this function
-    '''
+    """
     if isinstance(file, str):
         with open(file) as fp:
             return deserialize_from_ini(
-                fp, parameterized,
-                deserializer_name_dict, deserializer_type_dict, on_missing,
-                defaults, comment_prefixes, inline_comment_prefixes,
-                one_param_section)
+                fp,
+                parameterized,
+                deserializer_name_dict,
+                deserializer_type_dict,
+                on_missing,
+                defaults,
+                comment_prefixes,
+                inline_comment_prefixes,
+                one_param_section,
+            )
     if deserializer_type_dict:
         d = JSON_STRING_DESERIALIZER_DICT.copy()
         d.update(deserializer_type_dict)
@@ -2175,30 +2292,31 @@ def deserialize_from_ini(
         dict_ = OrderedDict(parser.items(one_param_section))
     else:
         dict_ = OrderedDict(
-            (s, OrderedDict(parser[s].items()))
-            for s in parser.sections()
+            (s, OrderedDict(parser[s].items())) for s in parser.sections()
         )
     deserialize_from_dict(
-        dict_, parameterized,
+        dict_,
+        parameterized,
         deserializer_name_dict=deserializer_name_dict,
         deserializer_type_dict=deserializer_type_dict,
-        on_missing=on_missing)
+        on_missing=on_missing,
+    )
 
 
 def _deserialize_from_yaml(fp, round_trip=True):
     yaml_loader = None
     for name in YAML_MODULE_PRIORITIES:
-        if name in {'ruamel.yaml', 'ruamel_yaml'}:
+        if name in {"ruamel.yaml", "ruamel_yaml"}:
             try:
-                if name == 'ruamel.yaml':
-                    from ruamel.yaml import YAML
+                if name == "ruamel.yaml":
+                    from ruamel.yaml import YAML  # type: ignore
                 else:
                     from ruamel_yaml import YAML
                 yaml_loader = YAML().load
                 break
             except ImportError:
                 pass
-        elif name == 'pyyaml':
+        elif name == "pyyaml":
             try:
                 import yaml
 
@@ -2211,31 +2329,35 @@ def _deserialize_from_yaml(fp, round_trip=True):
                     return OrderedDict(loader.construct_pairs(node))
 
                 OrderedLoader.add_constructor(
-                    yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
-                    construct_mapping
+                    yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, construct_mapping
                 )
 
                 def yaml_loader(x):
                     return yaml.load(x, Loader=OrderedLoader)
+
                 break
             except ImportError:
                 pass
         else:
-            raise ValueError(
-                "Invalid value in YAML_MODULE_PRIORITIES: {}".format(name))
+            raise ValueError("Invalid value in YAML_MODULE_PRIORITIES: {}".format(name))
     if yaml_loader is None:
         raise ImportError(
-            'Could not import any of {} for YAML deserialization'.format(
-                YAML_MODULE_PRIORITIES))
+            "Could not import any of {} for YAML deserialization".format(
+                YAML_MODULE_PRIORITIES
+            )
+        )
     dict_ = yaml_loader(fp)
     return dict_
 
 
 def deserialize_from_yaml(
-        file, parameterized,
-        deserializer_name_dict=None,
-        deserializer_type_dict=None, on_missing='warn'):
-    '''Deserialize a YAML file into a parameterized instance
+    file,
+    parameterized,
+    deserializer_name_dict=None,
+    deserializer_type_dict=None,
+    on_missing="warn",
+):
+    """Deserialize a YAML file into a parameterized instance
 
     `YAML syntax <https://en.wikipedia.org/wiki/YAML>`__. This function
     converts a YAML file to a dictionary, then populates `parameterized` with
@@ -2260,25 +2382,34 @@ def deserialize_from_yaml(
     This function tries to use the YAML (de)serialization module to load the
     YAML file in the order listed in :obj:`YAML_MODULE_PRIORITIES`, falling
     back on the next if there's an :class:`ImportError`.
-    '''
+    """
     if isinstance(file, str):
         with open(file) as fp:
             return deserialize_from_yaml(
-                fp, parameterized,
-                deserializer_name_dict, deserializer_type_dict, on_missing)
+                fp,
+                parameterized,
+                deserializer_name_dict,
+                deserializer_type_dict,
+                on_missing,
+            )
     dict_ = _deserialize_from_yaml(file)
     deserialize_from_dict(
-        dict_, parameterized,
+        dict_,
+        parameterized,
         deserializer_name_dict=deserializer_name_dict,
         deserializer_type_dict=deserializer_type_dict,
-        on_missing=on_missing)
+        on_missing=on_missing,
+    )
 
 
 def deserialize_from_json(
-        file, parameterized,
-        deserializer_name_dict=None,
-        deserializer_type_dict=None, on_missing='warn'):
-    '''Deserialize a YAML file into a parameterized instance
+    file,
+    parameterized,
+    deserializer_name_dict=None,
+    deserializer_type_dict=None,
+    on_missing="warn",
+):
+    """Deserialize a YAML file into a parameterized instance
 
     `JSON syntax <https://en.wikipedia.org/wiki/JSON>`__. This function
     converts a JSON file to a dictionary, then populates `parameterized` with
@@ -2297,15 +2428,21 @@ def deserialize_from_json(
     --------
     deserialize_from_dict : A description of the deserialization process and
         the parameters to this function
-    '''
+    """
     if isinstance(file, str):
         with open(file) as fp:
             return deserialize_from_json(
-                fp, parameterized,
-                deserializer_name_dict, deserializer_type_dict, on_missing)
+                fp,
+                parameterized,
+                deserializer_name_dict,
+                deserializer_type_dict,
+                on_missing,
+            )
     dict_ = json.load(file)
     deserialize_from_dict(
-        dict_, parameterized,
+        dict_,
+        parameterized,
         deserializer_name_dict=deserializer_name_dict,
         deserializer_type_dict=deserializer_type_dict,
-        on_missing=on_missing)
+        on_missing=on_missing,
+    )
