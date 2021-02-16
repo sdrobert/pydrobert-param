@@ -26,7 +26,7 @@ from builtins import bytes, str as unicode
 from collections import OrderedDict
 
 try:
-    from cStringIO import StringIO
+    from cStringIO import StringIO  # type: ignore
 except ImportError:
     from io import StringIO
 
@@ -120,7 +120,7 @@ except ImportError:
 
 
 try:
-    basestring
+    basestring  # type: ignore
 except NameError:
     basestring = str
 
@@ -1061,7 +1061,6 @@ def _serialize_to_yaml(fp, obj, help_dict=dict()):
         if name == "ruamel.yaml":
             try:
                 import ruamel.yaml  # type: ignore
-                import ruamel.yaml.YAML  # type: ignore
 
                 _serialize_to_ruamel_yaml(ruamel.yaml, fp, obj, help_dict)
                 return
@@ -2310,7 +2309,7 @@ def _deserialize_from_yaml(fp, round_trip=True):
         if name in {"ruamel.yaml", "ruamel_yaml"}:
             try:
                 if name == "ruamel.yaml":
-                    from ruamel.yaml import YAML
+                    from ruamel.yaml import YAML  # type: ignore
                 else:
                     from ruamel_yaml import YAML
                 yaml_loader = YAML().load
@@ -2447,4 +2446,3 @@ def deserialize_from_json(
         deserializer_type_dict=deserializer_type_dict,
         on_missing=on_missing,
     )
-
