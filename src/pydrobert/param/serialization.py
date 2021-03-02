@@ -25,10 +25,6 @@ from typing import Any, Collection, List, Optional, Sequence, TextIO, Union
 
 import param
 
-__author__ = "Sean Robertson"
-__email__ = "sdrobert@cs.toronto.edu"
-__license__ = "Apache 2.0"
-__copyright__ = "Copyright 2021 Sean Robertson"
 __all__ = [
     "DEFAULT_BACKUP_SERIALIZER",
     "DEFAULT_DESERIALIZER_DICT",

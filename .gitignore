@@ -106,3 +106,4 @@ venv.bak/
 .ftpignore
 
 .vscode/
+version.py

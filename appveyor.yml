@@ -1,9 +1,11 @@
+version: build.{build}.branch.{branch}
+
 environment:
   matrix:
     - TOXENV: py36
     - TOXENV: py37
     - TOXENV: py38
-    - TOXENV: py39
+    # - TOXENV: py39  # not there yet
 
 build: off
 

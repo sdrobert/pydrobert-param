@@ -22,12 +22,7 @@ from typing import List, Optional, Sequence, TextIO, Union, Collection
 
 import param
 import pydrobert.param.serialization as serialization
-import pydrobert.param.abc
 
-__author__ = "Sean Robertson"
-__email__ = "sdrobert@cs.toronto.edu"
-__license__ = "Apache 2.0"
-__copyright__ = "Copyright 2021 Sean Robertson"
 __all__ = [
     "add_parameterized_print_group",
     "add_parameterized_read_group",

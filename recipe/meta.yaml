@@ -24,11 +24,14 @@ requirements:
   run:
     - python >=3.6
     - param >=1.9.0
-    - configparser
+  # new namespace package style does not play nicely with old style
+  run_constrained:
+    - pydrobert-kaldi >0.5.3
+    - pydrobert-pytorch >0.2.1
+    - pydrobert-speech >0.1.0
 
 build:
   noarch: python
-  skip: True  # [py2k]
   number: {{ build_num }}
   entry_points:
     - combine-ini-files = pydrobert.param.command_line:combine_ini_files
@@ -54,6 +57,7 @@ test:
   imports:
     - pydrobert
     - pydrobert.param
+    - pydrobert.param.version
     - pydrobert.param.abc
     - pydrobert.param.argparse
     - pydrobert.param.command_line
