@@ -1,4 +1,4 @@
-# Copyright 2019 Sean Robertson
+# Copyright 2021 Sean Robertson
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,46 +12,41 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-'''Utilities for optimizing param.Parameterized via Optuna
+"""Utilities for optimizing param.Parameterized via Optuna
 
 See Also
 --------
 :ref:`Hyperparameter Optimization with Optuna`
     A tutorial on how to use this module
-'''
+"""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import abc
+from typing import Collection, Optional, Set
 import warnings
+import collections.abc
 
 from collections import OrderedDict
 from copy import deepcopy
 
-import pydrobert.param.abc
 import param
 
-try:
-    import collections.abc as collections_abc
-except ImportError:
-    import collections as collections_abc
+from pydrobert.param.abc import AbstractParameterized
 
 __author__ = "Sean Robertson"
 __email__ = "sdrobert@cs.toronto.edu"
 __license__ = "Apache 2.0"
 __copyright__ = "Copyright 2018 Sean Robertson"
 __all__ = [
-    'get_param_dict_tunable',
-    'parameterized_class_from_tunable',
-    'suggest_param_dict',
-    'TunableParameterized',
+    "get_param_dict_tunable",
+    "parameterized_class_from_tunable",
+    "suggest_param_dict",
+    "TunableParameterized",
 ]
 
 
-class TunableParameterized(pydrobert.param.abc.AbstractParameterized):
-    '''An interface for Optuna to tune param.Parameterized instances
+class TunableParameterized(AbstractParameterized):
+    """An interface for Optuna to tune param.Parameterized instances
 
     The :class:`TunableParameterized` interface requires two class methods:
 
@@ -63,25 +58,31 @@ class TunableParameterized(pydrobert.param.abc.AbstractParameterized):
     :class:`TunableParameterized` for :func:`isinstance` and :func:`issubclass`
     to return :obj:`True`. Subclassing :class:`TunableParameterized` directly
     will ensure the function also inherits from :class:`param.Parameterized`
-    '''
+    """
 
     __abstract = True  # this is how param handles abstract classes for now
     __slots__ = tuple()
 
     @classmethod
     @abc.abstractmethod
-    def get_tunable(cls):
-        '''Get a set of names of tunable parameters
+    def get_tunable(cls) -> Set[str]:
+        """Get a set of names of tunable parameters
 
         The values are intended to be names of parameters. Values should not
         contain "."
-        '''
+        """
         return set()
 
     @classmethod
     @abc.abstractmethod
-    def suggest_params(cls, trial, base=None, only=None, prefix=''):
-        '''Populate an instance of this class with parameters based on trial
+    def suggest_params(
+        cls,
+        trial,
+        base: Optional["TunableParameterized"] = None,
+        only: Optional[Collection[str]] = None,
+        prefix: str = "",
+    ):
+        """Populate an instance of this class with parameters based on trial
 
         Parameters
         ----------
@@ -104,7 +105,7 @@ class TunableParameterized(pydrobert.param.abc.AbstractParameterized):
         TunableParameterized
             Either `base` if not :obj:`None`, or a new instance of this class
             with parameters matching sampled values
-        '''
+        """
         params = cls() if base is None else base
         return params
 
@@ -115,8 +116,8 @@ class TunableParameterized(pydrobert.param.abc.AbstractParameterized):
         return NotImplemented
 
 
-def get_param_dict_tunable(param_dict, on_decimal="warn"):
-    '''Return a set of all the tunable parameters in a parameter dictionary
+def get_param_dict_tunable(param_dict: dict, on_decimal: str = "warn") -> OrderedDict:
+    """Return a set of all the tunable parameters in a parameter dictionary
 
     This function crawls through a (possibly nested) dictionary of objects,
     looks for any that implement the :class:`TunableParameterized` interface,
@@ -139,32 +140,35 @@ def get_param_dict_tunable(param_dict, on_decimal="warn"):
     Returns
     -------
     tunable : collections.OrderedDict
-    '''
-    if on_decimal not in {'ignore', 'warn', 'raise'}:
+    """
+    if on_decimal not in {"ignore", "warn", "raise"}:
         raise ValueError("on_decimal must be 'ignore', 'warn', or 'raise'")
     tunable_params = _tunable_params_from_param_dict(param_dict, on_decimal)
     tunable = set()
-    for prefix, params in tunable_params.items():
+    for prefix, params in list(tunable_params.items()):
         new_tunable = params.get_tunable()
-        if on_decimal != 'ignore':
-            decimal_tunable = tuple(x for x in new_tunable if '.' in x)
+        if on_decimal != "ignore":
+            decimal_tunable = tuple(x for x in new_tunable if "." in x)
             if decimal_tunable:
                 msg = (
                     "Found parameters in param_dict{} with '.' in their name: "
                     "{}. These can lead to ambiguities in suggest_param_dict "
                     "and should be avoided".format(
-                        _to_multikey(prefix), decimal_tunable))
-                if on_decimal == 'raise':
+                        _to_multikey(prefix), decimal_tunable
+                    )
+                )
+                if on_decimal == "raise":
                     raise ValueError(msg)
                 else:
                     warnings.warn(msg)
-        tunable |= {'.'.join([prefix, x]) for x in new_tunable}
+        tunable |= {".".join([prefix, x]) for x in new_tunable}
     return tunable
 
 
 def parameterized_class_from_tunable(
-        tunable, base=param.Parameterized, default=[]):
-    '''Construct a param.Parameterized class to store parameters to optimize
+    tunable: Collection, base: type = param.Parameterized, default: list = []
+) -> type:
+    """Construct a param.Parameterized class to store parameters to optimize
 
     This function creates a subclass of :class:`param.Parameterized` that has
     only one parameter: `only`. `only` is a :class:`param.ListSelector` that
@@ -202,19 +206,27 @@ def parameterized_class_from_tunable(
     >>> tunable = get_param_dict_tunable(param_dict)
     >>> OptimParams = parameterized_class_from_tunable(tunable)
     >>> param_dict['hyperparameter_optimization'] = OptimParams()
-    '''
+    """
+
     class Derived(base):
         only = param.ListSelector(
-            default, objects=list(tunable),
-            doc='When performing hyperparameter optimization, only optimize '
-            'these parameters')
+            default,
+            objects=list(tunable),
+            doc="When performing hyperparameter optimization, only optimize "
+            "these parameters",
+        )
 
     return Derived
 
 
 def suggest_param_dict(
-        trial, global_dict, only=None, on_decimal="warn", warn=True):
-    '''Use Optuna trial to sample values for TunableParameterized in dict
+    trial,
+    global_dict: dict,
+    only: Optional[set] = None,
+    on_decimal: str = "warn",
+    warn: bool = True,
+) -> dict:
+    """Use Optuna trial to sample values for TunableParameterized in dict
 
     This function creates a deep copy of the dictionary `global_dict`. Then,
     for every :class:`TunableParameterized` it finds in the copy, it calls that
@@ -247,7 +259,7 @@ def suggest_param_dict(
     Returns
     -------
     param_dict : dict
-    '''
+    """
     if only is None:
         only = get_param_dict_tunable(global_dict, on_decimal)
         second_pass = True
@@ -256,49 +268,52 @@ def suggest_param_dict(
         second_pass = False
     param_dict = deepcopy(global_dict)
     tunable_params = _tunable_params_from_param_dict(
-        param_dict, "ignore" if second_pass else on_decimal)
-    for prefix, param in tunable_params.items():
-        prefix = prefix + '.'
-        prefix_only = {x[len(prefix):] for x in only if x.startswith(prefix)}
-        prefix_only = prefix_only & param.get_tunable()
+        param_dict, "ignore" if second_pass else on_decimal
+    )
+    for prefix, param_ in list(tunable_params.items()):
+        prefix = prefix + "."
+        prefix_only = {x[len(prefix) :] for x in only if x.startswith(prefix)}
+        prefix_only = prefix_only & param_.get_tunable()
         only -= {prefix + x for x in prefix_only}
-        param.suggest_params(
-            trial, base=param, only=prefix_only, prefix=prefix)
+        param_.suggest_params(trial, base=param_, only=prefix_only, prefix=prefix)
     if warn and only:
         warnings.warn(
             '"only" contained extra parameters: {}. To suppress this warning, '
-            'set warn=False'.format(only))
+            "set warn=False".format(only)
+        )
     return param_dict
 
 
 def _to_multikey(s):
     # turn '.'-delimited string into one ["that"]["looks"]["like"]["this"]
-    return '["' + s.replace('.', '"]["') + '"]'
+    return '["' + s.replace(".", '"]["') + '"]'
 
 
-def _tunable_params_from_param_dict(param_dict, on_decimal, prefix=''):
+def _tunable_params_from_param_dict(param_dict, on_decimal, prefix=""):
     # crawl a possibly nested dictionary for TunableParameterized instances
     # and return a dictionary where values are TunableParameterized and keys
     # are a '.'-delimited list of the multi-keys that got us there
     tunable_params = OrderedDict()
-    for key, value in param_dict.items():
-        if '.' in key and on_decimal != 'ignore':
+    for key, value in list(param_dict.items()):
+        if "." in key and on_decimal != "ignore":
             msg = (
                 "Found key{} with '.' in its name: '{}'. This can lead to "
                 "ambiguities in suggest_param_dict and should be avoided"
                 "".format(
-                    " at param_dict" + _to_multikey(prefix) if prefix else "",
-                    key))
+                    " at param_dict" + _to_multikey(prefix) if prefix else "", key
+                )
+            )
             if on_decimal == "raise":
                 raise ValueError(msg)
             else:
                 warnings.warn(msg)
-        key = '.'.join([prefix, key] if prefix else [key])
+        key = ".".join([prefix, key] if prefix else [key])
         if isinstance(value, TunableParameterized):
             tunable_params[key] = value
-        elif isinstance(value, collections_abc.Mapping):
-            tunable_params.update(_tunable_params_from_param_dict(
-                value, on_decimal, key))
+        elif isinstance(value, collections.abc.Mapping):
+            tunable_params.update(
+                _tunable_params_from_param_dict(value, on_decimal, key)
+            )
     return tunable_params
 
 

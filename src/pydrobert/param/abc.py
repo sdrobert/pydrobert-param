@@ -1,4 +1,4 @@
-'''Abstract base class for param.ParameterizedMetaclass
+"""Abstract base class for param.ParameterizedMetaclass
 
 :class:`param.Parameterized` instances use their own metaclass. Here, we've
 almost exactly copied the code from the `Python repository
@@ -6,11 +6,7 @@ almost exactly copied the code from the `Python repository
 with some changes made for `python 2.7
 <https://github.com/python/cpython/blob/2.7/Lib/abc.py>`__ and the metaclass
 inherits from :class:`param.parameterized.ParameterizedMetaclass`
-'''
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+"""
 
 # license: https://www.python.org/doc/copyright/
 # looks like I'm in the clear
@@ -20,12 +16,10 @@ from weakref import WeakSet
 import types
 import param
 
-from future.utils import with_metaclass
-
 __all__ = [
-    'AbstractParameterized',
-    'AbstractParameterizedMetaclass',
-    'get_cache_token',
+    "AbstractParameterized",
+    "AbstractParameterizedMetaclass",
+    "get_cache_token",
 ]
 
 
@@ -46,8 +40,7 @@ def get_cache_token():
     return AbstractParameterizedMetaclass._abc_invalidation_counter
 
 
-class AbstractParameterizedMetaclass(
-        param.parameterized.ParameterizedMetaclass):
+class AbstractParameterizedMetaclass(param.parameterized.ParameterizedMetaclass):
     """Metaclass for defining Abstract Base Classes for param.Parameterized"""
 
     # A global counter that is incremented each time a class is
@@ -59,11 +52,14 @@ class AbstractParameterizedMetaclass(
 
     def __new__(mcls, name, bases, namespace, **kwargs):
         cls = super(AbstractParameterizedMetaclass, mcls).__new__(
-            mcls, name, bases, namespace, **kwargs)
+            mcls, name, bases, namespace, **kwargs
+        )
         # Compute set of abstract method names
-        abstracts = {name
-                     for name, value in namespace.items()
-                     if getattr(value, "__isabstractmethod__", False)}
+        abstracts = {
+            name
+            for name, value in namespace.items()
+            if getattr(value, "__isabstractmethod__", False)
+        }
         for base in bases:
             for name in getattr(base, "__abstractmethods__", set()):
                 value = getattr(cls, name, None)
@@ -75,7 +71,8 @@ class AbstractParameterizedMetaclass(
         cls._abc_cache = WeakSet()
         cls._abc_negative_cache = WeakSet()
         cls._abc_negative_cache_version = (
-            AbstractParameterizedMetaclass._abc_invalidation_counter)
+            AbstractParameterizedMetaclass._abc_invalidation_counter
+        )
         # compatibility with ParameterizedMetaclass' notion of abstract
         cls.__abstract = True
         return cls
@@ -86,8 +83,8 @@ class AbstractParameterizedMetaclass(
         Returns the subclass, to allow usage as a class decorator.
         """
         if not isinstance(subclass, type) and (
-                not hasattr(types, 'ClassType') or
-                issubclass(subclass, types.ClassType)):
+            not hasattr(types, "ClassType") or issubclass(subclass, types.ClassType)
+        ):
             raise TypeError("Can only register classes")
         if issubclass(subclass, cls):
             return subclass  # Already a subclass
@@ -103,12 +100,12 @@ class AbstractParameterizedMetaclass(
 
     def _dump_registry(cls, file=None):
         """Debug helper to print the ABC registry."""
-        print(
-            "Class: {}.{}".format(cls.__module__, cls.__qualname__), file=file)
+        print("Class: {}.{}".format(cls.__module__, cls.__qualname__), file=file)
         print(
             "Inv.counter: {}".format(
-                AbstractParameterizedMetaclass._abc_invalidation_counter,
-                file=file))
+                AbstractParameterizedMetaclass._abc_invalidation_counter, file=file
+            )
+        )
         for name in sorted(cls.__dict__.keys()):
             if name.startswith("_abc_"):
                 value = getattr(cls, name)
@@ -126,18 +123,16 @@ class AbstractParameterizedMetaclass(
     def __instancecheck__(cls, instance):
         """Override for isinstance(instance, cls)."""
         # Inline the cache checking
-        subclass = getattr(instance, '__class__', None)
+        subclass = getattr(instance, "__class__", None)
         if subclass in cls._abc_cache:
             return True
         subtype = type(instance)
-        if (
-                subtype is _InstanceType or
-                subtype is subclass or
-                subclass is None):
+        if subtype is _InstanceType or subtype is subclass or subclass is None:
             if (
-                    cls._abc_negative_cache_version ==
-                    AbstractParameterizedMetaclass._abc_invalidation_counter
-                    and subclass in cls._abc_negative_cache):
+                cls._abc_negative_cache_version
+                == AbstractParameterizedMetaclass._abc_invalidation_counter
+                and subclass in cls._abc_negative_cache
+            ):
                 return False
             # Fall back to the subclass check.
             return cls.__subclasscheck__(subclass)
@@ -146,20 +141,22 @@ class AbstractParameterizedMetaclass(
     def __subclasscheck__(cls, subclass):
         """Override for issubclass(subclass, cls)."""
         if not isinstance(subclass, type) and (
-                not hasattr(types, 'ClassType') or
-                issubclass(subclass, types.ClassType)):
-            raise TypeError('issubclass() arg 1 must be a class')
+            not hasattr(types, "ClassType") or issubclass(subclass, types.ClassType)
+        ):
+            raise TypeError("issubclass() arg 1 must be a class")
         # Check cache
         if subclass in cls._abc_cache:
             return True
         # Check negative cache; may have to invalidate
         if (
-                cls._abc_negative_cache_version <
-                AbstractParameterizedMetaclass._abc_invalidation_counter):
+            cls._abc_negative_cache_version
+            < AbstractParameterizedMetaclass._abc_invalidation_counter
+        ):
             # Invalidate the negative cache
             cls._abc_negative_cache = WeakSet()
             cls._abc_negative_cache_version = (
-                AbstractParameterizedMetaclass._abc_invalidation_counter)
+                AbstractParameterizedMetaclass._abc_invalidation_counter
+            )
         elif subclass in cls._abc_negative_cache:
             return False
         # Check the subclass hook
@@ -172,7 +169,7 @@ class AbstractParameterizedMetaclass(
                 cls._abc_negative_cache.add(subclass)
             return ok
         # Check if it's a direct subclass
-        if cls in getattr(subclass, '__mro__', ()):
+        if cls in getattr(subclass, "__mro__", ()):
             cls._abc_cache.add(subclass)
             return True
         # Check if it's a subclass of a registered class (recursive)
@@ -191,12 +188,13 @@ class AbstractParameterizedMetaclass(
 
 
 class AbstractParameterized(
-        with_metaclass(AbstractParameterizedMetaclass, param.Parameterized)):
-    '''A param.Parameterized with metaclass AbstractParameterizedMetaclass
+    param.Parameterized, metaclass=AbstractParameterizedMetaclass
+):
+    """A param.Parameterized with metaclass AbstractParameterizedMetaclass
 
     Functions similarly to :class:`abc.ABCMeta` in that subclassing an
     :class:`AbstractParameterized` gives the subclass a
     :class:`AbstractParameterizedMetaclass` metaclass. Instead of a base class
     of :class:`object`, however, an :class:`AbstractParameterized` has
     :class:`param.Parameterized` as a base class
-    '''
+    """

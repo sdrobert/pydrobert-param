@@ -5,21 +5,14 @@ We test the various deserialization from file functions in
 these functions
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import os
 import json
 
 from collections import OrderedDict
 from datetime import datetime
 
-try:
-    # python 2.7 wants us to write bytes
-    from cStringIO import StringIO  # type: ignore
-except ImportError:
-    from io import StringIO
+
+from io import StringIO
 from configparser import ConfigParser
 
 import pytest

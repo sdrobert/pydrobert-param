@@ -1,4 +1,4 @@
-# Copyright 2019 Sean Robertson
+# Copyright 2021 Sean Robertson
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,11 +17,11 @@
 __author__ = "Sean Robertson"
 __email__ = "sdrobert@cs.toronto.edu"
 __license__ = "Apache 2.0"
-__copyright__ = "Copyright 2019 Sean Robertson"
+__copyright__ = "Copyright 2021 Sean Robertson"
 __all__ = [
-    'abc',
-    'argparse',
-    'command_line',
-    'optuna',
-    'serialization',
+    "abc",
+    "argparse",
+    "command_line",
+    "optuna",
+    "serialization",
 ]

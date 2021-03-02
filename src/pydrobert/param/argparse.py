@@ -1,4 +1,4 @@
-# Copyright 2019 Sean Robertson
+# Copyright 2021 Sean Robertson
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,40 +14,36 @@
 
 """Hooks for command-line interface with params"""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import argparse
 import abc
 import sys
+from typing import List, Optional, Sequence, TextIO, Union, Collection
 
 import param
 import pydrobert.param.serialization as serialization
-
-from future.utils import with_metaclass
+import pydrobert.param.abc
 
 __author__ = "Sean Robertson"
 __email__ = "sdrobert@cs.toronto.edu"
 __license__ = "Apache 2.0"
-__copyright__ = "Copyright 2019 Sean Robertson"
+__copyright__ = "Copyright 2021 Sean Robertson"
 __all__ = [
-    'add_parameterized_print_group',
-    'add_parameterized_read_group',
-    'ParameterizedFileReadAction',
-    'ParameterizedIniPrintAction',
-    'ParameterizedIniReadAction',
-    'ParameterizedJsonPrintAction',
-    'ParameterizedJsonReadAction',
-    'ParameterizedPrintAction',
-    'ParameterizedYamlPrintAction',
-    'ParameterizedYamlReadAction',
+    "add_parameterized_print_group",
+    "add_parameterized_read_group",
+    "ParameterizedFileReadAction",
+    "ParameterizedIniPrintAction",
+    "ParameterizedIniReadAction",
+    "ParameterizedJsonPrintAction",
+    "ParameterizedJsonReadAction",
+    "ParameterizedPrintAction",
+    "ParameterizedYamlPrintAction",
+    "ParameterizedYamlReadAction",
 ]
 
 
-class ParameterizedFileReadAction(
-        with_metaclass(abc.ABCMeta, argparse.Action)):
-    '''Base class for deserializing files into a param.Parameterized object
+class ParameterizedFileReadAction(argparse.Action, metaclass=abc.ABCMeta):
+    """Base class for deserializing files into a param.Parameterized object
 
     Subclasses of this class can be added as the 'action' keyword to an
     :func:`argparse.ArgumentParser.add_argument` call. The action will read the
@@ -122,18 +118,27 @@ class ParameterizedFileReadAction(
     --------
     pydrobert.param.serialization.deserialize_from_dict
         For more information on how values are deserialized from the config
-    '''
+    """
 
     def __init__(
-            self, option_strings, dest,
-            parameterized=None, type=None, deserializer_name_dict=None,
-            deserializer_type_dict=None, on_missing='warn',
-            required=False, help=None, metavar=None, nargs=None,
-            const=None):
+        self,
+        option_strings: List[str],
+        dest: str,
+        parameterized: Optional[Union[param.Parameterized, dict]] = None,
+        type: Optional[type] = None,
+        deserializer_name_dict: Optional[dict] = None,
+        deserializer_type_dict: Optional[dict] = None,
+        on_missing: str = "warn",
+        required: bool = False,
+        help: Optional[str] = None,
+        metavar: Optional[str] = None,
+        nargs: Optional[Union[str, int]] = None,
+        const: Optional[str] = None,
+    ):
         if parameterized is None and type is None:
-            raise TypeError('one of parameterized or type must be set')
+            raise TypeError("one of parameterized or type must be set")
         if parameterized is not None and type is not None:
-            raise TypeError('only one of parameterized or type can be set')
+            raise TypeError("only one of parameterized or type can be set")
         if parameterized is None:
             self.parameterized = type(name=type.__name__)
         else:
@@ -142,22 +147,33 @@ class ParameterizedFileReadAction(
         self.deserializer_type_dict = deserializer_type_dict
         self.on_missing = on_missing
         super(ParameterizedFileReadAction, self).__init__(
-            option_strings, dest,
-            type=argparse.FileType('r'), default=self.parameterized,
-            required=required, help=help, metavar=metavar,
-            nargs=nargs, const=const,
+            option_strings,
+            dest,
+            type=argparse.FileType("r"),
+            default=self.parameterized,
+            required=required,
+            help=help,
+            metavar=metavar,
+            nargs=nargs,
+            const=const,
         )
 
     @abc.abstractmethod
-    def deserialize(self, fp):
-        '''Read the file pointer into parameterized objects
+    def deserialize(self, fp: Union[TextIO, str]) -> None:
+        """Read the file pointer into parameterized objects
 
         Called during the callable section of this class. Implemented by
         subclasses.
-        '''
+        """
         raise NotImplementedError()
 
-    def __call__(self, parser, namespace, values, option_string=None):
+    def __call__(
+        self,
+        parser: argparse.ArgumentParser,
+        namespace: argparse.Namespace,
+        values,
+        option_string: Optional[str] = None,
+    ) -> None:
         # the latter occurs with, for example, nargs='*' and empty args
         if values is None or values == self.parameterized:
             return
@@ -168,7 +184,7 @@ class ParameterizedFileReadAction(
 
 
 class ParameterizedIniReadAction(ParameterizedFileReadAction):
-    '''Deserialize an INI file into a parameterized object
+    """Deserialize an INI file into a parameterized object
 
     Parameters
     ----------
@@ -196,34 +212,54 @@ class ParameterizedIniReadAction(ParameterizedFileReadAction):
     pydrobert.param.serialization.deserialize_from_ini
         A description of the deserialization process and of the additional
         parameters.
-    '''
+    """
 
     def __init__(
-            self, option_strings, dest,
-            parameterized=None, type=None, deserializer_name_dict=None,
-            deserializer_type_dict=None, on_missing='warn',
-            required=False, help=None, metavar=None, nargs=None, const=None,
-            defaults=None, comment_prefixes=('#', ';'),
-            inline_comment_prefixes=(';',), one_param_section=None):
+        self,
+        option_strings: List[str],
+        dest: str,
+        parameterized: Optional[Union[param.Parameterized, dict]] = None,
+        type: Optional[type] = None,
+        deserializer_name_dict: Optional[dict] = None,
+        deserializer_type_dict: Optional[dict] = None,
+        on_missing: str = "warn",
+        required: bool = False,
+        help: Optional[str] = None,
+        metavar: Optional[str] = None,
+        nargs: Optional[Union[str, int]] = None,
+        const: Optional[str] = None,
+        defaults: Optional[dict] = None,
+        comment_prefixes: Sequence[str] = ("#", ";"),
+        inline_comment_prefixes: Sequence[str] = (";",),
+        one_param_section: Optional[str] = None,
+    ):
         self.defaults = defaults
         self.comment_prefixes = comment_prefixes
         self.inline_comment_prefixes = inline_comment_prefixes
         self.one_param_section = one_param_section
         super(ParameterizedIniReadAction, self).__init__(
-            option_strings, dest,
-            parameterized=parameterized, type=type,
+            option_strings,
+            dest,
+            parameterized=parameterized,
+            type=type,
             deserializer_name_dict=deserializer_name_dict,
             deserializer_type_dict=deserializer_type_dict,
-            on_missing=on_missing, required=required, help=help,
-            metavar=metavar, nargs=nargs, const=const,
+            on_missing=on_missing,
+            required=required,
+            help=help,
+            metavar=metavar,
+            nargs=nargs,
+            const=const,
         )
 
-    def deserialize(self, fp):
+    def deserialize(self, fp: Union[TextIO, str]) -> None:
         serialization.deserialize_from_ini(
-            fp, self.parameterized,
+            fp,
+            self.parameterized,
             deserializer_name_dict=self.deserializer_name_dict,
             deserializer_type_dict=self.deserializer_type_dict,
             on_missing=self.on_missing,
+            defaults=self.defaults,
             comment_prefixes=self.comment_prefixes,
             inline_comment_prefixes=self.inline_comment_prefixes,
             one_param_section=self.one_param_section,
@@ -231,7 +267,7 @@ class ParameterizedIniReadAction(ParameterizedFileReadAction):
 
 
 class ParameterizedYamlReadAction(ParameterizedFileReadAction):
-    '''Deserialize a YAML file into a parameterized object
+    """Deserialize a YAML file into a parameterized object
 
     Parameters
     ----------
@@ -255,11 +291,12 @@ class ParameterizedYamlReadAction(ParameterizedFileReadAction):
         A full description of the parameters and behaviour of like actions
     pydrobert.param.serialization.deserialize_from_yaml
         A description of the deserialization process.
-    '''
+    """
 
-    def deserialize(self, fp):
+    def deserialize(self, fp: Union[TextIO, str]) -> None:
         serialization.deserialize_from_yaml(
-            fp, self.parameterized,
+            fp,
+            self.parameterized,
             deserializer_name_dict=self.deserializer_name_dict,
             deserializer_type_dict=self.deserializer_type_dict,
             on_missing=self.on_missing,
@@ -267,7 +304,7 @@ class ParameterizedYamlReadAction(ParameterizedFileReadAction):
 
 
 class ParameterizedJsonReadAction(ParameterizedFileReadAction):
-    '''Deserialize a JSON file into a parameterized object
+    """Deserialize a JSON file into a parameterized object
 
     Parameters
     ----------
@@ -290,50 +327,60 @@ class ParameterizedJsonReadAction(ParameterizedFileReadAction):
         A full description of the parameters and behaviour of like actions.
     pydrobert.param.serialization.deserialize_from_json
         A description of the deserialization process.
-    '''
+    """
 
-    def deserialize(self, fp):
+    def deserialize(self, fp: Union[TextIO, str]) -> None:
         serialization.deserialize_from_json(
-            fp, self.parameterized,
+            fp,
+            self.parameterized,
             deserializer_name_dict=self.deserializer_name_dict,
             deserializer_type_dict=self.deserializer_type_dict,
             on_missing=self.on_missing,
         )
 
 
-def _yaml_ok():
-    yaml_ok = False
+def _yaml():
+    yaml = None
     for name in serialization.YAML_MODULE_PRIORITIES:
-        if name == 'ruamel.yaml':
+        if name == "ruamel.yaml":
             try:
-                import ruamel.yaml
-                yaml_ok = True
+                import ruamel.yaml  # type: ignore
+
+                yaml = ruamel.yaml
                 break
             except ImportError:
                 pass
-        elif name == 'ruamel_yaml':
+        elif name == "ruamel_yaml":
             try:
-                import ruamel_yaml
-                yaml_ok = True
+                import ruamel_yaml  # type: ignore
+
+                yaml = ruamel_yaml
                 break
             except ImportError:
                 pass
-        elif name == 'pyyaml':
+        elif name == "pyyaml":
             try:
-                import yaml
-                yaml_ok = True
+                import yaml  # type: ignore
+
                 break
             except ImportError:
                 pass
-    return yaml_ok
+    return yaml
 
 
 def add_parameterized_read_group(
-        parser, parameterized=None,
-        type=None, include_yaml=None, ini_option_strings=('--read-ini',),
-        json_option_strings=('--read-json',),
-        yaml_option_strings=('--read-yaml',), dest='params', ini_kwargs=dict(),
-        json_kwargs=dict(), yaml_kwargs=dict()):
+    parser: argparse.ArgumentParser,
+    parameterized: Optional[param.Parameterized] = None,
+    type: Optional[type] = None,
+    include_yaml: Optional[bool] = None,
+    ini_option_strings: Sequence[str] = ("--read-ini",),
+    json_option_strings: Sequence[str] = ("--read-json",),
+    yaml_option_strings: Sequence[str] = ("--read-yaml",),
+    dest: str = "params",
+    ini_kwargs: dict = dict(),
+    json_kwargs: dict = dict(),
+    yaml_kwargs: dict = dict(),
+):
     r'''Add flags to read configs from INI, JSON, or YAML sources
 
     This convenience function adds a mutually exclusive group of read actions
@@ -442,16 +489,20 @@ def add_parameterized_read_group(
     >>> assert parameterized['B']['B.2'].me == 'me me mee'
     '''
     if parameterized is None and type is None:
-        raise TypeError('one of parameterized or type must be set')
+        raise TypeError("one of parameterized or type must be set")
     if parameterized is not None and type is not None:
-        raise TypeError('only one of parameterized or type can be set')
+        raise TypeError("only one of parameterized or type can be set")
     for name, dict_ in (
-            ('ini', ini_kwargs), ('json', json_kwargs), ('yaml', yaml_kwargs)):
-        keys = set(dict_) & {'dest', 'type', 'parameterized'}
+        ("ini", ini_kwargs),
+        ("json", json_kwargs),
+        ("yaml", yaml_kwargs),
+    ):
+        keys = set(dict_) & {"dest", "type", "parameterized"}
         if keys:
             raise TypeError(
-                '{}_kwargs contains unexpected keyword arguments: {}'
-                ''.format(name, ', '.join(sorted(keys))))
+                "{}_kwargs contains unexpected keyword arguments: {}"
+                "".format(name, ", ".join(sorted(keys)))
+            )
     if parameterized is None:
         parameterized = type(name=type.__name__)
     group = parser.add_mutually_exclusive_group()
@@ -459,30 +510,33 @@ def add_parameterized_read_group(
         group.add_argument(
             *ini_option_strings,
             action=ParameterizedIniReadAction,
-            dest=dest, parameterized=parameterized,
+            dest=dest,
+            parameterized=parameterized,
             **ini_kwargs
         )
     if json_option_strings:
         group.add_argument(
             *json_option_strings,
             action=ParameterizedJsonReadAction,
-            dest=dest, parameterized=parameterized,
+            dest=dest,
+            parameterized=parameterized,
             **json_kwargs
         )
     if include_yaml is None and len(yaml_option_strings):
-        include_yaml = _yaml_ok()
+        include_yaml = _yaml()
     if include_yaml and len(yaml_option_strings):
         group.add_argument(
             *yaml_option_strings,
             action=ParameterizedYamlReadAction,
-            dest=dest, parameterized=parameterized,
+            dest=dest,
+            parameterized=parameterized,
             **yaml_kwargs
         )
     return group
 
 
-class ParameterizedPrintAction(with_metaclass(abc.ABCMeta, argparse.Action)):
-    '''Base class for printing parameters to stdout and exiting
+class ParameterizedPrintAction(argparse.Action, metaclass=abc.ABCMeta):
+    """Base class for printing parameters to stdout and exiting
 
     Subclasses of this class can be added as the 'action' keyword to an
     :func:`argparse.ArgumentParser.add_argument` call. Like the ``--help``
@@ -544,17 +598,26 @@ class ParameterizedPrintAction(with_metaclass(abc.ABCMeta, argparse.Action)):
     on_missing : {'ignore', 'warn', 'raise'}
     include_help : boolean
     out_stream : file_ptr
-    '''
+    """
 
     def __init__(
-            self, option_strings, dest,
-            parameterized=None, type=None, serializer_name_dict=None,
-            serializer_type_dict=None, only=None, on_missing='raise',
-            include_help=True, help=None, out_stream=sys.stdout):
+        self,
+        option_strings: List[str],
+        dest: str,
+        parameterized: Optional[Union[dict, param.Parameterized]] = None,
+        type: Optional[type] = None,
+        serializer_name_dict: Optional[dict] = None,
+        serializer_type_dict: Optional[dict] = None,
+        only: Optional[Collection[str]] = None,
+        on_missing: str = "raise",
+        include_help: bool = True,
+        help: Optional[str] = None,
+        out_stream: TextIO = sys.stdout,
+    ):
         if parameterized is None and type is None:
-            raise TypeError('one of parameterized or type must be set')
+            raise TypeError("one of parameterized or type must be set")
         if parameterized is not None and type is not None:
-            raise TypeError('only one of parameterized or type can be set')
+            raise TypeError("only one of parameterized or type can be set")
         if parameterized is None:
             self.parameterized = type(name=type.__name__)
         else:
@@ -566,24 +629,31 @@ class ParameterizedPrintAction(with_metaclass(abc.ABCMeta, argparse.Action)):
         self.include_help = include_help
         self.out_stream = out_stream
         super(ParameterizedPrintAction, self).__init__(
-            option_strings, dest, help=help, nargs=0)
+            option_strings, dest, help=help, nargs=0
+        )
 
     @abc.abstractmethod
-    def print_parameters(self):
-        '''Print the parameters
+    def print_parameters(self) -> None:
+        """Print the parameters
 
         Called during the callable section of this class. Should print to the
         attribute `out_stream`
-        '''
+        """
         raise NotImplementedError()
 
-    def __call__(self, parser, namespace, values, option_string=None):
+    def __call__(
+        self,
+        parser: argparse.ArgumentParser,
+        namespace: argparse.Namespace,
+        values,
+        option_string: Optional[str] = None,
+    ) -> None:
         self.print_parameters()
         parser.exit()
 
 
 class ParameterizedIniPrintAction(ParameterizedPrintAction):
-    '''Print parameters as INI and exit
+    """Print parameters as INI and exit
 
     Parameters
     ----------
@@ -620,38 +690,56 @@ class ParameterizedIniPrintAction(ParameterizedPrintAction):
     pydrobert.param.serialization.serialize_to_ini
         A description of the serialization process and of the additional
         parameters
-    '''
+    """
 
     def __init__(
-            self, option_strings, dest,
-            parameterized=None, type=None, serializer_name_dict=None,
-            serializer_type_dict=None, only=None, on_missing='raise',
-            include_help=True, help=None, out_stream=sys.stdout,
-            help_prefix='#', one_param_section=None):
+        self,
+        option_strings: List[str],
+        dest: str,
+        parameterized: Optional[Union[param.Parameterized, dict]] = None,
+        type: Optional[type] = None,
+        serializer_name_dict: Optional[dict] = None,
+        serializer_type_dict: Optional[dict] = None,
+        only: Optional[Collection[str]] = None,
+        on_missing: str = "raise",
+        include_help: bool = True,
+        help: Optional[str] = None,
+        out_stream: TextIO = sys.stdout,
+        help_prefix: str = "#",
+        one_param_section: Optional[str] = None,
+    ):
         self.help_prefix = help_prefix
         self.one_param_section = one_param_section
         super(ParameterizedIniPrintAction, self).__init__(
-            option_strings, dest,
-            parameterized=parameterized, type=type,
+            option_strings,
+            dest,
+            parameterized=parameterized,
+            type=type,
             serializer_name_dict=serializer_name_dict,
-            serializer_type_dict=serializer_type_dict, only=only,
-            on_missing=on_missing, include_help=include_help, help=help,
+            serializer_type_dict=serializer_type_dict,
+            only=only,
+            on_missing=on_missing,
+            include_help=include_help,
+            help=help,
             out_stream=out_stream,
         )
 
     def print_parameters(self):
         serialization.serialize_to_ini(
-            self.out_stream, self.parameterized, only=self.only,
+            self.out_stream,
+            self.parameterized,
+            only=self.only,
             serializer_name_dict=self.serializer_name_dict,
             serializer_type_dict=self.serializer_type_dict,
-            on_missing=self.on_missing, include_help=self.include_help,
+            on_missing=self.on_missing,
+            include_help=self.include_help,
             help_prefix=self.help_prefix,
             one_param_section=self.one_param_section,
         )
 
 
 class ParameterizedJsonPrintAction(ParameterizedPrintAction):
-    '''Print parameters as JSON and exit
+    """Print parameters as JSON and exit
 
     Parameters
     ----------
@@ -685,34 +773,51 @@ class ParameterizedJsonPrintAction(ParameterizedPrintAction):
     pydrobert.param.serialization.serialize_to_json
         A description of the serialization process and of the additional
         parameters
-    '''
+    """
 
     def __init__(
-            self, option_strings, dest,
-            parameterized=None, type=None, serializer_name_dict=None,
-            serializer_type_dict=None, only=None, on_missing='raise',
-            help=None, out_stream=sys.stdout, indent=2):
+        self,
+        option_strings: List[str],
+        dest: str,
+        parameterized: Optional[Union[param.Parameterized, dict]] = None,
+        type: Optional[type] = None,
+        serializer_name_dict: Optional[dict] = None,
+        serializer_type_dict: Optional[dict] = None,
+        only: Optional[Collection[str]] = None,
+        on_missing: str = "raise",
+        help: Optional[str] = None,
+        out_stream: TextIO = sys.stdout,
+        indent: int = 2,
+    ):
         self.indent = indent
         super(ParameterizedJsonPrintAction, self).__init__(
-            option_strings, dest,
-            parameterized=parameterized, type=type,
+            option_strings,
+            dest,
+            parameterized=parameterized,
+            type=type,
             serializer_name_dict=serializer_name_dict,
-            serializer_type_dict=serializer_type_dict, only=only,
-            on_missing=on_missing, include_help=False, help=help,
+            serializer_type_dict=serializer_type_dict,
+            only=only,
+            on_missing=on_missing,
+            include_help=False,
+            help=help,
             out_stream=out_stream,
         )
 
-    def print_parameters(self):
+    def print_parameters(self) -> None:
         serialization.serialize_to_json(
-            self.out_stream, self.parameterized, only=self.only,
+            self.out_stream,
+            self.parameterized,
+            only=self.only,
             serializer_name_dict=self.serializer_name_dict,
             serializer_type_dict=self.serializer_type_dict,
-            on_missing=self.on_missing, indent=self.indent,
+            on_missing=self.on_missing,
+            indent=self.indent,
         )
 
 
 class ParameterizedYamlPrintAction(ParameterizedPrintAction):
-    '''Print parameters as YAML and exit
+    """Print parameters as YAML and exit
 
     Parameters
     ----------
@@ -737,24 +842,33 @@ class ParameterizedYamlPrintAction(ParameterizedPrintAction):
     on_missing : {'ignore', 'warn', 'raise'}
     include_help : boolean
     out_stream : file_ptr
-    '''
+    """
 
-    def print_parameters(self):
+    def print_parameters(self) -> None:
         serialization.serialize_to_yaml(
-            self.out_stream, self.parameterized, only=self.only,
+            self.out_stream,
+            self.parameterized,
+            only=self.only,
             serializer_name_dict=self.serializer_name_dict,
             serializer_type_dict=self.serializer_type_dict,
-            on_missing=self.on_missing, include_help=self.include_help,
+            on_missing=self.on_missing,
+            include_help=self.include_help,
         )
 
 
 def add_parameterized_print_group(
-        parser, type=None, parameterized=None, include_yaml=None,
-        ini_option_strings=('--print-ini',),
-        json_option_strings=('--print-json',),
-        yaml_option_strings=('--print-yaml',),
-        ini_kwargs=dict(), json_kwargs=dict(), yaml_kwargs=dict()):
-    '''Add flags to print parameters as INI, JSON, or YAML
+    parser: argparse.ArgumentParser,
+    type: Optional[type] = None,
+    parameterized: Optional[Union[param.Parameterized, dict]] = None,
+    include_yaml: Optional[bool] = None,
+    ini_option_strings: Sequence[str] = ("--print-ini",),
+    json_option_strings: Sequence[str] = ("--print-json",),
+    yaml_option_strings: Sequence[str] = ("--print-yaml",),
+    ini_kwargs: dict = dict(),
+    json_kwargs: dict = dict(),
+    yaml_kwargs: dict = dict(),
+):
+    """Add flags to print parameters as INI, JSON, or YAML
 
     This convenience function adds a group of print actions to `parser` to
     print parameters and exit in one of INI, JSON, or YAML format.
@@ -850,18 +964,22 @@ def add_parameterized_print_group(
     The returned `group` is technically mutally exclusive. However, since the
     print action ends with a :func:`sys.exit` call, mutual exclusivity will
     never be enforced
-    '''
+    """
     if parameterized is None and type is None:
-        raise TypeError('one of parameterized or type must be set')
+        raise TypeError("one of parameterized or type must be set")
     if parameterized is not None and type is not None:
-        raise TypeError('only one of parameterized or type can be set')
+        raise TypeError("only one of parameterized or type can be set")
     for name, dict_ in (
-            ('ini', ini_kwargs), ('json', json_kwargs), ('yaml', yaml_kwargs)):
-        keys = set(dict_) & {'type', 'parameterized'}
+        ("ini", ini_kwargs),
+        ("json", json_kwargs),
+        ("yaml", yaml_kwargs),
+    ):
+        keys = set(dict_) & {"type", "parameterized"}
         if keys:
             raise TypeError(
-                '{}_kwargs contains unexpected keyword arguments: {}'
-                ''.format(name, ', '.join(sorted(keys))))
+                "{}_kwargs contains unexpected keyword arguments: {}"
+                "".format(name, ", ".join(sorted(keys)))
+            )
     if type is not None:
         parameterized = type(name=type.__name__)
     group = parser.add_mutually_exclusive_group()
@@ -880,7 +998,7 @@ def add_parameterized_print_group(
             **json_kwargs
         )
     if include_yaml is None and len(yaml_option_strings):
-        include_yaml = _yaml_ok()
+        include_yaml = _yaml()
     if include_yaml and len(yaml_option_strings):
         group.add_argument(
             *yaml_option_strings,

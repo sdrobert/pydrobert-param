@@ -19,17 +19,16 @@ source:
 
 requirements:
   build:
-    - python
     - setuptools
     - setuptools_scm
   run:
-    - python
+    - python >=3.6
     - param >=1.9.0
-    - future
     - configparser
 
 build:
   noarch: python
+  skip: True  # [py2k]
   number: {{ build_num }}
   entry_points:
     - combine-ini-files = pydrobert.param.command_line:combine_ini_files
