@@ -1,4 +1,4 @@
-# Copyright 2019 Sean Robertson
+# Copyright 2021 Sean Robertson
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,13 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-'''Command line utilities'''
+"""Command line utilities"""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
-import sys
 import argparse
 import json
 import warnings
@@ -30,34 +26,24 @@ from configparser import ConfigParser
 from pydrobert.param.serialization import _serialize_to_yaml
 from pydrobert.param.serialization import _deserialize_from_yaml
 
-__author__ = "Sean Robertson"
-__email__ = "sdrobert@cs.toronto.edu"
-__license__ = "Apache 2.0"
-__copyright__ = "Copyright 2019 Sean Robertson"
 __all__ = [
-    'combine_ini_files',
-    'combine_json_files',
-    'combine_yaml_files',
+    "combine_ini_files",
+    "combine_json_files",
+    "combine_yaml_files",
 ]
 
 
 def _combine_ini_files_parse_args(args):
-    parser = argparse.ArgumentParser(
-        description=combine_ini_files.__doc__
-    )
+    parser = argparse.ArgumentParser(description=combine_ini_files.__doc__)
     parser.add_argument(
-        'sources', nargs='+', type=argparse.FileType('r'),
-        help='Paths to read from'
+        "sources", nargs="+", type=argparse.FileType("r"), help="Paths to read from"
     )
-    parser.add_argument(
-        'dest', type=argparse.FileType('w'),
-        help='Path to write to'
-    )
+    parser.add_argument("dest", type=argparse.FileType("w"), help="Path to write to")
     return parser.parse_args(args)
 
 
 def combine_ini_files(args=None):
-    '''Combine INI files
+    """Combine INI files
 
     This command provides a content-agnostic way of combining
     `INI files <https://en.wikipedia.org/wiki/INI_file>`__.
@@ -66,14 +52,14 @@ def combine_ini_files(args=None):
     are clobbered by later values.
 
     Comments (anything after a '#' or ';') are ignored
-    '''
+    """
     try:
         options = _combine_ini_files_parse_args(args)
     except SystemExit as ex:
         return ex.code
     parser = ConfigParser(
-        comment_prefixes=('#', ';'),
-        inline_comment_prefixes=('#', ';'),
+        comment_prefixes=("#", ";"),
+        inline_comment_prefixes=("#", ";"),
         allow_no_value=True,
     )
     for fp in options.sources:
@@ -89,14 +75,15 @@ def _combine_clobber_dict(dicts, warn):
     dict_ = OrderedDict()
     for dict_2 in dicts:
         if warn:
-            for key, value in dict_2.items():
+            for key, value in list(dict_2.items()):
                 if (
-                        key in dict_ and
-                        not isinstance(value, type(dict_[key])) and
-                        not isinstance(dict_[key], type(value))):
+                    key in dict_
+                    and not isinstance(value, type(dict_[key]))
+                    and not isinstance(dict_[key], type(value))
+                ):
                     warnings.warn(
-                        'clobbered value at key={} not the same type'
-                        ''.format(key))
+                        "clobbered value at key={} not the same type" "".format(key)
+                    )
                 dict_[key] = value
         else:
             dict_.update(dict_2)
@@ -106,18 +93,21 @@ def _combine_clobber_dict(dicts, warn):
 def _combine_nested_dicts(dicts, warn, multiindex=tuple()):
     dict_ = type(dicts[0])()
     for dict_2 in dicts:
-        for key, value in dict_2.items():
+        for key, value in list(dict_2.items()):
             if key in dict_:
                 orig = dict_[key]
                 if isinstance(value, dict) and isinstance(orig, dict):
                     value = _combine_nested_dicts(
-                        [orig, value], warn, multiindex + (key,))
+                        [orig, value], warn, multiindex + (key,)
+                    )
                 elif warn and (
-                        not isinstance(value, type(orig)) or
-                        not isinstance(orig, type(value))):
+                    not isinstance(value, type(orig))
+                    or not isinstance(orig, type(value))
+                ):
                     warnings.warn(
-                        'clobbered value at multiindex={} not the same type'
-                        ''.format(multiindex))
+                        "clobbered value at multiindex={} not the same type"
+                        "".format(multiindex)
+                    )
             dict_[key] = value
     return dict_
 
@@ -128,8 +118,9 @@ def _combine_container_vals(vals, warn, nested):
     elif all(isinstance(x, list) for x in vals):
         if warn:
             warnings.warn(
-                'Source files are all lists. Source files will merely '
-                'be appended together')
+                "Source files are all lists. Source files will merely "
+                "be appended together"
+            )
         ret = list(chain(*vals))
     elif all(isinstance(x, dict) for x in vals):
         if nested:
@@ -138,41 +129,40 @@ def _combine_container_vals(vals, warn, nested):
             ret = _combine_clobber_dict(vals, warn)
     else:
         raise ValueError(
-            'More than one source and sources encode neither a '
-            'dict or list, or some encode dicts and some encode lists. Unable '
-            'to merge')
+            "More than one source and sources encode neither a "
+            "dict or list, or some encode dicts and some encode lists. Unable "
+            "to merge"
+        )
     return ret
 
 
 def _combine_json_files_parse_args(args):
-    parser = argparse.ArgumentParser(
-        description=combine_json_files.__doc__
+    parser = argparse.ArgumentParser(description=combine_json_files.__doc__)
+    parser.add_argument(
+        "sources", nargs="+", type=argparse.FileType("r"), help="Paths to read from"
+    )
+    parser.add_argument("dest", type=argparse.FileType("w"), help="Path to write to")
+    parser.add_argument("--quiet", action="store_true", default=False)
+    parser.add_argument(
+        "--compact",
+        action="store_true",
+        default=False,
+        help="By default, JSON dicts will have newlines and 2-space "
+        "indentation. If set, will encode structures in the most compact way "
+        "possible",
     )
     parser.add_argument(
-        'sources', nargs='+', type=argparse.FileType('r'),
-        help='Paths to read from'
-    )
-    parser.add_argument(
-        'dest', type=argparse.FileType('w'),
-        help='Path to write to'
-    )
-    parser.add_argument('--quiet', action='store_true', default=False)
-    parser.add_argument(
-        '--compact', action='store_true', default=False,
-        help='By default, JSON dicts will have newlines and 2-space '
-        'indentation. If set, will encode structures in the most compact way '
-        'possible'
-    )
-    parser.add_argument(
-        '--nested', action='store_true', default=False,
-        help='Resolve dict collisions by descending into children. See '
-        'command documentation for more info'
+        "--nested",
+        action="store_true",
+        default=False,
+        help="Resolve dict collisions by descending into children. See "
+        "command documentation for more info",
     )
     return parser.parse_args(args)
 
 
 def combine_json_files(args=None):
-    '''Combine JSON files
+    """Combine JSON files
 
     This command provides a content-agnostic way of combining
     `JSON files <https://en.wikipedia.org/wiki/JSON>`__.
@@ -202,7 +192,7 @@ def combine_json_files(args=None):
 
     Mixing root data types of sources or specifying more than one source for a
     root type that is not a dict or list will result in an error.
-    '''
+    """
     try:
         options = _combine_json_files_parse_args(args)
     except SystemExit as ex:
@@ -214,33 +204,29 @@ def combine_json_files(args=None):
     if options.compact:
         json.dump(v, options.dest)
     else:
-        json.dump(v, options.dest, indent=2, separators=(',', ': '))
+        json.dump(v, options.dest, indent=2, separators=(",", ": "))
     return 0
 
 
 def _combine_yaml_files_parse_args(args):
-    parser = argparse.ArgumentParser(
-        description=combine_yaml_files.__doc__,
-    )
+    parser = argparse.ArgumentParser(description=combine_yaml_files.__doc__,)
     parser.add_argument(
-        'sources', nargs='+', type=argparse.FileType('r'),
-        help='Paths to read from'
+        "sources", nargs="+", type=argparse.FileType("r"), help="Paths to read from"
     )
+    parser.add_argument("dest", type=argparse.FileType("w"), help="Path to write to")
+    parser.add_argument("--quiet", action="store_true", default=False)
     parser.add_argument(
-        'dest', type=argparse.FileType('w'),
-        help='Path to write to'
-    )
-    parser.add_argument('--quiet', action='store_true', default=False)
-    parser.add_argument(
-        '--nested', action='store_true', default=False,
-        help='Resolve dict collisions by descending into children. See '
-        'command documentation for more info'
+        "--nested",
+        action="store_true",
+        default=False,
+        help="Resolve dict collisions by descending into children. See "
+        "command documentation for more info",
     )
     return parser.parse_args(args)
 
 
 def combine_yaml_files(args=None):
-    '''Combine YAML files
+    """Combine YAML files
 
     This command provides a content-agnostic way of combining
     `YAML files <https://en.wikipedia.org/wiki/YAML>`__.
@@ -258,7 +244,7 @@ def combine_yaml_files(args=None):
     ``combine-json-files`` for an example
 
     Whether comments are ignored depends on the parsing backend.
-    '''
+    """
     try:
         options = _combine_yaml_files_parse_args(args)
     except SystemExit as ex:

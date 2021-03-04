@@ -19,14 +19,16 @@ source:
 
 requirements:
   build:
-    - python
     - setuptools
     - setuptools_scm
   run:
-    - python
+    - python >=3.6
     - param >=1.9.0
-    - future
-    - configparser
+  # new namespace package style does not play nicely with old style
+  run_constrained:
+    - pydrobert-kaldi >0.5.3
+    - pydrobert-pytorch >0.2.1
+    - pydrobert-speech >0.1.0
 
 build:
   noarch: python
@@ -55,6 +57,7 @@ test:
   imports:
     - pydrobert
     - pydrobert.param
+    - pydrobert.param.version
     - pydrobert.param.abc
     - pydrobert.param.argparse
     - pydrobert.param.command_line

@@ -17,16 +17,16 @@ import param
 param.parameterized.docstring_signature = False
 param.parameterized.docstring_describe_params = False
 
-sys.path.insert(0, os.path.abspath('../..'))
+sys.path.insert(0, os.path.abspath("../../src"))
 
 
 # -- Project information -----------------------------------------------------
 
-project = 'pydrobert-param'
-copyright = '2019, Sean Robertson'
-author = 'Sean Robertson'
+project = "pydrobert-param"
+copyright = "2021, Sean Robertson"
+author = "Sean Robertson"
 
-language = 'en'
+language = "en"
 
 # -- General configuration ---------------------------------------------------
 
@@ -34,17 +34,17 @@ language = 'en'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.autodoc',
-    'sphinx.ext.autosectionlabel',
-    'sphinx.ext.intersphinx',
-    'sphinx.ext.napoleon',
-    'sphinx.ext.viewcode',
+    "sphinx.ext.autodoc",
+    "sphinx.ext.autosectionlabel",
+    "sphinx.ext.intersphinx",
+    "sphinx.ext.napoleon",
+    "sphinx.ext.viewcode",
 ]
 
 naploeon_numpy_docstring = True
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates']
+templates_path = ["_templates"]
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -52,57 +52,59 @@ templates_path = ['_templates']
 exclude_patterns = []
 
 intersphinx_mapping = {
-    'python': ('https://docs.python.org/', None),
-    'numpy': ('https://docs.scipy.org/doc/numpy/', None),
-    'ruamel.yaml': ('https://yaml.readthedocs.io/en/latest/', None),
-    'pandas': ('https://pandas.pydata.org/pandas-docs/stable/', None),
-    'optuna': ('https://optuna.readthedocs.io/en/latest/', None),
+    "python": ("https://docs.python.org/", None),
+    "numpy": ("https://docs.scipy.org/doc/numpy/", None),
+    "ruamel.yaml": ("https://yaml.readthedocs.io/en/latest/", None),
+    "pandas": ("https://pandas.pydata.org/pandas-docs/stable/", None),
+    "optuna": ("https://optuna.readthedocs.io/en/latest/", None),
 }
 
 
 # -- Options for HTML output -------------------------------------------------
 
-on_rtd = os.environ.get('READTHEDOCS') == 'True'
+on_rtd = os.environ.get("READTHEDOCS") == "True"
 if on_rtd:
-    html_theme = 'default'
+    html_theme = "default"
 else:
-    html_theme = 'nature'
+    html_theme = "sphinx_rtd_theme"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+html_static_path = ["_static"]
 
-highlight_language = 'python'
+highlight_language = "python"
 
-master_doc = 'index'
+master_doc = "index"
 
 
 def my_handler(app, what, name, obj, options, lines):
-    if 'Params' in name.split('.')[-1]:
+    if "Params" in name.split(".")[-1]:
         pdict = obj.param.objects(instance=False)
-        del pdict['name']
+        del pdict["name"]
         new_lines = []
         for name, p in pdict.items():
             doc = p.doc
             deft = p.default
-            bounds = p.bounds if hasattr(p, 'bounds') else None
-            new_lines.append('- **{}**: {}. *default={}{}*'.format(
-                name, doc, deft,
-                ', bounds={}'.format(bounds) if bounds else ''))
-            new_lines.append('')
-            new_lines.append('')
+            bounds = p.bounds if hasattr(p, "bounds") else None
+            new_lines.append(
+                "- **{}**: {}. *default={}{}*".format(
+                    name, doc, deft, ", bounds={}".format(bounds) if bounds else ""
+                )
+            )
+            new_lines.append("")
+            new_lines.append("")
         if new_lines:
-            new_lines.insert(0, '')
-            new_lines.insert(0, '')
-            new_lines.insert(1, '**Parameters**')
-            new_lines.insert(2, '')
-            new_lines.insert(2, '')
+            new_lines.insert(0, "")
+            new_lines.insert(0, "")
+            new_lines.insert(1, "**Parameters**")
+            new_lines.insert(2, "")
+            new_lines.insert(2, "")
             lines += new_lines
-        options['undoc-members'] = False
-    elif 'Parameterized' in name.split('.')[-1]:
-        options['undoc-members'] = False
+        options["undoc-members"] = False
+    elif "Parameterized" in name.split(".")[-1]:
+        options["undoc-members"] = False
 
 
 def setup(app):
-    app.connect('autodoc-process-docstring', my_handler)
+    app.connect("autodoc-process-docstring", my_handler)

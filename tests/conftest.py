@@ -13,7 +13,7 @@ param.parameterized.warnings_as_exceptions = True
 def yaml_loader(request):
     if request.param == "ruamel_yaml":
         try:
-            from ruamel_yaml import YAML
+            from ruamel_yaml import YAML  # type: ignore
 
             yaml_loader = YAML().load
         except ImportError:
@@ -22,7 +22,7 @@ def yaml_loader(request):
             yaml_loader = YAML().load
         module_names = ("ruamel_yaml", "ruamel.yaml")
     else:
-        import yaml
+        import yaml  # type: ignore
 
         def yaml_loader(x):
             return yaml.load(x, Loader=yaml.FullLoader)
