@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Utilities for optimizing param.Parameterized via Optuna
+"""Utilities for optimizing param parameters via Optuna
 
 See Also
 --------
@@ -42,7 +42,7 @@ __all__ = [
 
 
 class TunableParameterized(AbstractParameterized):
-    """An interface for Optuna to tune param.Parameterized instances
+    """An interface for Optuna to tune Parameterized instances
 
     The :class:`TunableParameterized` interface requires two class methods:
 
@@ -51,9 +51,9 @@ class TunableParameterized(AbstractParameterized):
 
     Any object with both is a :class:`TunableParameterized`. Just like in
     :mod:`collections.abc`, the class need not directly subclass
-    :class:`TunableParameterized` for :func:`isinstance` and :func:`issubclass`
-    to return :obj:`True`. Subclassing :class:`TunableParameterized` directly
-    will ensure the function also inherits from :class:`param.Parameterized`
+    :class:`TunableParameterized` for :func:`isinstance` and :func:`issubclass` to
+    return :obj:`True`. Subclassing :class:`TunableParameterized` directly will ensure
+    the function also inherits from :class:`param.parameterized.Parameterized`
     """
 
     __abstract = True  # this is how param handles abstract classes for now
@@ -164,11 +164,11 @@ def get_param_dict_tunable(param_dict: dict, on_decimal: str = "warn") -> Ordere
 def parameterized_class_from_tunable(
     tunable: Collection, base: type = param.Parameterized, default: list = []
 ) -> type:
-    """Construct a param.Parameterized class to store parameters to optimize
+    """Construct a Parameterized class to store parameters to optimize
 
-    This function creates a subclass of :class:`param.Parameterized` that has
-    only one parameter: `only`. `only` is a :class:`param.ListSelector` that
-    allows values from `tunable`
+    This function creates a subclass of :class:`param.parameterized.Parameterized` that
+    has only one parameter: `only`. `only` is a :class:`param.ListSelector` that allows
+    values from `tunable`
 
     Parameters
     ----------

@@ -1,28 +1,29 @@
-pydrobert.param package
-=======================
+pydrobert.param
+===============
 
-Submodules
-----------
+.. automodule:: pydrobert.param
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
-pydrobert.param.abc module
---------------------------
+pydrobert.param.abc
+-------------------
 
 .. automodule:: pydrobert.param.abc
    :members:
    :undoc-members:
    :show-inheritance:
 
-
-pydrobert.param.argparse module
--------------------------------
+pydrobert.param.argparse
+------------------------
 
 .. automodule:: pydrobert.param.argparse
    :members:
    :undoc-members:
    :show-inheritance:
 
-pydrobert.param.command_line module
------------------------------------
+pydrobert.param.command_line
+----------------------------
 
 .. automodule:: pydrobert.param.command_line
    :members:
@@ -30,8 +31,8 @@ pydrobert.param.command_line module
    :show-inheritance:
 
 
-pydrobert.param.optuna module
------------------------------
+pydrobert.param.optuna
+----------------------
 
 .. automodule:: pydrobert.param.optuna
    :members:
@@ -39,18 +40,10 @@ pydrobert.param.optuna module
    :show-inheritance:
 
 
-pydrobert.param.serialization module
-------------------------------------
+pydrobert.param.serialization
+-----------------------------
 
 .. automodule:: pydrobert.param.serialization
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Module contents
----------------
-
-.. automodule:: pydrobert.param
    :members:
    :undoc-members:
    :show-inheritance:

@@ -1,11 +1,12 @@
 version: build.{build}.branch.{branch}
+image: Visual Studio 2019
 
 environment:
   matrix:
     - TOXENV: py36
     - TOXENV: py37
     - TOXENV: py38
-    # - TOXENV: py39  # not there yet
+    - TOXENV: py39
 
 build: off
 
@@ -14,3 +15,7 @@ install:
 
 test_script:
   - py -3.6 -m tox
+
+branches:
+  except:
+    - /doc/

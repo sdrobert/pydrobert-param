@@ -1,6 +1,6 @@
 """Abstract base class for param.ParameterizedMetaclass
 
-:class:`param.Parameterized` instances use their own metaclass. Here, we've
+:class:`param.parameterized.Parameterized` instances use their own metaclass. Here, we've
 almost exactly copied the code from the `Python repository
 <https://raw.githubusercontent.com/python/cpython/346964ba0586e402610ea886e70bee1294874781/Lib/_py_abc.py>`__,
 with some changes made for `python 2.7
@@ -41,7 +41,7 @@ def get_cache_token():
 
 
 class AbstractParameterizedMetaclass(param.parameterized.ParameterizedMetaclass):
-    """Metaclass for defining Abstract Base Classes for param.Parameterized"""
+    """Metaclass for defining Abstract Base Classes for Parameterized instances"""
 
     # A global counter that is incremented each time a class is
     # registered as a virtual subclass of anything.  It forces the
@@ -190,11 +190,11 @@ class AbstractParameterizedMetaclass(param.parameterized.ParameterizedMetaclass)
 class AbstractParameterized(
     param.Parameterized, metaclass=AbstractParameterizedMetaclass
 ):
-    """A param.Parameterized with metaclass AbstractParameterizedMetaclass
+    """A Parameterized with metaclass AbstractParameterizedMetaclass
 
     Functions similarly to :class:`abc.ABCMeta` in that subclassing an
     :class:`AbstractParameterized` gives the subclass a
-    :class:`AbstractParameterizedMetaclass` metaclass. Instead of a base class
-    of :class:`object`, however, an :class:`AbstractParameterized` has
-    :class:`param.Parameterized` as a base class
+    :class:`AbstractParameterizedMetaclass` metaclass. Instead of a base class of
+    :class:`object`, however, an :class:`AbstractParameterized` has
+    :class:`param.parameterized.Parameterized` as a base class
     """

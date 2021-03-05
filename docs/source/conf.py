@@ -57,6 +57,7 @@ intersphinx_mapping = {
     "ruamel.yaml": ("https://yaml.readthedocs.io/en/latest/", None),
     "pandas": ("https://pandas.pydata.org/pandas-docs/stable/", None),
     "optuna": ("https://optuna.readthedocs.io/en/latest/", None),
+    "param": ("https://param.holoviz.org/", None),
 }
 
 
