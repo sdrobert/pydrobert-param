@@ -38,34 +38,34 @@ __all__ = [
 
 
 class ParameterizedFileReadAction(argparse.Action, metaclass=abc.ABCMeta):
-    """Base class for deserializing files into a param.Parameterized object
+    """Base class for deserializing files into a Parameterized object
 
     Subclasses of this class can be added as the 'action' keyword to an
-    :func:`argparse.ArgumentParser.add_argument` call. The action will read the
-    file path passed as an argument via command line and use the contents of
-    the file to populate :class:`param.Parameterized` instances. The subclass
+    :func:`argparse.ArgumentParser.add_argument` call. The action will read the file
+    path passed as an argument via command line and use the contents of the file to
+    populate :class:`param.parameterized.Parameterized` instances. The subclass
     deserializes the contents of the file according to the
-    :func:`pydrobert.param.serialization.deserialize_from_filetype` function,
-    where ``filetype`` is replaced with the subclass' file type.
+    :func:`pydrobert.param.serialization.deserialize_from_filetype` function, where
+    ``filetype`` is replaced with the subclass' file type.
 
     There are three ways to specify parameterized objects to populate. They
     are mutually exclusive:
 
-    1. Set the keyword `type` with the subclass of :class:`param.Parameterized`
-       you want to deserialize into. A new instance of that subclass will be
-       created with the name ``type.__name__``. The instance will be returned
-       in the parsed namespace's attribute whose name matches `dest` as well.
+    1. Set the keyword `type` with the subclass of
+       :class:`param.parameterized.Parameterized` you want to deserialize into. A new
+       instance of that subclass will be created with the name ``type.__name__``. The
+       instance will be returned in the parsed namespace's attribute whose name matches
+       `dest` as well.
 
     2. Set the keyword `parameterized` with an instance of
-       :class:`param.Parameterized`. That instance will be populated and also
-       returned in the parsed namespace's attribute whose name matches `dest`.
+       :class:`param.parameterized.Parameterized`. That instance will be populated and
+       also returned in the parsed namespace's attribute whose name matches `dest`.
 
     3. Set the keyword `parameterized` as a hierarchical dictionary of
-       :class:`param.Parameterized` instances. The leaves of the dictionary
-       will be populated according to the "hierarchical mode" specified in the
-       documentation of
-       :func:`pydrobert.param.serialization.deserialize_from_dict`. The same
-       dictionary will be returned in the parsed namespace's attribute whose
+       :class:`param.parameterized.Parameterized` instances. The leaves of the
+       dictionary will be populated according to the "hierarchical mode" specified in
+       the documentation of :func:`pydrobert.param.serialization.deserialize_from_dict`.
+       The same dictionary will be returned in the parsed namespace's attribute whose
        name matches `dest`.
 
     Parameters
@@ -75,7 +75,7 @@ class ParameterizedFileReadAction(argparse.Action, metaclass=abc.ABCMeta):
         this action.
     dest : str
         The name of the attribute to hold the created object.
-    parameterized : param.Parameterized or dict, optional
+    parameterized : param.parameterized.Parameterized or dict, optional
     type : type, optional
     deserializer_name_dict : dict, optional
         Use specific deserializers for parameters with specific names.
@@ -103,7 +103,7 @@ class ParameterizedFileReadAction(argparse.Action, metaclass=abc.ABCMeta):
 
     Attributes
     ----------
-    parameterized : param.Parameterized or dict
+    parameterized : param.parameterized.Parameterized or dict
         The object that populates the `dest` attribute of the parsed namespace
     deserializer_name_dict : dict or None
     deserializer_type_dict : dict or None
@@ -185,7 +185,7 @@ class ParameterizedIniReadAction(ParameterizedFileReadAction):
     ----------
     option_strings : list
     dest : str
-    parameterized : param.Parameterized or dict, optional
+    parameterized : param.parameterized.Parameterized or dict, optional
     type : type, optional
     deserializer_name_dict : dict, optional
     deserializer_type_dict : dict, optional
@@ -268,7 +268,7 @@ class ParameterizedYamlReadAction(ParameterizedFileReadAction):
     ----------
     option_strings : list
     dest : str
-    parameterized : param.Parameterized or dict, optional
+    parameterized : param.parameterized.Parameterized or dict, optional
     type : type, optional
     deserializer_name_dict : dict, optional
     deserializer_type_dict : dict, optional
@@ -305,7 +305,7 @@ class ParameterizedJsonReadAction(ParameterizedFileReadAction):
     ----------
     option_strings : list
     dest : str
-    parameterized : param.Parameterized or dict, optional
+    parameterized : param.parameterized.Parameterized or dict, optional
     type : type, optional
     deserializer_name_dict : dict, optional
     deserializer_type_dict : dict, optional
@@ -386,20 +386,23 @@ def add_parameterized_read_group(
 
     1. If `type` is specified, it will be instantiated and populated. Its name
        will match ``type.__name__``
-    2. If `parameterized` is specified and is a :class:`param.Parameterized`
-       instance, it will be populated directly.
+
+    2. If `parameterized` is specified and is a
+       :class:`param.parameterized.Parameterized` instance, it will be populated
+       directly.
+
     3. If `parameterized` is a dictionary whose leaves are
-       :class:`param.Parameterized`, sections of the config whose keys match
-       the keys of the dictionary will populate the corresponding
-       :class:`param.Parameterized` instances. `parameterized` can nest those
-       instances repeatedly, but only a shallow dict will be able to be
-       parsed from an INI file
+       :class:`param.parameterized.Parameterized`, sections of the config whose keys
+       match the keys of the dictionary will populate the corresponding
+       :class:`param.parameterized.Parameterized` instances. `parameterized` can nest
+       those instances repeatedly, but only a shallow dict will be able to be parsed
+       from an INI file
 
     Parameters
     ----------
     parser : argparse.ArgumentParser
     type : type, optional
-    parametrized : param.Parameterized or dict, optional
+    parametrized : param.parameterized.Parameterized or dict, optional
     include_yaml : bool, optional
         Whether to include the YAML config flags. YAML requires one of
         :mod:`ruamel.yaml` or :mod:`yaml` to be installed. If unset, we will
@@ -541,17 +544,17 @@ class ParameterizedPrintAction(argparse.Action, metaclass=abc.ABCMeta):
     There are three ways to specify what parameters to print, analogous to how
     they are specified in :class:`ParameterizedFileReadAction`:
 
-    1. Set the keyword `type` with a subclass of :class:`param.Parameterized`.
-       A new instance of that type will be created to be printed. Its name will
-       be ``type.__name__``
+    1. Set the keyword `type` with a subclass of
+       :class:`param.parameterized.Parameterized`. A new instance of that type will be
+       created to be printed. Its name will be ``type.__name__``
 
     2. Set the keyword `parameterized` with an instance of
-       :class:`param.Parameterized`. That instance will be printed.
+       :class:`param.parameterized.Parameterized`. That instance will be printed.
 
     3. Set the keyword `parameterized` as a hierarchical dictionary of
-       :class:`param.Parameterized` instances. The leaves of the dictionary
-       will be populated according to the "hierarchical mode" specified in the
-       documentation of :func:`pydrobert.param.serialization.serialize_to_dict`
+       :class:`param.parameterized.Parameterized` instances. The leaves of the
+       dictionary will be populated according to the "hierarchical mode" specified in
+       the documentation of :func:`pydrobert.param.serialization.serialize_to_dict`
 
     Note that if a :class:`ParameterizedFileReadAction` has been called on the
     command line prior to the print that shares the same `parameterized` value
@@ -564,7 +567,7 @@ class ParameterizedPrintAction(argparse.Action, metaclass=abc.ABCMeta):
         this action.
     dest : str
         Ignored
-    parameterized : param.Parameterized or dict, optional
+    parameterized : param.parameterized.Parameterized or dict, optional
     type : type, optional
     serializer_name_dict : dict, optional
         Use specific serializers for parameters with specific names
@@ -585,7 +588,7 @@ class ParameterizedPrintAction(argparse.Action, metaclass=abc.ABCMeta):
 
     Attributes
     ----------
-    parameterized : param.Parameterized or dict
+    parameterized : param.parameterized.Parameterized or dict
         The parameters to be printed
     serializer_name_dict : dict
     serializer_type_dict : dict
@@ -654,7 +657,7 @@ class ParameterizedIniPrintAction(ParameterizedPrintAction):
     ----------
     option_strings : list
     dest : str
-    parameterized : param.Parameterized or dict, optional
+    parameterized : param.parameterized.Parameterized or dict, optional
     type : type, optional
     serializer_name_dict : dict, optional
     serializer_type_dict : dict, optional
@@ -668,7 +671,7 @@ class ParameterizedIniPrintAction(ParameterizedPrintAction):
 
     Attributes
     ----------
-    parameterized : param.Parameterized or dict
+    parameterized : param.parameterized.Parameterized or dict
     serializer_name_dict : dict
     serializer_type_dict : dict
     only : set or dict
@@ -740,7 +743,7 @@ class ParameterizedJsonPrintAction(ParameterizedPrintAction):
     ----------
     option_strings : list
     dest : str
-    parameterized : param.Parameterized or dict, optional
+    parameterized : param.parameterized.Parameterized or dict, optional
     type : type, optional
     serializer_name_dict : dict, optional
     serializer_type_dict : dict, optional
@@ -751,7 +754,7 @@ class ParameterizedJsonPrintAction(ParameterizedPrintAction):
 
     Attributes
     ----------
-    parameterized : param.Parameterized or dict
+    parameterized : param.parameterized.Parameterized or dict
     serializer_name_dict : dict
     serializer_type_dict : dict
     only : set or dict
@@ -818,7 +821,7 @@ class ParameterizedYamlPrintAction(ParameterizedPrintAction):
     ----------
     option_strings : list
     dest : str
-    parameterized : param.Parameterized or dict, optional
+    parameterized : param.parameterized.Parameterized or dict, optional
     type : type, optional
     serializer_name_dict : dict, optional
     serializer_type_dict : dict, optional
@@ -830,7 +833,7 @@ class ParameterizedYamlPrintAction(ParameterizedPrintAction):
 
     Attributes
     ----------
-    parameterized : param.Parameterized or dict
+    parameterized : param.parameterized.Parameterized or dict
     serializer_name_dict : dict
     serializer_type_dict : dict
     only : set or dict
@@ -873,13 +876,15 @@ def add_parameterized_print_group(
     1. If `type` is specified, it will be instantiated and printed with
        whatever defaults it has. The instance will have the name
        ``type.__name__``
-    2. If `parameterized` is a :class:`param.Parameterized` instance, that
+
+    2. If `parameterized` is a :class:`param.parameterized.Parameterized` instance, that
        instance will be printed
-    3. If `parameterized` is a dictionary of :class:`param.Parameterized`
+
+    3. If `parameterized` is a dictionary of :class:`param.parameterized.Parameterized`
        instances, those instances will be serialized to dictionaries, then the
-       dictionary of dictionaries will be printed. `parameterized` can contain
-       nested dictionaries of :class:`param.Parameterized` instances, but it
-       will be unable to be printed as an INI file, only JSON or YAML
+       dictionary of dictionaries will be printed. `parameterized` can contain nested
+       dictionaries of :class:`param.parameterized.Parameterized` instances, but it will
+       be unable to be printed as an INI file, only JSON or YAML
 
     Parameters
     ----------

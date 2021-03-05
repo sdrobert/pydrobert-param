@@ -1,6 +1,11 @@
 pydrobert.param
 ===============
 
+.. automodule:: pydrobert.param
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 pydrobert.param.abc
 -------------------
 
@@ -8,7 +13,6 @@ pydrobert.param.abc
    :members:
    :undoc-members:
    :show-inheritance:
-
 
 pydrobert.param.argparse
 ------------------------
@@ -40,14 +44,6 @@ pydrobert.param.serialization
 -----------------------------
 
 .. automodule:: pydrobert.param.serialization
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Module contents
----------------
-
-.. automodule:: pydrobert.param
    :members:
    :undoc-members:
    :show-inheritance:

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Utilities for (de)serializing param.Parameterized objects"""
+"""Utilities for (de)serializing Parameterized objects"""
 
 
 import abc
@@ -129,18 +129,17 @@ class ParamConfigTypeError(TypeError):
 
 
 class ParamConfigSerializer(object, metaclass=abc.ABCMeta):
-    """Serialize a parameter value from a parameterized object
+    """Serialize a parameter value from a Parameterized object
 
     Subclasses of :class:`ParamConfigSerializer` are expected to implement
     :func:`serialize`. Instances of the subclass can be passed into
-    :func:`serialize_to_dict`. The goal of a serializer is to convert a
-    parameter value from a :class:`param.Parameterized` object into something
-    that can be handled by a dict-like data store. The format of the outgoing
-    data should reflect where the dict-like data are going. For example, a JSON
-    serializer can handle lists, but not an INI serializer. In
-    :mod:`pydrobert.param.serialization`, there are a number of default
-    serializers (matching the pattern ``Default*Serializer``) that are best
-    guesses on how to serialize data from a variety of sources
+    :func:`serialize_to_dict`. The goal of a serializer is to convert a parameter value
+    from a :class:`param.parameterized.Parameterized` object into something that can be
+    handled by a dict-like data store. The format of the outgoing data should reflect
+    where the dict-like data are going. For example, a JSON serializer can handle lists,
+    but not an INI serializer. In :mod:`pydrobert.param.serialization`, there are a
+    number of default serializers (matching the pattern ``Default*Serializer``) that are
+    best guesses on how to serialize data from a variety of sources
     """
 
     def help_string(
@@ -163,7 +162,7 @@ class ParamConfigSerializer(object, metaclass=abc.ABCMeta):
         name : str
             The name of the parameter in `parameterized` to retrieve the
             value from
-        parameterized : param.Parameterized
+        parameterized : param.parameterized.Parameterized
             The parameterized instance containing a parameter with the
             name `name`
 
@@ -566,8 +565,8 @@ def _to_json_string_serializer(cls, typename):
         See Also
         --------
         serialize_to_json
-            To serialize an entire :class:`param.Parameterized` instance as
-            json
+            To serialize an entire :class:`param.parameterized.Parameterized` instance
+            as json
         """.format(
             typename, cls.__name__
         )
@@ -750,25 +749,25 @@ def serialize_to_dict(
 
     Default serializers are likely appropriate for basic types like strings,
     ints, bools, floats, and numeric tuples. For more complex data types,
-    including recursive :class:`param.Parameterized` instances, custom
+    including recursive :class:`param.parameterized.Parameterized` instances, custom
     serializers are recommended.
 
     It is possible to pass a dictionary as `parameterized` instead of a
-    :class:`param.Parameterized` instance to this function. This is
+    :class:`param.parameterized.Parameterized` instance to this function. This is
     "hierarchical mode". The values of `parameterized` can be
-    :class:`param.Parameterized` objects or nested dictionaries. The returned
-    dictionary will have the same hierarchical dictionary structure as
-    `parameterized`, but with the :class:`param.Parameterized` values replaced
-    with serialized dictionaries. In this case, `only` and
-    `serializer_name_dict` are expected to be dictionaries with the same
-    hierarchical structure (though they can still be :obj:`None`, which
-    propagates to children), whose leaves correspond to the arguments used to
-    serialize the leaves of `parameterized`. `serializer_type_dict` can also be
-    hierarchical, can be flat, or be some combination.
+    :class:`param.parameterized.Parameterized` objects or nested dictionaries. The
+    returned dictionary will have the same hierarchical dictionary structure as
+    `parameterized`, but with the :class:`param.parameterized.Parameterized` values
+    replaced with serialized dictionaries. In this case, `only` and
+    `serializer_name_dict` are expected to be dictionaries with the same hierarchical
+    structure (though they can still be :obj:`None`, which propagates to children),
+    whose leaves correspond to the arguments used to serialize the leaves of
+    `parameterized`. `serializer_type_dict` can also be hierarchical, can be flat, or be
+    some combination.
 
     Parameters
     ----------
-    parameterized : param.Parameterized or dict
+    parameterized : param.parameterized.Parameterized or dict
     only : collection, optional
         If specified, only the parameters with their names in this set will
         be serialized into the return dictionary. If unset, all parameters
@@ -791,7 +790,7 @@ def serialize_to_dict(
         `include_help` was :obj:`True` (the latter is the help dictionary). If
         `parameterized` was an ordered dictionary, the returned serialized
         dictionary will have the same order. Parameters from a
-        :class:`param.Parameterized` instance are sorted alphabeticallly
+        :class:`param.parameterized.Parameterized` instance are sorted alphabeticallly
 
     Raises
     ------
@@ -862,15 +861,14 @@ def serialize_to_ini(
     the value :obj:`None`. This function converts `parameterized` to a
     dictionary, then fills an INI file with the contents of this dictionary.
 
-    INI files are broken up into sections; all key-value pairs must belong to a
-    section. If `parameterized` is a :class:`param.Parameterized` instance
-    (rather than a hierarchical dictionary of them), the action will try to
-    serialize `parameterized` into the section specified by the
-    `one_param_section` keyword argument. If `parameterized` is a hierarchical
-    dictionary, it can only have depth 1, with each leaf being a
-    :class:`param.Parameterized` instance. In this case, each key corresponds
-    to a section. If an ordered dictionary, sections will be written in the
-    same order as they exist in `parameterized`.
+    INI files are broken up into sections; all key-value pairs must belong to a section.
+    If `parameterized` is a :class:`param.parameterized.Parameterized` instance (rather
+    than a hierarchical dictionary of them), the action will try to serialize
+    `parameterized` into the section specified by the `one_param_section` keyword
+    argument. If `parameterized` is a hierarchical dictionary, it can only have depth 1,
+    with each leaf being a :class:`param.parameterized.Parameterized` instance. In this
+    case, each key corresponds to a section. If an ordered dictionary, sections will be
+    written in the same order as they exist in `parameterized`.
 
     Because the INI syntax does not support standard containers like dicts or
     lists out-of-the-box, this function uses the ``JsonString*Serializer`` to
@@ -885,7 +883,7 @@ def serialize_to_ini(
     ----------
     file : file pointer or str
         The INI file to serialize to. Can be a pointer or a path
-    parameterized : param.Parameterized or dict
+    parameterized : param.parameterized.Parameterized or dict
     only : collection, optional
     serializer_name_dict : dict, optional
     serializer_type_dict : dict, optional
@@ -897,7 +895,7 @@ def serialize_to_ini(
         The character prefix used at the start of each help line, usually
         indicating a comment
     one_param_section : str or None, optional
-        If `parameterized` refers to a single :class:`param.Parameterized`
+        If `parameterized` refers to a single :class:`param.parameterized.Parameterized`
         instance, this keyword is used to indicate which section of the INI
         file `parameterized` will be serialized to. If :obj:`None`, the
         ``name`` attribute of the `parameterized` instance will be the used
@@ -1132,7 +1130,7 @@ def serialize_to_yaml(
     ----------
     file : file pointer or str
         The YAML file to serialize to. Can be a pointer or a path
-    parameterized : param.Parameterized or dict
+    parameterized : param.parameterized.Parameterized or dict
     only : collection, optional
     serializer_name_dict : dict, optional
     serializer_type_dict : dict, optional
@@ -1219,7 +1217,7 @@ def serialize_to_json(
     ----------
     file : file pointer or str
         The YAML file to serialize to. Can be a pointer or a path
-    parameterized : param.Parameterized or dict
+    parameterized : param.parameterized.Parameterized or dict
     only : collection, optional
     serializer_name_dict : dict, optional
     serializer_type_dict : dict, optional
@@ -1267,7 +1265,7 @@ class ParamConfigDeserializer(object, metaclass=abc.ABCMeta):
     Subclasses of :class:`ParamConfigDeserializer` are expected to implement
     `deserialize`. Instances of the subclass can be passed into
     :func:`deserialize_from_dict`. The goal of a deserializer is to convert
-    data into the value of a parameter in a :class:`param.Parameterized`
+    data into the value of a parameter in a :class:`param.parameterized.Parameterized`
     object. The format of the incoming data is specific to where the dict-like
     input came from. For example, a JSON parser converts numeric strings to
     floats, and the contents of square braces (``[]``) as lists. In
@@ -1289,7 +1287,7 @@ class ParamConfigDeserializer(object, metaclass=abc.ABCMeta):
             value under
         block : object
             The data to deserialize into the parameter value
-        parameterized : param.Parameterized
+        parameterized : param.parameterized.Parameterized
             The parameterized instance containing a parameter with the
             name `name`. On completion of this method, that parameter will
             be set with the deserialized contents of `block`
@@ -1922,7 +1920,7 @@ class JsonStringArrayDeserializer(DefaultArrayDeserializer):
     See Also
     --------
     deserialize_to_json
-        To deserialize JSON into :class:`param.Parameterized` instances
+        To deserialize JSON into :class:`param.parameterized.Parameterized` instances
     """
 
     file_suffixes = {"csv"}
@@ -1957,7 +1955,7 @@ class JsonStringDataFrameDeserializer(DefaultDataFrameDeserializer):
     See Also
     --------
     deserialize_to_json
-        To deserialize JSON into :class:`param.Parameterized` instances
+        To deserialize JSON into :class:`param.parameterized.Parameterized` instances
     """
 
     file_suffixes = {
@@ -2005,7 +2003,8 @@ def _to_json_string_deserializer(cls, typename):
         See Also
         --------
         deserialize_to_json
-            To deserialize json into :class:`param.Parameterized` instances
+            To deserialize json into :class:`param.parameterized.Parameterized`
+            instances
         """.format(
             typename, cls.__name__
         )
@@ -2158,7 +2157,7 @@ def deserialize_from_dict(
     This function is suitable for deserializing the results of parsing a data
     storage file such as a YAML, JSON, or a section of an INI file (using the
     :mod:`yaml`, :mod:`json`, and :mod:`configparser` python modules, resp.)
-    into a :class:`param.Parameterized` object. Each key in `dict_` should
+    into a :class:`param.parameterized.Parameterized` object. Each key in `dict_` should
     match the name of a parameter in `parameterized`. The parameter will be
     deserialized into `parameterized` using a :class:`ParamConfigDeserializer`
     object matched with the following precedent:
@@ -2174,26 +2173,26 @@ def deserialize_from_dict(
      4. :obj:`DEFAULT_BACKUP_DESERIALIZER` will be used.
 
     It is possible to pass a dictionary as `parameterized` instead of a
-    :class:`param.Parameterized` instance to this function. This is
+    :class:`param.parameterized.Parameterized` instance to this function. This is
     "hierarchical mode". The values of `parameterized` can be
-    :class:`param.Parameterized` objects or nested dictionaries. In this case,
-    `dict_` and `deserializer_name_dict` are expected to be dictionaries with
-    the same hierarchical structure (though the latter can still be
-    :obj:`None`). `deserializer_type_dict` can be a flat dictionary of types to
-    be applied to all nodes, or a hierarchical dictionary of strings like
-    `dict_`, or some combination. The leaves of `dict_` deserialize into the
-    leaves of `parameterized`. If no leaf of `dict_` exists for a given
-    `parameterized` leaf, that parameterized object will not be updated.
+    :class:`param.parameterized.Parameterized` objects or nested dictionaries. In this
+    case, `dict_` and `deserializer_name_dict` are expected to be dictionaries with the
+    same hierarchical structure (though the latter can still be :obj:`None`).
+    `deserializer_type_dict` can be a flat dictionary of types to be applied to all
+    nodes, or a hierarchical dictionary of strings like `dict_`, or some combination.
+    The leaves of `dict_` deserialize into the leaves of `parameterized`. If no leaf of
+    `dict_` exists for a given `parameterized` leaf, that parameterized object will not
+    be updated.
 
     Default deserializers are likely appropriate for basic types like strings,
     ints, bools, floats, and numeric tuples. For more complex data types,
-    including recursive :class:`param.Parameterized` instances, custom
+    including recursive :class:`param.parameterized.Parameterized` instances, custom
     deserializers are recommended.
 
     Parameters
     ----------
     dict_ : dict
-    parameterized : param.Parameterized or dict
+    parameterized : param.parameterized.Parameterized or dict
     deserializer_name_dict : dict, optional
     deserializer_type_dict : dict, optional
     on_missing : {'ignore', 'warn', 'raise'}, optional
@@ -2270,7 +2269,7 @@ def deserialize_from_ini(
     then populates `parameterized` with the contents of this dictionary.
 
     INI files are broken up into sections; all key-value pairs must belong to a
-    section. If `parameterized` is a :class:`param.Parameterized` instance
+    section. If `parameterized` is a :class:`param.parameterized.Parameterized` instance
     (rather than a hierarchical dictionary of them), the action will try to
     deserialize the section specified by `one_param_section` keyword argument.
 
@@ -2287,7 +2286,7 @@ def deserialize_from_ini(
     ----------
     file : file pointer or str
         The INI file to deserialize from. Can be a pointer or a path
-    parameterized : param.Parameterized or dict
+    parameterized : param.parameterized.Parameterized or dict
     deserializer_name_dict : dict, optional
     deserializer_type_dict : dict, optional
     on_missing : {'ignore', 'warn', 'raise'}, optional
@@ -2302,7 +2301,7 @@ def deserialize_from_ini(
         A sequence of characters that indicate an inline (including full-line)
         comment in the INI file. Ignored in python 2.7
     one_param_section : str or None, optional
-        If `parameterized` refers to a single :class:`param.Parameterized`
+        If `parameterized` refers to a single :class:`param.parameterized.Parameterized`
         instance, this keyword is used to indicate which section of the INI
         file will be deserialized. If unspecified, will default to the ``name``
         attribute of `parameterized`
@@ -2422,7 +2421,7 @@ def deserialize_from_yaml(
     ----------
     file : file pointer or str
         The YAML file to deserialize from. Can be a pointer or a path
-    parameterized : param.Parameterized or dict
+    parameterized : param.parameterized.Parameterized or dict
     deserializer_name_dict : dict, optional
     deserializer_type_dict : dict, optional
     on_missing : {'ignore', 'warn', 'raise'}, optional
@@ -2474,7 +2473,7 @@ def deserialize_from_json(
     ----------
     file : file pointer or str
         The JSON file to deserialize from. Can be a pointer or a path
-    parameterized : param.Parameterized or dict
+    parameterized : param.parameterized.Parameterized or dict
     deserializer_name_dict : dict, optional
     deserializer_type_dict : dict, optional
     on_missing : {'ignore', 'warn', 'raise'}, optional
