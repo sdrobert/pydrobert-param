@@ -22,7 +22,11 @@ import configparser
 from collections import OrderedDict
 from io import StringIO
 from typing import Any, Collection, List, Optional, Sequence, TextIO, Union
-from typing_extensions import Literal
+
+try:
+    from typing import Literal
+except ImportError:
+    from typing_extensions import Literal
 
 import param
 

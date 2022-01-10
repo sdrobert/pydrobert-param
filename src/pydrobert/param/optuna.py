@@ -23,9 +23,14 @@ See Also
 
 import abc
 from typing import Collection, Optional, Set
-from typing_extensions import Literal
 import warnings
 import collections.abc
+
+try:
+    from typing import Literal
+except ImportError:
+    from typing_extensions import Literal
+
 
 from collections import OrderedDict
 from copy import deepcopy

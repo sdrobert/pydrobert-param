@@ -19,7 +19,11 @@ import argparse
 import abc
 import sys
 from typing import List, Optional, Sequence, TextIO, Union, Collection
-from typing_extensions import Literal
+
+try:
+    from typing import Literal
+except ImportError:
+    from typing_extensions import Literal
 
 import param
 import pydrobert.param.serialization as serialization
