@@ -22,6 +22,7 @@ import pandas as pd
 import pydrobert.param.serialization as serial
 
 FILE_DIR = os.path.dirname(os.path.realpath(__file__))
+FILE_DIR_DIR = os.path.dirname(FILE_DIR)
 
 
 def default_action():
@@ -73,12 +74,14 @@ def BigDumbParams(name=None):
         dict_ = param.Dict({"foo": "bar"}, allow_None=True, doc="dict means dictionary")
         dynamic = param.Dynamic(default=default_action, allow_None=True)
         file_selector = param.FileSelector(
-            "LICENSE",
-            path=os.path.join(os.path.dirname(FILE_DIR), "*"),
+            os.path.join(FILE_DIR_DIR, "LICENSE"),
+            path=os.path.join(FILE_DIR_DIR, "*"),
             allow_None=True,
         )
-        filename = param.Filename(FILE_DIR + "/../LICENSE", allow_None=True)
-        foldername = param.Foldername(FILE_DIR + "/..", allow_None=True)
+        filename = param.Filename(
+            os.path.join(FILE_DIR_DIR, "LICENSE"), allow_None=True
+        )
+        foldername = param.Foldername(os.path.join(FILE_DIR_DIR), allow_None=True)
         hook_list = param.HookList(
             [CallableObject(), CallableObject()], class_=CallableObject, allow_None=True
         )
@@ -88,7 +91,7 @@ def BigDumbParams(name=None):
         magnitude = param.Magnitude(0.5, allow_None=True)
         multi_file_selector = param.MultiFileSelector(
             [],
-            path=os.path.join(os.path.dirname(FILE_DIR), "*"),
+            path=os.path.join(FILE_DIR_DIR, "*"),
             allow_None=True,
             check_on_set=True,
         )
@@ -97,9 +100,9 @@ def BigDumbParams(name=None):
         object_selector = param.ObjectSelector(
             False, objects={"False": False, "True": 1}, allow_None=True
         )
-        path = param.Path(FILE_DIR + "/../LICENSE", allow_None=True)
+        path = param.Path(os.path.join(FILE_DIR_DIR, "LICENSE"), allow_None=True)
         range_ = param.Range((-1.0, 2.0), allow_None=True)
-        series = param.Series(pd.Series(range(5)))
+        series = param.Series(pd.Series(range(5)), allow_None=True)
         string = param.String("foo", allow_None=True, doc="this is a string")
         tuple_ = param.Tuple((3, 4, "fi"), allow_None=True)
         x_y_coordinates = param.XYCoordinates((1.0, 2.0), allow_None=True)
@@ -132,7 +135,11 @@ def BigDumbParams(name=None):
         ),
         ("dict_", {"a": {"a": 1}}, {"a": {"a": 1}}),
         # FIXME(sdrobert): what to do with dynamic?
-        ("file_selector", "README.md", "README.md"),
+        (
+            "file_selector",
+            os.path.join(FILE_DIR_DIR, "README.md"),
+            os.path.join(FILE_DIR_DIR, "README.md"),
+        ),
         (
             "filename",
             os.path.join(FILE_DIR, "test_argparse.py"),
@@ -146,7 +153,7 @@ def BigDumbParams(name=None):
         ("magnitude", 0.33, 0.33),
         (
             "multi_file_selector",
-            [os.path.join(os.path.dirname(FILE_DIR), "README.md")],
+            [os.path.join(FILE_DIR_DIR, "README.md")],
             ["README.md"],
         ),
         ("number", 1.2, 1.2),
@@ -194,7 +201,7 @@ def test_can_serialize_with_defaults(name, set_to, expected):
         ("numeric_tuple", (2.0, 1.0), "[2.0, 1.0]"),
         (
             "multi_file_selector",
-            [os.path.join(os.path.dirname(FILE_DIR), "README.md")],
+            [os.path.join(FILE_DIR_DIR, "README.md")],
             '["README.md"]',
         ),
         ("range_", (-10.0, 4.5), "[-10.0, 4.5]"),
@@ -496,7 +503,11 @@ def test_can_deserialize_none():
         ),
         ("dict_", {"a": 1, "b": "howdy"}, {"a": 1, "b": "howdy"}),
         ("dynamic", another_action, another_action()),
-        ("file_selector", "README.md", "README.md"),
+        (
+            "file_selector",
+            os.path.join(FILE_DIR_DIR, "README.md"),
+            os.path.join(FILE_DIR_DIR, "README.md"),
+        ),
         (
             "filename",
             os.path.join(FILE_DIR, "test_serialization.py"),
