@@ -2,7 +2,7 @@ Hyperparameter Optimization with Optuna
 =======================================
 
 :mod:`pydrobert.param.optuna` provides some of the necessary scaffolding for
-combining :class:`param.parameterized` instances with
+combining :class:`param.parameterized.Parameterized` instances with
 `Optuna <https://optuna.org/>`__.
 
 Optuna is a define-by-run hyperparameter optimization framework. It is worth
@@ -15,8 +15,8 @@ define-by-run and shove it in the `trial` argument.
 
 Critically, we implement the
 :class:`pydrobert.param.optuna.TunableParameterized` interface. For a single
-:class:`param.Parameterized` instance, we can build it directly in the
-objective function:
+:class:`Parameterized` instance, we can build it directly in the objective
+function:
 
 >>> from pydrobert.param.optuna import *
 >>> import optuna
@@ -55,12 +55,12 @@ optimizing all available parameters in the :class:`Foo` object, which turns
 out to only be ``'tune_this'``.
 
 Replacing ``TunableParameterized`` with ``param.Parameterized`` in the above
-code would work just as well here. In fact, any :class:`param.Parameterized`
-instance implementing the :func:`get_tunable` and :func:`suggest_params`
-methods is considered a :class:`pydrobert.param.optuna.TunableParameterized`
-anyway. The benefits of :mod:`pydrobert.param.optuna` arise when you have more
-than one :class:`TunableParameterized` instance in a dictionary, and you want
-to optimize some parameters from (potentially) all of them simultaneously:
+code would work just as well here. In fact, any :class:`Parameterized` instance
+implementing the :func:`get_tunable` and :func:`suggest_params` methods is
+considered a :class:`TunableParameterized` anyway. The benefits of
+:mod:`pydrobert.param.optuna` arise when you have more than one
+:class:`TunableParameterized` instance in a dictionary, and you want to
+optimize some parameters from (potentially) all of them simultaneously:
 
 >>> # Foo as above
 >>> class Bar(Foo):
