@@ -7,6 +7,7 @@ pydrobert-param
 
    serialization
    hyperopt
+   cli
    modules
 
 Indices and tables

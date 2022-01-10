@@ -1,7 +1,16 @@
-API
-===
+pydrobert.param API
+===================
+
+.. automodule:: pydrobert.param
+    :members:
+    :undoc-members:
+    :show-inheritance:
 
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 2
+   :caption: Submodules:
 
-   pydrobert.param
+   pydrobert.param.argparse
+   pydrobert.param.optuna
+   pydrobert.param.serialization
+

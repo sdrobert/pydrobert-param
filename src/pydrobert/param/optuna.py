@@ -23,6 +23,7 @@ See Also
 
 import abc
 from typing import Collection, Optional, Set
+from typing_extensions import Literal
 import warnings
 import collections.abc
 
@@ -64,8 +65,7 @@ class TunableParameterized(AbstractParameterized):
     def get_tunable(cls) -> Set[str]:
         """Get a set of names of tunable parameters
 
-        The values are intended to be names of parameters. Values should not
-        contain "."
+        The values are intended to be names of parameters. Values should not contain "."
         """
         return set()
 
@@ -112,7 +112,9 @@ class TunableParameterized(AbstractParameterized):
         return NotImplemented
 
 
-def get_param_dict_tunable(param_dict: dict, on_decimal: str = "warn") -> OrderedDict:
+def get_param_dict_tunable(
+    param_dict: dict, on_decimal: Literal["ignore", "warn", "raise"] = "warn"
+) -> OrderedDict:
     """Return a set of all the tunable parameters in a parameter dictionary
 
     This function crawls through a (possibly nested) dictionary of objects,
@@ -219,15 +221,14 @@ def suggest_param_dict(
     trial,
     global_dict: dict,
     only: Optional[set] = None,
-    on_decimal: str = "warn",
+    on_decimal: Literal["ignore", "warn", "raise"] = "warn",
     warn: bool = True,
 ) -> dict:
     """Use Optuna trial to sample values for TunableParameterized in dict
 
-    This function creates a deep copy of the dictionary `global_dict`. Then,
-    for every :class:`TunableParameterized` it finds in the copy, it calls that
-    instance's :func:`suggest_params` to optimize an appropriate subset of
-    parameters.
+    This function creates a deep copy of the dictionary `global_dict`. Then, for every
+    :class:`TunableParameterized` it finds in the copy, it calls that instance's
+    :func:`suggest_params` to optimize an appropriate subset of parameters.
 
     Parameters
     ----------

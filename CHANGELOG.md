@@ -1,3 +1,7 @@
+# v0.4.0
+
+- Updated documentation.
+
 # v0.3.0
 
 A considerable amount of refactoring occurred for this build, chiefly to get
