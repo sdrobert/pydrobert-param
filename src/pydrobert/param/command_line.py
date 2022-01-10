@@ -140,7 +140,10 @@ def _combine_container_vals(vals, warn, nested):
 
 
 def _combine_json_files_parse_args(args):
-    parser = argparse.ArgumentParser(description=combine_json_files.__doc__)
+    parser = argparse.ArgumentParser(
+        description=combine_json_files.__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     parser.add_argument(
         "sources", nargs="+", type=argparse.FileType("r"), help="Paths to read from"
     )
@@ -206,7 +209,10 @@ def combine_json_files(args=None):
 
 
 def _combine_yaml_files_parse_args(args):
-    parser = argparse.ArgumentParser(description=combine_yaml_files.__doc__,)
+    parser = argparse.ArgumentParser(
+        description=combine_yaml_files.__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     parser.add_argument(
         "sources", nargs="+", type=argparse.FileType("r"), help="Paths to read from"
     )

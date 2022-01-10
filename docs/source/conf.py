@@ -40,6 +40,7 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.viewcode",
     "sphinxcontrib.programoutput",
+    "myst_parser",
 ]
 
 naploeon_numpy_docstring = True
