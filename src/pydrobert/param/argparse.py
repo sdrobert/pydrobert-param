@@ -20,6 +20,11 @@ import abc
 import sys
 from typing import List, Optional, Sequence, TextIO, Union, Collection
 
+try:
+    from typing import Literal
+except ImportError:
+    from typing_extensions import Literal
+
 import param
 import pydrobert.param.serialization as serialization
 
@@ -48,8 +53,8 @@ class ParameterizedFileReadAction(argparse.Action, metaclass=abc.ABCMeta):
     :func:`pydrobert.param.serialization.deserialize_from_filetype` function, where
     ``filetype`` is replaced with the subclass' file type.
 
-    There are three ways to specify parameterized objects to populate. They
-    are mutually exclusive:
+    There are three ways to specify parameterized objects to populate. They are mutually
+    exclusive:
 
     1. Set the keyword `type` with the subclass of
        :class:`param.parameterized.Parameterized` you want to deserialize into. A new
@@ -123,7 +128,7 @@ class ParameterizedFileReadAction(argparse.Action, metaclass=abc.ABCMeta):
         type: Optional[type] = None,
         deserializer_name_dict: Optional[dict] = None,
         deserializer_type_dict: Optional[dict] = None,
-        on_missing: str = "warn",
+        on_missing: Literal["ignore", "warn", "raise"] = "warn",
         required: bool = False,
         help: Optional[str] = None,
         metavar: Optional[str] = None,
@@ -217,7 +222,7 @@ class ParameterizedIniReadAction(ParameterizedFileReadAction):
         type: Optional[type] = None,
         deserializer_name_dict: Optional[dict] = None,
         deserializer_type_dict: Optional[dict] = None,
-        on_missing: str = "warn",
+        on_missing: Literal["ignore", "warn", "raise"] = "warn",
         required: bool = False,
         help: Optional[str] = None,
         metavar: Optional[str] = None,
@@ -537,12 +542,12 @@ class ParameterizedPrintAction(argparse.Action, metaclass=abc.ABCMeta):
     """Base class for printing parameters to stdout and exiting
 
     Subclasses of this class can be added as the 'action' keyword to an
-    :func:`argparse.ArgumentParser.add_argument` call. Like the ``--help``
-    flag, after this action is called, the program will try to exit, but not
-    before printing out parameters.
+    :func:`argparse.ArgumentParser.add_argument` call. Like the ``--help`` flag, after
+    this action is called, the program will try to exit, but not before printing out
+    parameters.
 
-    There are three ways to specify what parameters to print, analogous to how
-    they are specified in :class:`ParameterizedFileReadAction`:
+    There are three ways to specify what parameters to print, analogous to how they are
+    specified in :class:`ParameterizedFileReadAction`:
 
     1. Set the keyword `type` with a subclass of
        :class:`param.parameterized.Parameterized`. A new instance of that type will be
@@ -556,9 +561,9 @@ class ParameterizedPrintAction(argparse.Action, metaclass=abc.ABCMeta):
        dictionary will be populated according to the "hierarchical mode" specified in
        the documentation of :func:`pydrobert.param.serialization.serialize_to_dict`
 
-    Note that if a :class:`ParameterizedFileReadAction` has been called on the
-    command line prior to the print that shares the same `parameterized` value
-    as in 2. or 3., `parameterized` will be populated by that file's contents.
+    Note that if a :class:`ParameterizedFileReadAction` has been called on the command
+    line prior to the print that shares the same `parameterized` value as in 2. or 3.,
+    `parameterized` will be populated by that file's contents.
 
     Parameters
     ----------
@@ -607,7 +612,7 @@ class ParameterizedPrintAction(argparse.Action, metaclass=abc.ABCMeta):
         serializer_name_dict: Optional[dict] = None,
         serializer_type_dict: Optional[dict] = None,
         only: Optional[Collection[str]] = None,
-        on_missing: str = "raise",
+        on_missing: Literal["ignore", "warn", "raise"] = "raise",
         include_help: bool = True,
         help: Optional[str] = None,
         out_stream: TextIO = sys.stdout,
@@ -699,7 +704,7 @@ class ParameterizedIniPrintAction(ParameterizedPrintAction):
         serializer_name_dict: Optional[dict] = None,
         serializer_type_dict: Optional[dict] = None,
         only: Optional[Collection[str]] = None,
-        on_missing: str = "raise",
+        on_missing: Literal["ignore", "warn", "raise"] = "raise",
         include_help: bool = True,
         help: Optional[str] = None,
         out_stream: TextIO = sys.stdout,
@@ -782,7 +787,7 @@ class ParameterizedJsonPrintAction(ParameterizedPrintAction):
         serializer_name_dict: Optional[dict] = None,
         serializer_type_dict: Optional[dict] = None,
         only: Optional[Collection[str]] = None,
-        on_missing: str = "raise",
+        on_missing: Literal["ignore", "warn", "raise"] = "raise",
         help: Optional[str] = None,
         out_stream: TextIO = sys.stdout,
         indent: int = 2,

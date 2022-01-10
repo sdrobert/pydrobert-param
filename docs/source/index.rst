@@ -1,5 +1,5 @@
-pydrobert-param
-===============
+.. include:: ../../README.md
+   :parser: myst_parser.sphinx_
 
 .. toctree::
    :maxdepth: 2
@@ -7,6 +7,7 @@ pydrobert-param
 
    serialization
    hyperopt
+   cli
    modules
 
 Indices and tables

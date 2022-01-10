@@ -34,7 +34,10 @@ __all__ = [
 
 
 def _combine_ini_files_parse_args(args):
-    parser = argparse.ArgumentParser(description=combine_ini_files.__doc__)
+    parser = argparse.ArgumentParser(
+        description=combine_ini_files.__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     parser.add_argument(
         "sources", nargs="+", type=argparse.FileType("r"), help="Paths to read from"
     )
@@ -45,11 +48,11 @@ def _combine_ini_files_parse_args(args):
 def combine_ini_files(args=None):
     """Combine INI files
 
-    This command provides a content-agnostic way of combining
-    `INI files <https://en.wikipedia.org/wiki/INI_file>`__.
+    This command provides a content-agnostic way of combining INI files
+    (https://en.wikipedia.org/wiki/INI_file).
 
-    All but the last positional argument consist of input files. Earlier values
-    are clobbered by later values.
+    All but the last positional argument consist of input files. Earlier values are
+    clobbered by later values.
 
     Comments (anything after a '#' or ';') are ignored
     """
@@ -137,7 +140,10 @@ def _combine_container_vals(vals, warn, nested):
 
 
 def _combine_json_files_parse_args(args):
-    parser = argparse.ArgumentParser(description=combine_json_files.__doc__)
+    parser = argparse.ArgumentParser(
+        description=combine_json_files.__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     parser.add_argument(
         "sources", nargs="+", type=argparse.FileType("r"), help="Paths to read from"
     )
@@ -147,16 +153,15 @@ def _combine_json_files_parse_args(args):
         "--compact",
         action="store_true",
         default=False,
-        help="By default, JSON dicts will have newlines and 2-space "
-        "indentation. If set, will encode structures in the most compact way "
-        "possible",
+        help="By default, JSON dicts will have newlines and 2-space indentation. If "
+        "set, will encode structures in the most compact way possible",
     )
     parser.add_argument(
         "--nested",
         action="store_true",
         default=False,
-        help="Resolve dict collisions by descending into children. See "
-        "command documentation for more info",
+        help="Resolve dict collisions by descending into children. See command "
+        "documentation for more info",
     )
     return parser.parse_args(args)
 
@@ -164,19 +169,16 @@ def _combine_json_files_parse_args(args):
 def combine_json_files(args=None):
     """Combine JSON files
 
-    This command provides a content-agnostic way of combining
-    `JSON files <https://en.wikipedia.org/wiki/JSON>`__.
+    This command provides a content-agnostic way of combining JSON files
+    (https://en.wikipedia.org/wiki/JSON).
 
     If all source files are lists, we merely append the lists together.
 
-    If all documents' root data types are dictionaries, the default behaviour,
-    given a collision of keys, is to clobber the old value with the new one. If
-    the ``--nested`` flag is set, and both values are dictionaries, the
-    values of the old dictionary will be updated with the values of the new
-    one, but old keys not present in the new dictionary will persist. For
-    example, without the ``--nested`` flag
-
-    .. code-block:: none
+    If all documents' root data types are dictionaries, the default behaviour, given a
+    collision of keys, is to clobber the old value with the new one. If the "--nested"
+    flag is set, and both values are dictionaries, the values of the old dictionary will
+    be updated with the values of the new one, but old keys not present in the new
+    dictionary will persist. For example, without the "--nested" flag
 
         {"a": {"b": {"c": null}, "d": true}} +
         {"a": {"b": {"e": 1}}, "f": "g"} =
@@ -184,14 +186,12 @@ def combine_json_files(args=None):
 
     but with the nested flag
 
-    .. code-block:: none
-
         {"a": {"b": {"c": null}, "d": true}} +
         {"a": {"b": {"e": 1}}, "f": "g"} =
         {"a": {"b": {"c": null, "e": 1}, "d": true}, "f": "g"}
 
-    Mixing root data types of sources or specifying more than one source for a
-    root type that is not a dict or list will result in an error.
+    Mixing root data types of sources or specifying more than one source for a root type
+    that is not a dict or list will result in an error.
     """
     try:
         options = _combine_json_files_parse_args(args)
@@ -209,7 +209,10 @@ def combine_json_files(args=None):
 
 
 def _combine_yaml_files_parse_args(args):
-    parser = argparse.ArgumentParser(description=combine_yaml_files.__doc__,)
+    parser = argparse.ArgumentParser(
+        description=combine_yaml_files.__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     parser.add_argument(
         "sources", nargs="+", type=argparse.FileType("r"), help="Paths to read from"
     )
@@ -219,8 +222,8 @@ def _combine_yaml_files_parse_args(args):
         "--nested",
         action="store_true",
         default=False,
-        help="Resolve dict collisions by descending into children. See "
-        "command documentation for more info",
+        help="Resolve dict collisions by descending into children. See command "
+        "documentation for more info",
     )
     return parser.parse_args(args)
 
@@ -228,20 +231,19 @@ def _combine_yaml_files_parse_args(args):
 def combine_yaml_files(args=None):
     """Combine YAML files
 
-    This command provides a content-agnostic way of combining
-    `YAML files <https://en.wikipedia.org/wiki/YAML>`__.
+    This command provides a content-agnostic way of combining YAML files
+    (https://en.wikipedia.org/wiki/YAML).
 
-    All but the last positional argument consist of input files. Earlier values
-    are clobbered by later values.
+    All but the last positional argument consist of input files. Earlier values are
+    clobbered by later values.
 
     If all source files are lists, we merely append the lists together.
 
-    If all documents' root data types are dictionaries, the default behaviour,
-    given a collision of keys, is to clobber the old value with the new one. If
-    the ``--nested`` flag is set, and both values are dictionaries, the
-    values of the old dictionary will be updated with the values of the new
-    one, but old keys not present in the new dictionary will persist. See
-    ``combine-json-files`` for an example
+    If all documents' root data types are dictionaries, the default behaviour, given a
+    collision of keys, is to clobber the old value with the new one. If the "--nested"
+    flag is set, and both values are dictionaries, the values of the old dictionary will
+    be updated with the values of the new one, but old keys not present in the new
+    dictionary will persist. See the "combine-json-files" command for an example
 
     Whether comments are ignored depends on the parsing backend.
     """

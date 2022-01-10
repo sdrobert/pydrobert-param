@@ -1,1 +1,4 @@
-param>=1.9
+Sphinx>=4
+sphinxcontrib-programoutput
+myst-parser
+param
