@@ -1,0 +1,2 @@
+exclude .appveyor.yml
+exclude .gitignore

@@ -1,4 +1,4 @@
-# Copyright 2021 Sean Robertson
+# Copyright 2022 Sean Robertson
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,10 +17,10 @@
 __author__ = "Sean Robertson"
 __email__ = "sdrobert@cs.toronto.edu"
 __license__ = "Apache 2.0"
-__copyright__ = "Copyright 2021 Sean Robertson"
+__copyright__ = "Copyright 2022 Sean Robertson"
 
 try:
-    from .version import version as __version__  # type: ignore
+    from ._version import version as __version__  # type: ignore
 except ImportError:
     __version__ = "inplace"
 

@@ -8,9 +8,6 @@ with some changes made for `python 2.7
 inherits from :class:`param.parameterized.ParameterizedMetaclass`
 """
 
-# license: https://www.python.org/doc/copyright/
-# looks like I'm in the clear
-
 from weakref import WeakSet
 
 import types

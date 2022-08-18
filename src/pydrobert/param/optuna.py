@@ -135,10 +135,10 @@ def get_param_dict_tunable(
     ----------
     param_dict : dict
     on_decimal : {"warn", "raise", "ignore"}, optional
-        '.' can produce ambiguous parameters in `tunable`. When one is found as
-        a key in `param_dict` or as a tunable parameter: "raise" means a
-        :class:`ValueError` will be raised; "warn" means a warning will be
-        issued via :mod:`warnings`; and "ignore" just ignores it
+        :obj:`'.'` can produce ambiguous parameters in `tunable`. When one is found as a
+        key in `param_dict` or as a tunable parameter: "raise" means a
+        :class:`ValueError` will be raised; "warn" means a warning will be issued via
+        :mod:`warnings`; and "ignore" just ignores it
 
     Returns
     -------

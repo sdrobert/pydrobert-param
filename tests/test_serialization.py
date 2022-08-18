@@ -522,10 +522,10 @@ def test_can_deserialize_none():
         ("magnitude", "1e-5", 1e-5),
         (
             "multi_file_selector",
-            ["setup.py", "LICENSE"],
+            ["setup.cfg", "LICENSE"],
             [
                 os.path.join(os.path.dirname(FILE_DIR), x)
-                for x in ("setup.py", "LICENSE")
+                for x in ("setup.cfg", "LICENSE")
             ],
         ),
         ("number", "1e10", 1e10),
@@ -582,10 +582,10 @@ def test_can_deserialize_with_defaults(name, block, expected):
         ("list_selector", '[1, "3"]', [1, 3]),
         (
             "multi_file_selector",
-            '["setup.py", "LICENSE"]',
+            '["setup.cfg", "LICENSE"]',
             [
                 os.path.join(os.path.dirname(FILE_DIR), x)
-                for x in ("setup.py", "LICENSE")
+                for x in ("setup.cfg", "LICENSE")
             ],
         ),
         ("numeric_tuple", "[1.0, -3.4]", (1.0, -3.4)),

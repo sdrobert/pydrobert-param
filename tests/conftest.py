@@ -1,3 +1,4 @@
+from ast import Import
 from shutil import rmtree
 from tempfile import mkdtemp
 
@@ -12,17 +13,20 @@ param.parameterized.warnings_as_exceptions = True
 @pytest.fixture(params=["ruamel_yaml", "pyyaml"])
 def yaml_loader(request):
     if request.param == "ruamel_yaml":
+        YAML = None
         try:
             from ruamel_yaml import YAML  # type: ignore
-
-            yaml_loader = YAML().load
         except ImportError:
-            from ruamel.yaml import YAML  # type: ignore
-
-            yaml_loader = YAML().load
+            pass
+        if YAML is None:
+            try:
+                from ruamel.yaml import YAML  # type: ignore
+            except ImportError:
+                pytest.skip("No yaml parser found")
+        yaml_loader = YAML().load
         module_names = ("ruamel_yaml", "ruamel.yaml")
     else:
-        import yaml  # type: ignore
+        yaml = pytest.importorskip("yaml")
 
         def yaml_loader(x):
             return yaml.load(x, Loader=yaml.FullLoader)
