@@ -26,7 +26,6 @@ except ImportError:
 
 __all__ = [
     "argparse",
-    "command_line",
     "optuna",
     "serialization",
 ]

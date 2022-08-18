@@ -2,6 +2,7 @@
 
 ## v0.3.1
 
+- Handle ABC issues with MRO instead of redefining base class.
 - No more `setup.py`.
 - Removed `recipe`.
 - Bumped minimum version to 3.7.

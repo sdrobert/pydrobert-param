@@ -22,22 +22,22 @@ See Also
 
 
 import abc
-from typing import Collection, Optional, Set
 import warnings
 import collections.abc
+
+from typing import Collection, Optional, Set
+from collections import OrderedDict
+from copy import deepcopy
 
 try:
     from typing import Literal
 except ImportError:
     from typing_extensions import Literal
 
-
-from collections import OrderedDict
-from copy import deepcopy
-
 import param
 
 from pydrobert.param.abc import AbstractParameterized
+
 
 __all__ = [
     "get_param_dict_tunable",
