@@ -34,7 +34,7 @@ for:
       - python -m build -o dist
     test_script:
       - ps: python -m twine check (Resolve-Path 'dist\*').Path
-      - ps: python -m pip install (Resolve-Path 'dist\*.whl').Path pytest
+      - ps: python -m pip install (Resolve-Path 'dist\*.whl').Path pytest numpy pandas
       - python -m pytest
     artifacts:
       path: 'dist\*'
