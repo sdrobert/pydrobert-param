@@ -1,6 +1,6 @@
-from ast import Import
 from shutil import rmtree
 from tempfile import mkdtemp
+from io import StringIO
 
 import pytest
 import param
@@ -41,6 +41,11 @@ def yaml_loader(request):
 @pytest.fixture(params=[True, False])
 def with_yaml(request):
     if request.param:
+        try:
+            with StringIO() as fp:
+                serial._serialize_to_yaml(fp, {"foo": 1})
+        except ImportError:
+            pytest.skip("No yaml serializer")
         yield True
     else:
         old_props = serial.YAML_MODULE_PRIORITIES
