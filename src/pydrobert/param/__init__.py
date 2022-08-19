@@ -25,6 +25,7 @@ except ImportError:
     __version__ = "inplace"
 
 __all__ = [
+    "abc",
     "argparse",
     "optuna",
     "serialization",

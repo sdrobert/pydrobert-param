@@ -157,9 +157,9 @@ class ParamConfigSerializer(object, metaclass=abc.ABCMeta):
 
         Parameters
         ----------
-        name : str
+        name
             The name of the parameter in `parameterized` to retrieve the value from
-        parameterized : param.parameterized.Parameterized
+        parameterized
             The parameterized instance containing a parameter with the name `name`
 
         Returns
@@ -252,8 +252,7 @@ class DefaultDataFrameSerializer(ParamConfigSerializer):
     The process:
 
     1. If :obj:`None`, return
-    2. Call ``tolist()`` on the ``values`` property of the parameter's
-       value and return
+    2. Call ``tolist()`` on the ``values`` property of the parameter's value and return
     """
 
     def help_string(
@@ -320,21 +319,19 @@ class DefaultDateSerializer(ParamConfigSerializer):
     1. If :obj:`None`, return
     2. If a :class:`datetime.datetime` instance
 
-       1. If the `format` keyword argument of the serializer is not
-          :obj:`None`:
+       1. If the `format` keyword argument of the serializer is not :obj:`None`:
 
           1. If `format` is a string, return the result of the value's
              ``strftime(format)`` call
           2. If `format` is list-like, iterate through it, formatting with
-             ``strftime(element)``. Whichever string which, when deserialized
-             with ``strptime(element)``, produces an equivalent
-             :class`datetime.datetime` object as the value is returned. If no
-             such string exists, the last string is returned.
+             ``strftime(element)``. Whichever string which, when deserialized with
+             ``strptime(element)``, produces an equivalent :class`datetime.datetime`
+             object as the value is returned. If no such string exists, the last string
+             is returned.
 
        2. Return the result of the value's ``timestamp()`` call
 
-    3. If a :class:`numpy.datetime64` instance, return the value cast to a
-       string
+    3. If a :class:`numpy.datetime64` instance, return the value cast to a string
     """
 
     def __init__(
@@ -386,8 +383,8 @@ class DefaultDateSerializer(ParamConfigSerializer):
 class DefaultDateRangeSerializer(ParamConfigSerializer):
     """Default date range serializer
 
-    Similar to serializing a single `datetime`, but applied to each element separately.
-    Also cast to a list
+    Similar to serializing a single :class:`datetime.datetime`, but applied to each
+    element separately. Also cast to a list
     """
 
     def __init__(
@@ -449,8 +446,8 @@ class DefaultListSelectorSerializer(ParamConfigSerializer):
 
     For each element in the value:
 
-    1. Search for its name in the selector's
-       :func:`param.ListSelector.get_range` dict and swap if for the name, if possible
+    1. Search for its name in the selector's :func:`param.ListSelector.get_range` dict
+       and swap if for the name, if possible
     2. Otherwise, use that element verbatim
     """
 
@@ -533,8 +530,8 @@ class DefaultTupleSerializer(ParamConfigSerializer):
     """Default tuple serializer
 
     The process:
-    1. If None, return
-    2. Casts the value to a list
+    1. If :obj:`None`, return
+    2. Casts the value to a :class:`list`
     """
 
     def serialize(
@@ -583,15 +580,15 @@ def _to_json_string_serializer(cls, typename):
 
 
 JsonStringArraySerializer = _to_json_string_serializer(
-    DefaultArraySerializer, "numpy array"
+    DefaultArraySerializer, "param.Array"
 )
 
 JsonStringDataFrameSerializer = _to_json_string_serializer(
-    DefaultDataFrameSerializer, "pandas.DataFrame"
+    DefaultDataFrameSerializer, "param.DataFrame"
 )
 
 JsonStringDateRangeSerializer = _to_json_string_serializer(
-    DefaultDateRangeSerializer, "date range"
+    DefaultDateRangeSerializer, "param.DateRange"
 )
 
 JsonStringDictSerializer = _to_json_string_serializer(DefaultSerializer, "dict")
@@ -599,11 +596,11 @@ JsonStringDictSerializer = _to_json_string_serializer(DefaultSerializer, "dict")
 JsonStringListSerializer = _to_json_string_serializer(DefaultSerializer, "list")
 
 JsonStringListSelectorSerializer = _to_json_string_serializer(
-    DefaultListSelectorSerializer, "list selector"
+    DefaultListSelectorSerializer, "param.ListSelector"
 )
 
 JsonStringSeriesSerializer = _to_json_string_serializer(
-    DefaultSeriesSerializer, "pandas.Series"
+    DefaultSeriesSerializer, "param.Series"
 )
 
 JsonStringTupleSerializer = _to_json_string_serializer(DefaultTupleSerializer, "tuple")
@@ -715,8 +712,8 @@ def _serialize_to_dict_flat(
 
 
 def serialize_to_dict(
-    parameterized: param.Parameterized,
-    only: Optional[Collection] = None,
+    parameterized: Union[param.Parameterized, dict],
+    only: Optional[Collection[str]] = None,
     serializer_name_dict: Optional[dict] = None,
     serializer_type_dict: Optional[dict] = None,
     on_missing: Literal["ignore", "warn", "raise"] = "raise",
@@ -724,10 +721,10 @@ def serialize_to_dict(
 ) -> Union[OrderedDict, tuple]:
     """Serialize a parameterized object into a dictionary
 
-    This function serializes data into a dictionary format, suitable for
-    storage in a dict-like file format such as YAML or JSON. Each parameter
-    will be serialized into the dictionary using a `ParamConfigSerializer`
-    object, matched with the following precedent:
+    This function serializes data into a dictionary format, suitable for storage in a
+    dict-like file format such as YAML or JSON. Each parameter will be serialized into
+    the dictionary using a `ParamConfigSerializer` object, matched with the following
+    precedent:
 
     1. If `serializer_name_dict` is specified and contains the parameter
        name as a key, the value will be used.
@@ -759,29 +756,29 @@ def serialize_to_dict(
 
     Parameters
     ----------
-    parameterized : param.parameterized.Parameterized or dict
-    only : collection, optional
-        If specified, only the parameters with their names in this set will
-        be serialized into the return dictionary. If unset, all parameters
-        except ``"name"`` will be serialized.
-    serializer_name_dict : dict, optional
-    serializer_type_dict : dict, optional
-    on_missing : {'ignore', 'warn', 'raise'}, optional
-        What to do if the parameterized instance does not have a parameter
-        listed in `only`
-    include_help : bool, optional
-        If :obj:`True`, the return value will be a pair of dictionaries instead
-        of a single dictionary. This dictionary will contain any help strings
-        any serializers make available through a call to ``help_string`` (or
-        :obj:`None` if none is available).
+    parameterized
+    only
+        If specified, only the parameters with their names in this set will be
+        serialized into the return dictionary. If unset, all parameters except ``name``
+        will be serialized.
+    serializer_name_dict
+    serializer_type_dict
+    on_missing
+        What to do if the parameterized instance does not have a parameter listed in
+        `only`
+    include_help
+        If :obj:`True`, the return value will be a pair of dictionaries instead of a
+        single dictionary. This dictionary will contain any help strings any serializers
+        make available through a call to ``help_string`` (or :obj:`None` if none is
+        available).
 
     Returns
     -------
     collections.OrderedDict or tuple
         A dictionary of serialized parameters or a pair of dictionaries if
         `include_help` was :obj:`True` (the latter is the help dictionary). If
-        `parameterized` was an ordered dictionary, the returned serialized
-        dictionary will have the same order. Parameters from a
+        `parameterized` was an ordered dictionary, the returned serialized dictionary
+        will have the same order. Parameters from a
         :class:`param.parameterized.Parameterized` instance are sorted alphabeticallly
 
     Raises
@@ -836,7 +833,7 @@ def serialize_to_dict(
 
 def serialize_to_ini(
     file: Union[str, TextIO],
-    parameterized: param.Parameterized,
+    parameterized: Union[param.Parameterized, dict],
     only: Collection[str] = None,
     serializer_name_dict: Optional[dict] = None,
     serializer_type_dict: Optional[dict] = None,
@@ -849,9 +846,9 @@ def serialize_to_ini(
 
     `.INI syntax <https://en.wikipedia.org/wiki/INI_file>`__, extended with
     :mod:`configparser`. :mod:`configparser` extends the INI syntax with value
-    interpolation. Further, keys missing a value will be interpreted as having
-    the value :obj:`None`. This function converts `parameterized` to a
-    dictionary, then fills an INI file with the contents of this dictionary.
+    interpolation. Further, keys missing a value will be interpreted as having the value
+    :obj:`None`. This function converts `parameterized` to a dictionary, then fills an
+    INI file with the contents of this dictionary.
 
     INI files are broken up into sections; all key-value pairs must belong to a section.
     If `parameterized` is a :class:`param.parameterized.Parameterized` instance (rather
@@ -862,35 +859,35 @@ def serialize_to_ini(
     case, each key corresponds to a section. If an ordered dictionary, sections will be
     written in the same order as they exist in `parameterized`.
 
-    Because the INI syntax does not support standard containers like dicts or
-    lists out-of-the-box, this function uses the ``JsonString*Serializer`` to
-    convert container values to JSON strings before writing them to the INI
-    file. This solution was proposed `here
-    <https://stackoverflow.com/questions/335695/lists-in-configparser>`__.
-    Defaults from :obj:`DEFAULT_SERIALIZER_DICT` are clobbered by those from
-    :obj:`JSON_STRING_SERIALIZER_DICT`. You can get the original defaults back
-    by including them in `serializer_type_dict`
+    Because the INI syntax does not support standard containers like dicts or lists
+    out-of-the-box, this function uses the ``JsonString*Serializer`` to convert
+    container values to JSON strings before writing them to the INI file. This solution
+    was proposed `here
+    <https://stackoverflow.com/questions/335695/lists-in-configparser>`__. Defaults from
+    :obj:`DEFAULT_SERIALIZER_DICT` are clobbered by those from
+    :obj:`JSON_STRING_SERIALIZER_DICT`. You can get the original defaults back by
+    including them in `serializer_type_dict`
 
     Parameters
     ----------
-    file : file pointer or str
+    file
         The INI file to serialize to. Can be a pointer or a path
-    parameterized : param.parameterized.Parameterized or dict
-    only : collection, optional
-    serializer_name_dict : dict, optional
-    serializer_type_dict : dict, optional
-    on_missing : {'ignore', 'warn', 'raise'}, optional
-    include_help : bool, optional
-        If :obj:`True`, help documentation will be included at the top of the
-        INI file for any parameters and/or serializers that support it
-    help_prefix : str, optional
-        The character prefix used at the start of each help line, usually
-        indicating a comment
-    one_param_section : str or None, optional
+    parameterized
+    only
+    serializer_name_dict
+    serializer_type_dict
+    on_missing
+    include_help
+        If :obj:`True`, help documentation will be included at the top of the INI file
+        for any parameters and/or serializers that support it
+    help_prefix
+        The character prefix used at the start of each help line, usually indicating a
+        comment
+    one_param_section
         If `parameterized` refers to a single :class:`param.parameterized.Parameterized`
-        instance, this keyword is used to indicate which section of the INI
-        file `parameterized` will be serialized to. If :obj:`None`, the
-        ``name`` attribute of the `parameterized` instance will be the used
+        instance, this keyword is used to indicate which section of the INI file
+        `parameterized` will be serialized to. If :obj:`None`, the ``name`` attribute of
+        the `parameterized` instance will be the used
 
     See Also
     --------
@@ -987,9 +984,8 @@ def serialize_to_ini(
 
 """Specifies the order with which to try YAML parser modules
 
-A number of different `YAML syntax <https://en.wikipedia.org/wiki/YAML>`__
-parsers exist. This tuple specifies the order by which we attempt to import
-parsers
+A number of different `YAML syntax <https://en.wikipedia.org/wiki/YAML>`__ parsers
+exist. This tuple specifies the order by which we attempt to import parsers
 
 See Also
 --------
@@ -1105,7 +1101,7 @@ def _serialize_to_yaml(fp, obj, help_dict=dict()):
 
 def serialize_to_yaml(
     file: Union[str, TextIO],
-    parameterized: param.Parameterized,
+    parameterized: Union[param.Parameterized, dict],
     only: Optional[Collection[str]] = None,
     serializer_name_dict: Optional[dict] = None,
     serializer_type_dict: Optional[dict] = None,
@@ -1120,29 +1116,28 @@ def serialize_to_yaml(
 
     Parameters
     ----------
-    file : file pointer or str
+    file
         The YAML file to serialize to. Can be a pointer or a path
-    parameterized : param.parameterized.Parameterized or dict
-    only : collection, optional
-    serializer_name_dict : dict, optional
-    serializer_type_dict : dict, optional
-    on_missing : {'ignore', 'warn', 'raise'}, optional
-    include_help : bool, optional
+    parameterized
+    only
+    serializer_name_dict
+    serializer_type_dict
+    on_missing
+    include_help
         If :obj:`True`, help documentation will be included. If `ruamel YAML
-        <https://yaml.readthedocs.io/en/latest/>`__ can be imported, help
-        strings will be inline. Otherwise, all documentation will be at the
-        top of the file
+        <https://yaml.readthedocs.io/en/latest/>`__ can be imported, help strings will
+        be inline. Otherwise, all documentation will be at the top of the file
 
     See Also
     --------
-    serialize_to_dict : A description of the serialization process and the
-        parameters to this function
+    serialize_to_dict
+        A description of the serialization process and the parameters to this function
 
     Notes
     -----
-    This function tries to use the YAML (de)serialization module to load the
-    YAML file in the order listed in :obj:`YAML_MODULE_PRIORITIES`, falling
-    back on the next if there's an :class:`ImportError`
+    This function tries to use the YAML (de)serialization module to load the YAML file
+    in the order listed in :obj:`YAML_MODULE_PRIORITIES`, falling back on the next if
+    there's an :class:`ImportError`
     """
     if isinstance(file, str):
         with open(file, "w") as fp:
@@ -1192,41 +1187,41 @@ def _serialize_to_json_fp(
 
 def serialize_to_json(
     file: Union[str, TextIO],
-    parameterized: param.Parameterized,
+    parameterized: Union[param.Parameterized, dict],
     only: Optional[Collection[str]] = None,
     serializer_name_dict: Optional[dict] = None,
     serializer_type_dict: Optional[dict] = None,
     on_missing: Literal["ignore", "warn", "raise"] = "raise",
-    indent: int = 2,
+    indent: Optional[int] = 2,
 ) -> None:
     """Serialize a parameterized instance into a JSON file
 
-    `JSON syntax <https://en.wikipedia.org/wiki/JSON>`__. This function
-    converts `parameterized` to a dictionary, then fills an JSON file with
-    the contents of this dictionary.
+    `JSON syntax <https://en.wikipedia.org/wiki/JSON>`__. This function converts
+    `parameterized` to a dictionary, then fills an JSON file with the contents of this
+    dictionary.
 
     Parameters
     ----------
-    file : file pointer or str
+    file
         The YAML file to serialize to. Can be a pointer or a path
     parameterized : param.parameterized.Parameterized or dict
-    only : collection, optional
-    serializer_name_dict : dict, optional
-    serializer_type_dict : dict, optional
-    on_missing : {'ignore', 'warn', 'raise'}, optional
-    indent : int or None, optional
+    only
+    serializer_name_dict
+    serializer_type_dict
+    on_missing
+    indent
         The indentation level of nested keys. If :obj:`None`, the output will
         be compact
 
     See Also
     --------
-    serialize_to_dict : A description of the serialization process and the
-        parameters to this function
+    serialize_to_dict
+        A description of the serialization process and the parameters to this function
 
     Notes
     -----
-    JSON does not have standard "comments," so this function does not write
-    help strings as comments
+    JSON does not have standard "comments," so this function does not write help strings
+    as comments
     """
     if isinstance(file, str):
         with open(file, "w") as fp:
@@ -1255,15 +1250,14 @@ class ParamConfigDeserializer(object, metaclass=abc.ABCMeta):
     """Deserialize part of a configuration into a parameterized object
 
     Subclasses of :class:`ParamConfigDeserializer` are expected to implement
-    `deserialize`. Instances of the subclass can be passed into
-    :func:`deserialize_from_dict`. The goal of a deserializer is to convert
-    data into the value of a parameter in a :class:`param.parameterized.Parameterized`
-    object. The format of the incoming data is specific to where the dict-like
-    input came from. For example, a JSON parser converts numeric strings to
-    floats, and the contents of square braces (``[]``) as lists. In
-    :mod:`pydrobert.param.serialization`, there are a number of default
-    deserializers (matching the pattern ``Default*Deserializer``) that are best
-    guesses on how to deserialize data from a variety of sources
+    :func:`deserialize`. Instances of the subclass can be passed into
+    :func:`deserialize_from_dict`. The goal of a deserializer is to convert data into
+    the value of a parameter in a :class:`param.parameterized.Parameterized` object. The
+    format of the incoming data is specific to where the dict-like input came from. For
+    example, a JSON parser converts numeric strings to floats, and the contents of
+    square braces (``[]``) as lists. In :mod:`pydrobert.param.serialization`, there are
+    a number of default deserializers (matching the pattern ``Default*Deserializer``)
+    that are best guesses on how to deserialize data from a variety of sources
     """
 
     @abc.abstractmethod
@@ -1274,15 +1268,14 @@ class ParamConfigDeserializer(object, metaclass=abc.ABCMeta):
 
         Parameters
         ----------
-        name : str
-            The name of the parameter in `parameterized` to store the
-            value under
-        block : object
+        name
+            The name of the parameter in `parameterized` to store the value under
+        block
             The data to deserialize into the parameter value
-        parameterized : param.parameterized.Parameterized
-            The parameterized instance containing a parameter with the
-            name `name`. On completion of this method, that parameter will
-            be set with the deserialized contents of `block`
+        parameterized
+            The parameterized instance containing a parameter with the name `name`. On
+            completion of this method, that parameter will be set with the deserialized
+            contents of `block`
 
         Raises
         ------
@@ -1297,21 +1290,20 @@ class ParamConfigDeserializer(object, metaclass=abc.ABCMeta):
     ) -> bool:
         """Check if block can be made none and set it if allowed
 
-        Many :class:`param.Param` parameters allow :obj:`None` as a value. This
-        is a convenience method that deserializers can use to quickly
-        check for a :obj:`None` value and set it in that case. This method
-        sets the parameter and returns :obj:`True` in the following
-        conditions
+        Many :class:`param.Param` parameters allow :obj:`None` as a value. This is a
+        convenience method that deserializers can use to quickly check for a :obj:`None`
+        value and set it in that case. This method sets the parameter and returns
+        :obj:`True` in the following conditions
 
-        1. The parameter allows :obj:`None` values (the ``allow_None``
-           attribute is :obj:`True`)
+        1. The parameter allows :obj:`None` values (the ``allow_None`` attribute is
+           :obj:`True`)
         2. `block` is :obj:`None`
 
-        If one of these conditions wasn't met, the parameter remains unset
-        and the method returns :obj:`False`.
+        If one of these conditions wasn't met, the parameter remains unset and the
+        method returns :obj:`False`.
 
-        In ``Default*Deseriazer`` documentation, a call to this method is
-        referred to as a "none check".
+        In ``Default*Deseriazer`` documentation, a call to this method is referred to as
+        a "none check".
         """
         p = parameterized.param.params()[name]
         if block is None and p.allow_None:
@@ -1324,8 +1316,8 @@ class ParamConfigDeserializer(object, metaclass=abc.ABCMeta):
 class DefaultDeserializer(ParamConfigDeserializer):
     """Catch-all deserializer
 
-    This serializer performs a none check, then tries to set the parameter
-    with the value of `block` verbatim.
+    This serializer performs a none check, then tries to set the parameter with the
+    value of `block` verbatim.
     """
 
     def deserialize(
@@ -1348,9 +1340,9 @@ class DefaultArrayDeserializer(ParamConfigDeserializer):
     The process:
 
     1. :obj:`None` check
-    2. If already a numpy array, set it
-    3. If a string ending with ``'.npy'``, load it as a file path
-       (:func:`numpy.load` with kwargs)
+    2. If already a :class:`numpy.ndarray`, set it
+    3. If a string ending with ``'.npy'``, load it as a file path (:func:`numpy.load`
+       with kwargs)
     4. If bytes, load it with :func:`numpy.frombuffer` and kwargs
     5. If a string, load it with :func:`numpy.fromstring` and kwargs
     6. Try initializing to array with :func:`numpy.array` and kwargs
@@ -1406,46 +1398,48 @@ class DefaultBooleanDeserializer(ParamConfigDeserializer):
     The process:
 
     1. :obj:`None` check
-    2. Check `block` against a number of strings commonly meaning :obj:`True`
-       (e.g. ``"YES"``, ``"t"``, and ``"on"``) as well as the number 1.
-    3. Check `block` against a number of strings commonly meaning :obj:`False`
-    4. If a boolean, set it
+    2. If `block` is in :obj:`TRUE_VALUES`, set as :obj:`True`
+    3. If `block` is in :obj:`FALSE_VALUES`, set as :obj:`False`
+    4. If `block` is already a :class:`bool`, use verbatim
     """
+
+    TRUE_VALUES = {
+        "True",
+        "true",
+        "t",
+        "on",
+        "TRUE",
+        "T",
+        "ON",
+        "yes",
+        "YES",
+        1,
+        "1",
+    }  #:
+    FALSE_VALUES = {
+        "False",
+        "false",
+        "f",
+        "off",
+        "FALSE",
+        "F",
+        "OFF",
+        "no",
+        "NO",
+        0,
+        "0",
+    }  #:
 
     def deserialize(
         self, name: str, block: Any, parameterized: param.Parameterized
     ) -> None:
         if self.check_if_allow_none_and_set(name, block, parameterized):
             return
-        if block in {
-            "True",
-            "true",
-            "t",
-            "on",
-            "TRUE",
-            "T",
-            "ON",
-            "yes",
-            "YES",
-            1,
-            "1",
-        }:
+        if block in self.TRUE_VALUES:
             block = True
-        elif block in {
-            "False",
-            "false",
-            "f",
-            "off",
-            "FALSE",
-            "F",
-            "OFF",
-            "no",
-            "NO",
-            0,
-            "0",
-        }:
+        elif block in self.FALSE_VALUES:
             block = False
-        if block in {True, False}:
+        if isinstance(block, bool):
             parameterized.param.set_param(name, block)
         else:
             raise ParamConfigTypeError(
@@ -1477,11 +1471,10 @@ class DefaultClassSelectorDeserializer(ParamConfigDeserializer):
     1. :obj:`None` check
     2. If the parameter's ``is_instance`` attribute is :obj:`True`:
 
-       1. If `block` is an instance of the parameter's ``class_`` attribute,
-          set it
+       1. If `block` is an instance of the parameter's ``class_`` attribute, set it
        2. Try instantiating the class with `block` as the first argument, with
-          additional arguments and keyword arguments passed to the deserializer
-          passed allong to the constructor.
+          additional arguments and keyword arguments passed to the deserializer passed
+          allong to the constructor.
 
     3. Look for the block or the block name in the selector's
        :class:`param.ClassSelector.get_range` dictionary
@@ -1516,20 +1509,20 @@ class DefaultClassSelectorDeserializer(ParamConfigDeserializer):
 class DefaultDataFrameDeserializer(ParamConfigDeserializer):
     """Default pandas.DataFrame deserializer
 
-    Keyword arguments and positional arguments can be passed to referenced
-    methods by initializing this deserializer with those keyword arguments.
+    Keyword arguments and positional arguments can be passed to referenced methods by
+    initializing this deserializer with those keyword arguments.
 
     The process:
 
     1. :obj:`None` check
     2. If `block` is a data frame, set it
-    3. If `block` is a string that ends with one of a number of file suffixes,
-       e.g. ``".csv", ".json", ".html", ".xls"``, use the associated
-       ``pandas.read_*`` method with `block` as the first argument plus
-       the deserializer's extra args and kwargs
+    3. If `block` is a string that ends with one of a number of file suffixes, e.g.
+       :obj:`".csv"`, :obj:`".json"`, :obj:`".html"`, :obj:`".xls"`, use the associated
+       ``pandas.read_*`` method with `block` as the first argument plus the
+       deserializer's extra args and kwargs
     4. If `block` is a string, try :func:`pandas.read_table`
-    5. Try initializing a :class:`pandas.DataFrame` with block as the first
-       argument plus the deserializer's extra args and kwargs
+    5. Try initializing a :class:`pandas.DataFrame` with block as the first argument
+       plus the deserializer's extra args and kwargs
     """
 
     def __init__(self, *args, **kwargs):
@@ -1604,14 +1597,13 @@ class DefaultDateDeserializer(ParamConfigDeserializer):
 
     1. :obj:`None` check
     2. If `block` is a :class:`datetime.datetime`, set it
-    3. If the deserializer's `format` argument is not None and `block` is a
-       string:
+    3. If the deserializer's `format` argument is not None and `block` is a string:
 
        1. If `format` is a string, try to convert `block` to a datetime using
           :func:`datetime.datetime.strptime`
-       2. If `format` is list-like, parse a :class:`datetime.datetime` object
-          with ``datetime.datetime.strptime(element, format)``. If the parse
-          is successful, use that parsed datetime.
+       2. If `format` is list-like, parse a :class:`datetime.datetime` object with
+          ``datetime.datetime.strptime(element, format)``. If the parse is successful,
+          use that parsed datetime.
 
     4. Try casting `block` to a float
 
@@ -1625,8 +1617,15 @@ class DefaultDateDeserializer(ParamConfigDeserializer):
        :obj:`numpy.datetime64` with `block` as an argument to the constructor.
     """
 
+    format: Optional[Union[str, Sequence[str]]]
+
     def __init__(
-        self, format=("%Y-%m-%dT%H:%M:%S.%f", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d")
+        self,
+        format: Optional[Union[str, Sequence[str]]] = (
+            "%Y-%m-%dT%H:%M:%S.%f",
+            "%Y-%m-%dT%H:%M:%S",
+            "%Y-%m-%d",
+        ),
     ):
         super(DefaultDateDeserializer, self).__init__()
         self.format = format
@@ -1671,12 +1670,19 @@ class DefaultDateDeserializer(ParamConfigDeserializer):
 class DefaultDateRangeDeserializer(ParamConfigDeserializer):
     """Default date range deserializer
 
-    Similar to deserializing a single `datetime`, but applied to each element
-    separately. Cast to a tuple.
+    Similar to deserializing a single :class:`datetime.datetime`, but applied to each
+    element separately. Cast to a :class:`tuple`.
     """
 
+    format: Optional[Union[str, Sequence[str]]]
+
     def __init__(
-        self, format=("%Y-%m-%dT%H:%M:%S.%f", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d")
+        self,
+        format: Optional[Union[str, Sequence[str]]] = (
+            "%Y-%m-%dT%H:%M:%S.%f",
+            "%Y-%m-%dT%H:%M:%S",
+            "%Y-%m-%d",
+        ),
     ):
         super(DefaultDateRangeDeserializer, self).__init__()
         self.format = format
@@ -1733,13 +1739,13 @@ class DefaultListDeserializer(ParamConfigDeserializer):
     The process:
 
     1. :obj:`None` check
-    2. If the parameter's ``class_`` attribute has been set, for each
-       element in `block` (we always assume `block` is iterable):
+    2. If the parameter's ``class_`` attribute has been set, for each element in `block`
+       (we always assume `block` is iterable):
 
        1. If the element is an instance of the class, leave it alone
-       2. Try instantiating a ``class_`` object using the element
-          as the first argument plus any arguments or keyword arguments
-          passed to the deserializer on initialization.
+       2. Try instantiating a ``class_`` object using the element as the first argument
+          plus any arguments or keyword arguments passed to the deserializer on
+          initialization.
 
     3. Cast to a list and set
     """
@@ -1773,15 +1779,14 @@ class DefaultListDeserializer(ParamConfigDeserializer):
 class DefaultListSelectorDeserializer(ParamConfigDeserializer):
     """Default ListSelector deserializer
 
-    For each element in `block` (we assume `block` is iterable), match a
-    value or name in the selector's :func:`param.ListSelector.get_range` method
+    For each element in `block` (we assume `block` is iterable), match a value or name
+    in the selector's :func:`param.ListSelector.get_range` method
     """
 
     def deserialize(
         self, name: str, block: Any, parameterized: param.Parameterized
     ) -> None:
-        # a list selector cannot be none, only empty. Therefore, no "None"
-        # checks
+        # a list selector cannot be none, only empty. Therefore, no "None" checks
         try:
             block = [
                 _find_object_in_object_selector(name, x, parameterized) for x in block
@@ -1797,10 +1802,10 @@ class _CastDeserializer(ParamConfigDeserializer):
     The process:
 
     1. :obj:`None` check
-    2. If `block` is a(n) {0}, set it
-    3. Initialize a(n) {0} instance with `block` as the first argument
-       plus any extra positional or keyword arguments passed to the
-       deserializer on initialization
+    2. If `block` is a(n) :class:`{0}`, set it
+    3. Initialize a(n) :class:`{0}` instance with `block` as the first argument plus any
+       extra positional or keyword arguments passed to the deserializer on
+       initialization
     """
 
     def __init__(self, *args, **kwargs):
@@ -1861,7 +1866,7 @@ class DefaultNumericTupleDeserializer(ParamConfigDeserializer):
 
 
 class DefaultObjectSelectorDeserializer(ParamConfigDeserializer):
-    """Default ObjectSelector deserializer
+    """Default :class:`param.ObjectSelector` deserializer
 
     The process:
 
@@ -1902,12 +1907,11 @@ class DefaultTupleDeserializer(_CastDeserializer):
 class JsonStringArrayDeserializer(DefaultArrayDeserializer):
     """Parses a block as JSON before converting it into a numpy array
 
-    The default deserializer used in INI files. Input is always assumed to be a
-    string or :obj:`None`. If :obj:`None`, a none check is performed.
-    Otherwise, it parses the value as JSON, then does the same as
-    :class:`DefaultArrayDeserializer`. However, if the input ends in the file
-    suffix ".npy", the input will be immediately passed to
-    :class:`DefaultArrayDeserializer`
+    The default deserializer used in INI files. Input is always assumed to be a string
+    or :obj:`None`. If :obj:`None`, a none check is performed. Otherwise, it parses the
+    value as JSON, then does the same as :class:`DefaultArrayDeserializer`. However, if
+    the input ends in the file suffix :obj:`".npy"`, the input will be immediately
+    passed to :class:`DefaultArrayDeserializer`
 
     See Also
     --------
@@ -1937,12 +1941,11 @@ class JsonStringArrayDeserializer(DefaultArrayDeserializer):
 class JsonStringDataFrameDeserializer(DefaultDataFrameDeserializer):
     """Parses block as JSON before converting to pandas.DataFrame
 
-    The default deserializer used in INI files. Input is always assumed to be a
-    string or :obj:`None`. If :obj:`None`, a none check is performed.
-    Otherwise, it parses the value as JSON, then does the same as
-    :class:`DefaultDataFrameSerializer`. However, if the input ends in a file
-    suffix like ".csv", ".xls", etc., the input will be immediately passed to
-    :class:`DefaultDataFrameSerializer`
+    The default deserializer used in INI files. Input is always assumed to be a string
+    or :obj:`None`. If :obj:`None`, a none check is performed. Otherwise, it parses the
+    value as JSON, then does the same as :class:`DefaultDataFrameSerializer`. However,
+    if the input ends in a file suffix like :obj:`".csv"`, :obj:`".xls"`, etc., the
+    input will be immediately passed to :class:`DefaultDataFrameSerializer`
 
     See Also
     --------
@@ -1961,7 +1964,7 @@ class JsonStringDataFrameDeserializer(DefaultDataFrameDeserializer):
         "dta",
         "sas7bdat",
         "pkl",
-    }
+    }  #:
 
     def deserialize(
         self, name: str, block: Any, parameterized: param.Parameterized
@@ -2016,7 +2019,7 @@ def _to_json_string_deserializer(cls, typename):
 
 
 JsonStringDateRangeDeserializer = _to_json_string_deserializer(
-    DefaultDateRangeDeserializer, "date range"
+    DefaultDateRangeDeserializer, "param.DateRange"
 )
 
 JsonStringDictDeserializer = _to_json_string_deserializer(DefaultDeserializer, "dict")
@@ -2026,15 +2029,15 @@ JsonStringListDeserializer = _to_json_string_deserializer(
 )
 
 JsonStringListSelectorDeserializer = _to_json_string_deserializer(
-    DefaultListSelectorDeserializer, "list selector"
+    DefaultListSelectorDeserializer, "param.ListSelector"
 )
 
 JsonStringNumericTupleDeserializer = _to_json_string_deserializer(
-    DefaultNumericTupleDeserializer, "numeric tuple"
+    DefaultNumericTupleDeserializer, "param.NumericTuple"
 )
 
 JsonStringSeriesDeserializer = _to_json_string_deserializer(
-    DefaultSeriesDeserializer, "pandas.Series"
+    DefaultSeriesDeserializer, "param.Series"
 )
 
 JsonStringTupleDeserializer = _to_json_string_deserializer(
@@ -2139,26 +2142,26 @@ def _deserialize_from_dict_flat(
 
 def deserialize_from_dict(
     dict_: dict,
-    parameterized: param.Parameterized,
+    parameterized: Union[param.Parameterized, dict],
     deserializer_name_dict: Optional[dict] = None,
     deserializer_type_dict: Optional[dict] = None,
     on_missing: Literal["ignore", "warn", "raise"] = "warn",
 ) -> None:
     """Deserialize a dictionary into a parameterized object
 
-    This function is suitable for deserializing the results of parsing a data
-    storage file such as a YAML, JSON, or a section of an INI file (using the
-    :mod:`yaml`, :mod:`json`, and :mod:`configparser` python modules, resp.)
-    into a :class:`param.parameterized.Parameterized` object. Each key in `dict_` should
-    match the name of a parameter in `parameterized`. The parameter will be
-    deserialized into `parameterized` using a :class:`ParamConfigDeserializer`
-    object matched with the following precedent:
+    This function is suitable for deserializing the results of parsing a data storage
+    file such as a YAML, JSON, or a section of an INI file (using the :mod:`yaml`,
+    :mod:`json`, and :mod:`configparser` python modules, resp.) into a
+    :class:`param.parameterized.Parameterized` object. Each key in `dict_` should match
+    the name of a parameter in `parameterized`. The parameter will be deserialized into
+    `parameterized` using a :class:`ParamConfigDeserializer` object matched with the
+    following precedent:
 
-     1. If `deserializer_name_dict` is specified and contains the same key,
-        the value of the item in `deserializer_name_dict` will be used.
-     2. If `deserializer_type_dict` and the type of the parameter in question
-        *exactly matches* a key in `deserializer_type_dict`, the value of the
-        item in `deserializer_type_dict` will be used.
+     1. If `deserializer_name_dict` is specified and contains the same key, the value of
+        the item in `deserializer_name_dict` will be used.
+     2. If `deserializer_type_dict` and the type of the parameter in question *exactly
+        matches* a key in `deserializer_type_dict`, the value of the item in
+        `deserializer_type_dict` will be used.
      3. If the type of the parameter in question *exactly matches* a key in
         :obj:`DEFAULT_DESERIALIZER_DICT`, the value of the item in
         :obj:`DEFAULT_DESERIALIZER_DICT` will be used.
@@ -2176,18 +2179,18 @@ def deserialize_from_dict(
     `dict_` exists for a given `parameterized` leaf, that parameterized object will not
     be updated.
 
-    Default deserializers are likely appropriate for basic types like strings,
-    ints, bools, floats, and numeric tuples. For more complex data types,
-    including recursive :class:`param.parameterized.Parameterized` instances, custom
-    deserializers are recommended.
+    Default deserializers are likely appropriate for basic types like strings, ints,
+    bools, floats, and numeric tuples. For more complex data types, including recursive
+    :class:`param.parameterized.Parameterized` instances, custom deserializers are
+    recommended.
 
     Parameters
     ----------
-    dict_ : dict
-    parameterized : param.parameterized.Parameterized or dict
-    deserializer_name_dict : dict, optional
-    deserializer_type_dict : dict, optional
-    on_missing : {'ignore', 'warn', 'raise'}, optional
+    dict_
+    parameterized
+    deserializer_name_dict
+    deserializer_type_dict
+    on_missing
         What to do if the parameterized instance does not have a parameter
         listed in `dict_`, or, in the case of "hierarchical mode", if
         `dict_` contains a key with no matching parameterized object to
@@ -2243,7 +2246,7 @@ def deserialize_from_dict(
 
 def deserialize_from_ini(
     file: Union[TextIO, str],
-    parameterized: param.Parameterized,
+    parameterized: Union[param.Parameterized, dict],
     deserializer_name_dict: Optional[dict] = None,
     deserializer_type_dict: Optional[dict] = None,
     on_missing: Literal["ignore", "warn", "raise"] = "warn",
@@ -2276,32 +2279,31 @@ def deserialize_from_ini(
 
     Parameters
     ----------
-    file : file pointer or str
+    file
         The INI file to deserialize from. Can be a pointer or a path
-    parameterized : param.parameterized.Parameterized or dict
-    deserializer_name_dict : dict, optional
-    deserializer_type_dict : dict, optional
-    on_missing : {'ignore', 'warn', 'raise'}, optional
-    defaults : dict, optional
+    parameterized
+    deserializer_name_dict
+    deserializer_type_dict
+    on_missing
+    defaults
         Default key-values used in interpolation (substitution). Terms such
         as ``(key)%s`` (like a python 2.7 format string) are substituted with
         these values
-    comment_prefixes : sequence, optional
-        A sequence of characters that indicate a full-line comment in the INI
-        file. Ignored in python 2.7
-    inline_comment_prefixes : sequence, optional
-        A sequence of characters that indicate an inline (including full-line)
-        comment in the INI file. Ignored in python 2.7
-    one_param_section : str or None, optional
+    comment_prefixes
+        A sequence of characters that indicate a full-line comment in the INI file
+    inline_comment_prefixes
+        A sequence of characters that indicate an inline (including full-line) comment
+        in the INI file
+    one_param_section
         If `parameterized` refers to a single :class:`param.parameterized.Parameterized`
-        instance, this keyword is used to indicate which section of the INI
-        file will be deserialized. If unspecified, will default to the ``name``
-        attribute of `parameterized`
+        instance, this keyword is used to indicate which section of the INI file will be
+        deserialized. If unspecified, will default to the ``name`` attribute of
+        `parameterized`
 
     See Also
     --------
-    deserialize_from_dict : A description of the deserialization process and
-        the parameters to this function
+    deserialize_from_dict
+        A description of the deserialization process and the parameters to this function
     """
     if isinstance(file, str):
         with open(file) as fp:
@@ -2398,7 +2400,7 @@ def _deserialize_from_yaml(fp, round_trip=True):
 
 def deserialize_from_yaml(
     file: Union[TextIO, str],
-    parameterized: param.Parameterized,
+    parameterized: Union[param.Parameterized, dict],
     deserializer_name_dict: Optional[dict] = None,
     deserializer_type_dict: Optional[dict] = None,
     on_missing: Literal["ignore", "warn", "raise"] = "warn",
@@ -2411,17 +2413,17 @@ def deserialize_from_yaml(
 
     Parameters
     ----------
-    file : file pointer or str
+    file
         The YAML file to deserialize from. Can be a pointer or a path
-    parameterized : param.parameterized.Parameterized or dict
-    deserializer_name_dict : dict, optional
-    deserializer_type_dict : dict, optional
-    on_missing : {'ignore', 'warn', 'raise'}, optional
+    parameterized
+    deserializer_name_dict
+    deserializer_type_dict
+    on_missing
 
     See Also
     --------
-    deserialize_from_dict : A description of the deserialization process and
-        the parameters to this function
+    deserialize_from_dict
+        A description of the deserialization process and the parameters to this function
 
     Notes
     -----
@@ -2450,7 +2452,7 @@ def deserialize_from_yaml(
 
 def deserialize_from_json(
     file: Union[TextIO, str],
-    parameterized: param.Parameterized,
+    parameterized: Union[param.Parameterized, str],
     deserializer_name_dict: Optional[dict] = None,
     deserializer_type_dict: Optional[dict] = None,
     on_missing: Literal["ignore", "warn", "raise"] = "warn",
@@ -2463,17 +2465,17 @@ def deserialize_from_json(
 
     Parameters
     ----------
-    file : file pointer or str
+    file
         The JSON file to deserialize from. Can be a pointer or a path
-    parameterized : param.parameterized.Parameterized or dict
-    deserializer_name_dict : dict, optional
-    deserializer_type_dict : dict, optional
-    on_missing : {'ignore', 'warn', 'raise'}, optional
+    parameterized
+    deserializer_name_dict
+    deserializer_type_dict
+    on_missing
 
     See Also
     --------
-    deserialize_from_dict : A description of the deserialization process and
-        the parameters to this function
+    deserialize_from_dict
+        A description of the deserialization process and the parameters to this function
     """
     if isinstance(file, str):
         with open(file) as fp:

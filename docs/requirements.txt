@@ -1,5 +1,4 @@
 Sphinx>=4.4
-sphinxcontrib-programoutput
 myst-parser
 param
 sphinx_rtd_theme>=0.5

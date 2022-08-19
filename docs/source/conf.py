@@ -34,16 +34,25 @@ language = "en"
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    "myst_parser",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosectionlabel",
+    "sphinx.ext.viewcode",
     "sphinx.ext.intersphinx",
     "sphinx.ext.napoleon",
-    "sphinx.ext.viewcode",
-    "sphinxcontrib.programoutput",
-    "myst_parser",
+    # "sphinx_autodoc_typehints",
 ]
 
-naploeon_numpy_docstring = True
+napoleon_numpy_docstring = True
+napoleon_google_docstring = False
+napoleon_include_init_with_doc = True
+autodoc_mock_imports = ["numpy", "pandas"]
+autodoc_typehints = "description"
+autodoc_type_aliases = napoleon_type_aliases = {"np.ndarray": "numpy.ndarray"}
+autodoc_inherit_docstrings = False
+napoleon_preprocess_types = False
+always_document_param_types = True
+napoleon_use_rtype = False
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]

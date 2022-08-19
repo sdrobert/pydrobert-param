@@ -20,12 +20,14 @@ See Also
     A tutorial on how to use this module
 """
 
+from __future__ import annotations
+
 
 import abc
 import warnings
 import collections.abc
 
-from typing import Collection, Optional, Set
+from typing import Collection, Optional, Set, Type, TypeVar
 from collections import OrderedDict
 from copy import deepcopy
 
@@ -70,7 +72,8 @@ class TunableParameterized(AbstractParameterized):
     def get_tunable(cls) -> Set[str]:
         """Get a set of names of tunable parameters
 
-        The values are intended to be names of parameters. Values should not contain "."
+        The values are intended to be names of parameters. Values should not contain
+        :obj:`'.'`.
         """
         return set()
 
@@ -79,10 +82,10 @@ class TunableParameterized(AbstractParameterized):
     def suggest_params(
         cls,
         trial,
-        base: Optional["TunableParameterized"] = None,
+        base: Optional[TunableParameterized] = None,
         only: Optional[Collection[str]] = None,
         prefix: str = "",
-    ):
+    ) -> TunableParameterized:
         """Populate an instance of this class with parameters based on trial
 
         Parameters
@@ -90,14 +93,14 @@ class TunableParameterized(AbstractParameterized):
         trial : optuna.trial.Trial
             The current optuna trial. Parameter values will be sampled from
             this
-        base : TunableParameterized or :obj:`None`, optional
+        base
             If set, parameter values will be loaded into this instance. If
             :obj:`None`, a new instance will be created matching this class
             type
-        only : collection or :obj:`None`, optional
+        only
             Only sample parameters with names in this set. If :obj:`None`,
             all the parameters from :func:`get_tunable()` will be sampled
-        prefix : str, optional
+        prefix
             A value to be prepended to the names from `only` when sampling
             those parameters from `trial`
 
@@ -122,19 +125,18 @@ def get_param_dict_tunable(
 ) -> OrderedDict:
     """Return a set of all the tunable parameters in a parameter dictionary
 
-    This function crawls through a (possibly nested) dictionary of objects,
-    looks for any that implement the :class:`TunableParameterized` interface,
-    collects the results of calls to :func:`get_tunable`, and returns the set
-    `tunable`.
+    This function crawls through a (possibly nested) dictionary of objects, looks for
+    any that implement the :class:`TunableParameterized` interface, collects the results
+    of calls to :func:`get_tunable`, and returns the set `tunable`.
 
     Elements of `tunable` are strings with the format
-    ``"<key_0>.<key_1>.<...>.<parameter_name>"``, where ``parameter_name`` is
-    a parameter from ``param_dict[<key_0>][<key_1>][...].get_tunable()``
+    ``"<key_0>.<key_1>.<...>.<parameter_name>"``, where ``parameter_name`` is a
+    parameter from ``param_dict[<key_0>][<key_1>][...].get_tunable()``
 
     Parameters
     ----------
-    param_dict : dict
-    on_decimal : {"warn", "raise", "ignore"}, optional
+    param_dict
+    on_decimal
         :obj:`'.'` can produce ambiguous parameters in `tunable`. When one is found as a
         key in `param_dict` or as a tunable parameter: "raise" means a
         :class:`ValueError` will be raised; "warn" means a warning will be issued via
@@ -168,9 +170,12 @@ def get_param_dict_tunable(
     return tunable
 
 
+P = TypeVar("P", bound=param.Parameterized)
+
+
 def parameterized_class_from_tunable(
-    tunable: Collection, base: type = param.Parameterized, default: list = []
-) -> type:
+    tunable: Collection, base: Type[P] = param.Parameterized, default: list = [],
+) -> Type[P]:
     """Construct a Parameterized class to store parameters to optimize
 
     This function creates a subclass of :class:`param.parameterized.Parameterized` that
@@ -179,10 +184,10 @@ def parameterized_class_from_tunable(
 
     Parameters
     ----------
-    tunable : collection
-    base : class, optional
+    tunable
+    base
         The parent class of the returned class
-    default : list, optional
+    default
         The default value for the `only` parameter
 
     Returns
@@ -225,7 +230,7 @@ def parameterized_class_from_tunable(
 def suggest_param_dict(
     trial,
     global_dict: dict,
-    only: Optional[set] = None,
+    only: Optional[Set[str]] = None,
     on_decimal: Literal["ignore", "warn", "raise"] = "warn",
     warn: bool = True,
 ) -> dict:
@@ -240,21 +245,20 @@ def suggest_param_dict(
     trial : optunal.trial.Trial
         The trial from an Optuna experiment. This is passed along to each
         :class:`TunableParameterized` in `global_dict`
-    global_dict : dict
-        A (possibly nested) dictionary containing some
-        :class:`TunableParameterized` as values
-    only : set or :obj:`None`, optional
+    global_dict
+        A (possibly nested) dictionary containing some :class:`TunableParameterized` as
+        values
+    only
         A set containing parameter names to optimize. Names are formatted
-        ``"<key_0>.<key_1>.<...>.<parameter_name>"``, where ``parameter_name``
-        is a parameter from
-        ``global_dict[<key_0>][<key_1>][...].get_tunable()``. If :obj:`None`,
-        the entire set returned by :func:`get_param_dict_tunable`.
-    on_decimal : {"warn", "raise", "ignore"}, optional
-        '.' can produce ambiguous parameters in `only`. When one is found as a
-        key in `global_dict` or as a tunable parameter: "raise" means a
-        :class:`ValueError` will be raised; "warn" means a warning will be
-        issued via :mod:`warnings`; and "ignore" just ignores it
-    warn : bool, optional
+        ``"<key_0>.<key_1>.<...>.<parameter_name>"``, where ``parameter_name`` is a
+        parameter from ``global_dict[<key_0>][<key_1>][...].get_tunable()``. If
+        :obj:`None`, the entire set returned by :func:`get_param_dict_tunable`.
+    on_decimal
+        '.' can produce ambiguous parameters in `only`. When one is found as a key in
+        `global_dict` or as a tunable parameter: "raise" means a :class:`ValueError`
+        will be raised; "warn" means a warning will be issued via :mod:`warnings`; and
+        "ignore" just ignores it
+    warn
         If `warn` is :obj:`True` and any elements of `only` do not match this
         description, a warning will be raised via :mod:`warnings`
 
