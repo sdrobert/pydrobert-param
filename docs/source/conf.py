@@ -53,7 +53,7 @@ autodoc_type_aliases = napoleon_type_aliases = {
     "Literal": "typing.Literal",
 }
 autodoc_inherit_docstrings = False
-napoleon_preprocess_types = False
+napoleon_preprocess_types = True
 always_document_param_types = True
 napoleon_use_rtype = False
 
