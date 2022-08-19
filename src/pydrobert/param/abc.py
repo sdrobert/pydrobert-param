@@ -14,6 +14,8 @@
 
 """Abstract base class for :class:`param.ParameterizedMetaclass`"""
 
+from __future__ import annotations
+
 import abc
 import param
 

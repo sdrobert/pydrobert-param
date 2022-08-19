@@ -14,6 +14,7 @@
 
 """Utilities for (de)serializing Parameterized objects"""
 
+from __future__ import annotations
 
 import abc
 import json

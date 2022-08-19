@@ -14,6 +14,8 @@
 
 """Hooks for command-line interface with params"""
 
+from __future__ import annotations
+
 
 import argparse
 import abc
