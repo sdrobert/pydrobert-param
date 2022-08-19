@@ -47,7 +47,7 @@ napoleon_numpy_docstring = True
 napoleon_google_docstring = False
 napoleon_include_init_with_doc = True
 autodoc_mock_imports = ["numpy", "pandas"]
-autodoc_typehints = "description"
+autodoc_typehints = "none"
 autodoc_type_aliases = napoleon_type_aliases = {
     "np.ndarray": "numpy.ndarray",
     "Literal": "typing.Literal",
