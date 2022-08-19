@@ -3,7 +3,6 @@ pydrobert.param API
 
 .. automodule:: pydrobert.param
     :members:
-    :undoc-members:
     :show-inheritance:
 
 .. toctree::

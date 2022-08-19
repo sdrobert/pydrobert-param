@@ -48,14 +48,13 @@ def _combine_ini_files_parse_args(args):
 def combine_ini_files(args=None):
     """Combine INI files
 
-    This command provides a content-agnostic way of combining INI files
-    (https://en.wikipedia.org/wiki/INI_file).
+This command provides a content-agnostic way of combining INI files
+(https://en.wikipedia.org/wiki/INI_file).
 
-    All but the last positional argument consist of input files. Earlier values are
-    clobbered by later values.
+All but the last positional argument consist of input files. Earlier values are
+clobbered by later values.
 
-    Comments (anything after a '#' or ';') are ignored
-    """
+Comments (anything after a '#' or ';') are ignored"""
     try:
         options = _combine_ini_files_parse_args(args)
     except SystemExit as ex:
@@ -169,30 +168,29 @@ def _combine_json_files_parse_args(args):
 def combine_json_files(args=None):
     """Combine JSON files
 
-    This command provides a content-agnostic way of combining JSON files
-    (https://en.wikipedia.org/wiki/JSON).
+This command provides a content-agnostic way of combining JSON files
+(https://en.wikipedia.org/wiki/JSON).
 
-    If all source files are lists, we merely append the lists together.
+If all source files are lists, we merely append the lists together.
 
-    If all documents' root data types are dictionaries, the default behaviour, given a
-    collision of keys, is to clobber the old value with the new one. If the "--nested"
-    flag is set, and both values are dictionaries, the values of the old dictionary will
-    be updated with the values of the new one, but old keys not present in the new
-    dictionary will persist. For example, without the "--nested" flag
+If all documents' root data types are dictionaries, the default behaviour, given a
+collision of keys, is to clobber the old value with the new one. If the "--nested" flag
+is set, and both values are dictionaries, the values of the old dictionary will be
+updated with the values of the new one, but old keys not present in the new dictionary
+will persist. For example, without the "--nested" flag
 
-        {"a": {"b": {"c": null}, "d": true}} +
-        {"a": {"b": {"e": 1}}, "f": "g"} =
-        {"a": {"b": {"e": 1}}, "f": "g"}
+    {"a": {"b": {"c": null}, "d": true}} +
+    {"a": {"b": {"e": 1}}, "f": "g"} =
+    {"a": {"b": {"e": 1}}, "f": "g"}
 
-    but with the nested flag
+but with the nested flag
 
-        {"a": {"b": {"c": null}, "d": true}} +
-        {"a": {"b": {"e": 1}}, "f": "g"} =
-        {"a": {"b": {"c": null, "e": 1}, "d": true}, "f": "g"}
+    {"a": {"b": {"c": null}, "d": true}} +
+    {"a": {"b": {"e": 1}}, "f": "g"} =
+    {"a": {"b": {"c": null, "e": 1}, "d": true}, "f": "g"}
 
-    Mixing root data types of sources or specifying more than one source for a root type
-    that is not a dict or list will result in an error.
-    """
+Mixing root data types of sources or specifying more than one source for a root type
+that is not a dict or list will result in an error."""
     try:
         options = _combine_json_files_parse_args(args)
     except SystemExit as ex:
@@ -231,22 +229,21 @@ def _combine_yaml_files_parse_args(args):
 def combine_yaml_files(args=None):
     """Combine YAML files
 
-    This command provides a content-agnostic way of combining YAML files
-    (https://en.wikipedia.org/wiki/YAML).
+This command provides a content-agnostic way of combining YAML files
+(https://en.wikipedia.org/wiki/YAML).
 
-    All but the last positional argument consist of input files. Earlier values are
-    clobbered by later values.
+All but the last positional argument consist of input files. Earlier values are
+clobbered by later values.
 
-    If all source files are lists, we merely append the lists together.
+If all source files are lists, we merely append the lists together.
 
-    If all documents' root data types are dictionaries, the default behaviour, given a
-    collision of keys, is to clobber the old value with the new one. If the "--nested"
-    flag is set, and both values are dictionaries, the values of the old dictionary will
-    be updated with the values of the new one, but old keys not present in the new
-    dictionary will persist. See the "combine-json-files" command for an example
+If all documents' root data types are dictionaries, the default behaviour, given a
+collision of keys, is to clobber the old value with the new one. If the "--nested" flag
+is set, and both values are dictionaries, the values of the old dictionary will be
+updated with the values of the new one, but old keys not present in the new dictionary
+will persist. See the "combine-json-files" command for an example
 
-    Whether comments are ignored depends on the parsing backend.
-    """
+Whether comments are ignored depends on the parsing backend."""
     try:
         options = _combine_yaml_files_parse_args(args)
     except SystemExit as ex:
