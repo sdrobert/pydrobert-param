@@ -13,6 +13,7 @@
 
 import os
 import sys
+
 import param
 
 param.parameterized.docstring_signature = False
@@ -39,9 +40,9 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.autosectionlabel",
     "sphinx.ext.viewcode",
-    "sphinx.ext.intersphinx",
     "sphinx.ext.napoleon",
     "sphinx_autodoc_typehints",
+    "sphinx.ext.intersphinx",
 ]
 
 napoleon_numpy_docstring = True
@@ -54,9 +55,13 @@ autodoc_type_aliases = napoleon_type_aliases = {
     "Literal": "typing.Literal",
 }
 autodoc_inherit_docstrings = False
-napoleon_preprocess_types = True
-always_document_param_types = True
+napoleon_preprocess_types = False
+always_document_param_types = False
 napoleon_use_rtype = False
+napoleon_use_ivar = True
+autoclass_content = "both"
+napoleon_attr_annotations = False
+typehints_document_rtype = False
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -90,33 +95,33 @@ highlight_language = "none"
 master_doc = "index"
 
 
-def my_handler(app, what, name, obj, options, lines):
-    if "Params" in name.split(".")[-1]:
-        pdict = obj.param.objects(instance=False)
-        del pdict["name"]
-        new_lines = []
-        for name, p in pdict.items():
-            doc = p.doc
-            deft = p.default
-            bounds = p.bounds if hasattr(p, "bounds") else None
-            new_lines.append(
-                "- **{}**: {}. *default={}{}*".format(
-                    name, doc, deft, ", bounds={}".format(bounds) if bounds else ""
-                )
-            )
-            new_lines.append("")
-            new_lines.append("")
-        if new_lines:
-            new_lines.insert(0, "")
-            new_lines.insert(0, "")
-            new_lines.insert(1, "**Parameters**")
-            new_lines.insert(2, "")
-            new_lines.insert(2, "")
-            lines += new_lines
-        options["undoc-members"] = False
-    elif "Parameterized" in name.split(".")[-1]:
-        options["undoc-members"] = False
+# def my_handler(app, what, name, obj, options, lines):
+#     if "Params" in name.split(".")[-1]:
+#         pdict = obj.param.objects(instance=False)
+#         del pdict["name"]
+#         new_lines = []
+#         for name, p in pdict.items():
+#             doc = p.doc
+#             deft = p.default
+#             bounds = p.bounds if hasattr(p, "bounds") else None
+#             new_lines.append(
+#                 "- **{}**: {}. *default={}{}*".format(
+#                     name, doc, deft, ", bounds={}".format(bounds) if bounds else ""
+#                 )
+#             )
+#             new_lines.append("")
+#             new_lines.append("")
+#         if new_lines:
+#             new_lines.insert(0, "")
+#             new_lines.insert(0, "")
+#             new_lines.insert(1, "**Parameters**")
+#             new_lines.insert(2, "")
+#             new_lines.insert(2, "")
+#             lines += new_lines
+#         options["undoc-members"] = False
+#     elif "Parameterized" in name.split(".")[-1]:
+#         options["undoc-members"] = False
 
 
-def setup(app):
-    app.connect("autodoc-process-docstring", my_handler)
+# def setup(app):
+#     app.connect("autodoc-process-docstring", my_handler)

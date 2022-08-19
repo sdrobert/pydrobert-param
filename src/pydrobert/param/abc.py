@@ -30,6 +30,8 @@ class AbstractParameterizedMetaclass(
 ):
     """Metaclass for defining Abstract Base Classes for Parameterized instances"""
 
+    pass
+
 
 class AbstractParameterized(
     param.Parameterized, metaclass=AbstractParameterizedMetaclass
@@ -42,3 +44,5 @@ class AbstractParameterized(
     :class:`object`, however, an :class:`AbstractParameterized` has
     :class:`param.parameterized.Parameterized` as a base class
     """
+
+    pass

@@ -111,6 +111,7 @@ class ParameterizedFileReadAction(argparse.Action, metaclass=abc.ABCMeta):
     --------
     pydrobert.param.serialization.deserialize_from_dict
         For more information on how values are deserialized from the config
+    
     """
 
     parameterized: Union[param.Parameterized, dict]
