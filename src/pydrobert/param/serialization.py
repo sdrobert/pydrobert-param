@@ -607,6 +607,8 @@ JsonStringTupleSerializer = _to_json_string_serializer(DefaultTupleSerializer, "
 
 """Default serializers by param type
 
+:meta hide-value:
+
 See Also
 --------
 serialize_to_dict
@@ -630,6 +632,8 @@ DEFAULT_SERIALIZER_DICT = {
 
 """Default serializer to use when not type specific
 
+:meta hide-value:
+
 See Also
 --------
 serialize_to_dict
@@ -641,6 +645,8 @@ DEFAULT_BACKUP_SERIALIZER = DefaultSerializer()
 """JSON string serializers by param type
 
 Used as defaults when writing an INI file
+
+:meta hide-value:
 
 See Also
 --------
@@ -1915,7 +1921,7 @@ class JsonStringArrayDeserializer(DefaultArrayDeserializer):
 
     See Also
     --------
-    deserialize_to_json
+    deserialize_from_json
         To deserialize JSON into :class:`param.parameterized.Parameterized` instances
     """
 
@@ -1949,21 +1955,21 @@ class JsonStringDataFrameDeserializer(DefaultDataFrameDeserializer):
 
     See Also
     --------
-    deserialize_to_json
+    deserialize_from_json
         To deserialize JSON into :class:`param.parameterized.Parameterized` instances
     """
 
     file_suffixes = {
         "csv",
-        "json",
-        "html",
-        ".xls",
-        "h5",
-        "feather",
-        "parquet",
         "dta",
-        "sas7bdat",
+        "feather",
+        "h5",
+        "html",
+        "json",
+        "parquet",
         "pkl",
+        "sas7bdat",
+        "xls",
     }  #:
 
     def deserialize(
@@ -1997,7 +2003,7 @@ def _to_json_string_deserializer(cls, typename):
 
         See Also
         --------
-        deserialize_to_json
+        deserialize_from_json
             To deserialize json into :class:`param.parameterized.Parameterized`
             instances
         """.format(
@@ -2047,6 +2053,8 @@ JsonStringTupleDeserializer = _to_json_string_deserializer(
 
 """Default deserializers by parameter type
 
+:meta hide-value:
+
 See Also
 --------
 deserialize_from_dict
@@ -2077,6 +2085,8 @@ DEFAULT_DESERIALIZER_DICT = {
 
 """Default deserializer that is not type specific
 
+:meta hide-value:
+
 See Also
 --------
 deserialize_from_dict
@@ -2089,9 +2099,11 @@ DEFAULT_BACKUP_DESERIALIZER = DefaultDeserializer()
 
 Used as defaults when parsing an INI file
 
+:meta hide-value:
+
 See Also
 --------
-deserialize_to_ini
+deserialize_from_ini
     How these are used
 """
 JSON_STRING_DESERIALIZER_DICT = {
