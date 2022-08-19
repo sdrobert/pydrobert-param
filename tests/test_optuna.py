@@ -23,6 +23,8 @@ def test_tunable_parameterized_interface(check_type):
     assert not check(param.Parameterized, poptuna.TunableParameterized)
 
     class DirectInheritance(poptuna.TunableParameterized):
+        foo = param.Number(1, doc="foo", bounds=(1, 3))
+
         @classmethod
         def suggest_params(cls, *args, **kwargs):
             pass
@@ -32,10 +34,16 @@ def test_tunable_parameterized_interface(check_type):
             pass
 
     assert check(DirectInheritance, poptuna.TunableParameterized)
+    assert check(DirectInheritance, param.Parameterized)
 
-    # this would fail if we directly used abc.ABCMeta for TunableParameterized
-    # since they would use diffent (and not compatible) metaclasses
-    class RedundantInheritance(poptuna.TunableParameterized, param.Parameterized):
+    # ensure it still acts like a param.Parameterized object
+    di = DirectInheritance(foo=2)
+    assert di.foo == 2
+    di.foo = 1
+    with pytest.raises(ValueError):
+        di.foo = 4
+
+    class ParameterizedInheritance(param.Parameterized):
         @classmethod
         def suggest_params(cls, *args, **kwargs):
             pass
@@ -44,8 +52,8 @@ def test_tunable_parameterized_interface(check_type):
         def get_tunable(cls):
             pass
 
-    assert check(RedundantInheritance, poptuna.TunableParameterized)
-    assert check(RedundantInheritance, param.Parameterized)
+    assert check(ParameterizedInheritance, poptuna.TunableParameterized)
+    assert check(ParameterizedInheritance, param.Parameterized)
 
     class NotParameterizedNewStyle(object):
         @classmethod

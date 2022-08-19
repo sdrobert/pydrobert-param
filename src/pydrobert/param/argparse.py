@@ -14,11 +14,13 @@
 
 """Hooks for command-line interface with params"""
 
+from __future__ import annotations
+
 
 import argparse
 import abc
 import sys
-from typing import List, Optional, Sequence, TextIO, Union, Collection
+from typing import List, Optional, Sequence, Set, TextIO, Tuple, Type, Union, Collection
 
 try:
     from typing import Literal
@@ -75,57 +77,54 @@ class ParameterizedFileReadAction(argparse.Action, metaclass=abc.ABCMeta):
 
     Parameters
     ----------
-    option_strings : list
-        A list of command-line option strings which should be associated with
-        this action.
-    dest : str
+    option_strings
+        A list of command-line option strings which should be associated with this
+        action.
+    dest
         The name of the attribute to hold the created object.
-    parameterized : param.parameterized.Parameterized or dict, optional
-    type : type, optional
-    deserializer_name_dict : dict, optional
+    parameterized
+    type
+    deserializer_name_dict
         Use specific deserializers for parameters with specific names.
-    deserializer_type_dict : dict, optional
+    deserializer_type_dict
         Use specific deserializers for parameters with exactly matching types.
-    on_missing: {'ignore', 'warn', 'raise'}, optional
-        What to do if the parameterized instance does not have a parameter
-        listed in the config file.
-    required : bool, optional
-        :obj:`True` if the action must always be specified at the command line.
-        This is only meaningful for optional command-line arguments.
-    help : str, optional
+    on_missing
+        What to do if the parameterized instance does not have a parameter listed in the
+        config file.
+    required
+        :obj:`True` if the action must always be specified at the command line. This is
+        only meaningful for optional command-line arguments.
+    help
         The help string describing the argument.
-    metavar : str, optional
-        The name to be used for the option's argument with the help string.
-        If :obj:`None`, the `dest` value will be used as the name.
-    nargs : str or int, optional
-        The number of command line arguments to be consumed. When more than
-        one argument is specified, each will be deserialized in the order that
-        they were presented on the command line. Thus, later config values
-        will clobber earlier ones
-    const : str, optional
-        If `nargs` is ``'?'`` but the flag is present on the command line,
-        this value will be supplied as the missing argument
-
-    Attributes
-    ----------
-    parameterized : param.parameterized.Parameterized or dict
-        The object that populates the `dest` attribute of the parsed namespace
-    deserializer_name_dict : dict or None
-    deserializer_type_dict : dict or None
-    on_missing : {'ignore', 'warn', 'raise'}
+    metavar
+        The name to be used for the option's argument with the help string. If
+        :obj:`None`, the `dest` value will be used as the name.
+    nargs
+        The number of command line arguments to be consumed. When more than one argument
+        is specified, each will be deserialized in the order that they were presented on
+        the command line. Thus, later config values will clobber earlier ones
+    const
+        If `nargs` is :obj:`'?'` but the flag is present on the command line, this value
+        will be supplied as the missing argument
 
     See Also
     --------
     pydrobert.param.serialization.deserialize_from_dict
         For more information on how values are deserialized from the config
+    
     """
+
+    parameterized: Union[param.Parameterized, dict]
+    deserializer_name_dict: Optional[dict]
+    deserializer_type_dict: Optional[dict]
+    on_missing: Literal["ignore", "warn", "raise"]
 
     def __init__(
         self,
         option_strings: List[str],
         dest: str,
         parameterized: Optional[Union[param.Parameterized, dict]] = None,
-        type: Optional[type] = None,
+        type: Optional[Type[param.Parameterized]] = None,
         deserializer_name_dict: Optional[dict] = None,
         deserializer_type_dict: Optional[dict] = None,
         on_missing: Literal["ignore", "warn", "raise"] = "warn",
@@ -188,22 +187,22 @@ class ParameterizedIniReadAction(ParameterizedFileReadAction):
 
     Parameters
     ----------
-    option_strings : list
-    dest : str
-    parameterized : param.parameterized.Parameterized or dict, optional
-    type : type, optional
-    deserializer_name_dict : dict, optional
-    deserializer_type_dict : dict, optional
-    on_missing: {'ignore', 'warn', 'raise'}, optional
-    required : bool, optional
-    help : str, optional
-    metavar : str, optional
-    nargs : str or int, optional
-    const : str, optional
-    defaults : dict, optional
-    comment_prefixes : tuple, optional
-    inline_comment_prefixes : sequence, optional
-    one_param_section : str or None, optional
+    option_strings
+    dest
+    parameterized
+    type
+    deserializer_name_dict
+    deserializer_type_dict
+    on_missing
+    required
+    help
+    metavar
+    nargs
+    const
+    defaults
+    comment_prefixes
+    inline_comment_prefixes
+    one_param_section
 
     See Also
     --------
@@ -214,12 +213,17 @@ class ParameterizedIniReadAction(ParameterizedFileReadAction):
         parameters.
     """
 
+    defaults: Optional[dict]
+    comment_prefixes: Tuple[str, ...]
+    inline_comment_prefixes: Tuple[str, ...]
+    one_param_section: Optional[str]
+
     def __init__(
         self,
         option_strings: List[str],
         dest: str,
         parameterized: Optional[Union[param.Parameterized, dict]] = None,
-        type: Optional[type] = None,
+        type: Optional[Type[param.Parameterized]] = None,
         deserializer_name_dict: Optional[dict] = None,
         deserializer_type_dict: Optional[dict] = None,
         on_missing: Literal["ignore", "warn", "raise"] = "warn",
@@ -234,10 +238,10 @@ class ParameterizedIniReadAction(ParameterizedFileReadAction):
         one_param_section: Optional[str] = None,
     ):
         self.defaults = defaults
-        self.comment_prefixes = comment_prefixes
-        self.inline_comment_prefixes = inline_comment_prefixes
+        self.comment_prefixes = tuple(comment_prefixes)
+        self.inline_comment_prefixes = tuple(inline_comment_prefixes)
         self.one_param_section = one_param_section
-        super(ParameterizedIniReadAction, self).__init__(
+        super().__init__(
             option_strings,
             dest,
             parameterized=parameterized,
@@ -271,19 +275,18 @@ class ParameterizedYamlReadAction(ParameterizedFileReadAction):
 
     Parameters
     ----------
-    option_strings : list
-    dest : str
-    parameterized : param.parameterized.Parameterized or dict, optional
-    type : type, optional
-    deserializer_name_dict : dict, optional
-    deserializer_type_dict : dict, optional
-    on_missing: {'ignore', 'warn', 'raise'}, optional
-    required : bool, optional
-    help : str, optional
-    metavar : str, optional
-    nargs : int or str, optional
-    const : str, optional
-
+    option_strings
+    dest
+    parameterized
+    type
+    deserializer_name_dict
+    deserializer_type_dict
+    on_missing
+    required
+    help
+    metavar
+    nargs
+    const
 
     See Also
     --------
@@ -308,18 +311,18 @@ class ParameterizedJsonReadAction(ParameterizedFileReadAction):
 
     Parameters
     ----------
-    option_strings : list
-    dest : str
-    parameterized : param.parameterized.Parameterized or dict, optional
-    type : type, optional
-    deserializer_name_dict : dict, optional
-    deserializer_type_dict : dict, optional
-    on_missing: {'ignore', 'warn', 'raise'}, optional
-    required : bool, optional
-    help : str, optional
-    metavar : str, optional
-    nargs : str, optional
-    const : str, optional
+    option_strings
+    dest
+    parameterized
+    type
+    deserializer_name_dict
+    deserializer_type_dict
+    on_missing
+    required
+    help
+    metavar
+    nargs
+    const
 
     See Also
     --------
@@ -370,8 +373,8 @@ def _yaml():
 
 def add_parameterized_read_group(
     parser: argparse.ArgumentParser,
-    parameterized: Optional[param.Parameterized] = None,
-    type: Optional[type] = None,
+    parameterized: Optional[Union[param.Parameterized, dict]] = None,
+    type: Optional[Type[param.Parameterized]] = None,
     include_yaml: Optional[bool] = None,
     ini_option_strings: Sequence[str] = ("--read-ini",),
     json_option_strings: Sequence[str] = ("--read-json",),
@@ -389,8 +392,8 @@ def add_parameterized_read_group(
     What to read into is determined by the keyword args `type` or
     `parameterized`.
 
-    1. If `type` is specified, it will be instantiated and populated. Its name
-       will match ``type.__name__``
+    1. If `type` is specified, it will be instantiated and populated. Its name will
+       match ``type.__name__``
 
     2. If `parameterized` is specified and is a
        :class:`param.parameterized.Parameterized` instance, it will be populated
@@ -405,41 +408,38 @@ def add_parameterized_read_group(
 
     Parameters
     ----------
-    parser : argparse.ArgumentParser
-    type : type, optional
-    parametrized : param.parameterized.Parameterized or dict, optional
-    include_yaml : bool, optional
+    parser
+    type
+    parametrized
+    include_yaml
         Whether to include the YAML config flags. YAML requires one of
-        :mod:`ruamel.yaml` or :mod:`yaml` to be installed. If unset, we will
-        include the flags if it is possible to import a YAML module.
-    ini_option_strings : sequence, optional
-        Zero or more option strings specifying that the next argument is an
-        INI file to be read. If no option strings are specified, INI reading
-        is disabled
-    json_option_strings : sequence, optional
-        Zero or more option strings specifying that the next argument is an
-        JSON file to be read. If no option strings are specified, JSON reading
-        is disabled
-    yaml_option_strings : sequence, optional
-        Zero or more option strings specifying that the next argument is an
-        YAML file to be read. If no option strings are specified, YAML reading
-        is disabled
-    dest : str, optional
+        :mod:`ruamel.yaml` or :mod:`yaml` to be installed. If unset, we will include the
+        flags if it is possible to import a YAML module.
+    ini_option_strings
+        Zero or more option strings specifying that the next argument is an INI file to
+        be read. If no option strings are specified, INI reading is disabled
+    json_option_strings
+        Zero or more option strings specifying that the next argument is an JSON file to
+        be read. If no option strings are specified, JSON reading is disabled
+    yaml_option_strings
+        Zero or more option strings specifying that the next argument is an YAML file to
+        be read. If no option strings are specified, YAML reading is disabled
+    dest
         Under what name to store parameters in the returned namespace of
         ``parser.parse_args(...)``
-    ini_kwargs : dict, optional
-        Additional keyword arguments to use when creating the INI flag.
-        See :class:`ParameterizedIniReadAction` for more info
-    json_kwargs : dict, optional
-        Additional keyword arguments to use when creating the JSON flag.
-        See :class`ParameterizedJsonReadAction` for more info
-    yaml_kwargs : dict, optional
-        Additional keyword arguments to use when creating the YAML flag.
-        See :class`ParameterizedYamlReadAction` for more info
+    ini_kwargs
+        Additional keyword arguments to use when creating the INI flag. See
+        :class:`ParameterizedIniReadAction` for more info
+    json_kwargs
+        Additional keyword arguments to use when creating the JSON flag. See
+        :class`ParameterizedJsonReadAction` for more info
+    yaml_kwargs
+        Additional keyword arguments to use when creating the YAML flag. See
+        :class`ParameterizedYamlReadAction` for more info
 
     Returns
     -------
-    group
+    group : obj
         The mutually exclusive group containing the flags
 
     Examples
@@ -567,48 +567,44 @@ class ParameterizedPrintAction(argparse.Action, metaclass=abc.ABCMeta):
 
     Parameters
     ----------
-    option_strings : list
-        A list of command-line option strings which should be associated with
-        this action.
-    dest : str
+    option_strings
+        A list of command-line option strings which should be associated with this
+        action.
+    dest
         Ignored
-    parameterized : param.parameterized.Parameterized or dict, optional
-    type : type, optional
-    serializer_name_dict : dict, optional
+    parameterized
+    type
+    serializer_name_dict
         Use specific serializers for parameters with specific names
-    serializer_type_dict : dict, optional
+    serializer_type_dict
         Use specific serializers for parameters with exactly matching types
-    only : set or dict, optional
-        If specified, only the parameters with their names in this set will
-        be printed
-    on_missing : {'ignore', 'warn', 'raise'}, optional
-        What to do if the parameterized instance does not have a parameter
-        listed in `only`
-    include_help : bool, optional
+    only
+        If specified, only the parameters with their names in this set will be printed
+    on_missing
+        What to do if the parameterized instance does not have a parameter listed in
+        `only`
+    include_help
         Whether to print parameter help when printing parameters
-    help : str, optional
+    help
         The help string describing the argument
-    out_stream : file_ptr, optional
+    out_stream
         Where to print the parameters to
-
-    Attributes
-    ----------
-    parameterized : param.parameterized.Parameterized or dict
-        The parameters to be printed
-    serializer_name_dict : dict
-    serializer_type_dict : dict
-    only : set or dict
-    on_missing : {'ignore', 'warn', 'raise'}
-    include_help : boolean
-    out_stream : file_ptr
     """
+
+    parameterized: Union[param.Parameterized, dict]
+    serializer_name_dict: Optional[dict]
+    serializer_type_dict: Optional[dict]
+    only: Collection[str]
+    on_missing: Literal["ignore", "warn", "raise"]
+    include_help: bool
+    out_stream: TextIO
 
     def __init__(
         self,
         option_strings: List[str],
         dest: str,
         parameterized: Optional[Union[dict, param.Parameterized]] = None,
-        type: Optional[type] = None,
+        type: Optional[Type[param.Parameterized]] = None,
         serializer_name_dict: Optional[dict] = None,
         serializer_type_dict: Optional[dict] = None,
         only: Optional[Collection[str]] = None,
@@ -660,47 +656,37 @@ class ParameterizedIniPrintAction(ParameterizedPrintAction):
 
     Parameters
     ----------
-    option_strings : list
-    dest : str
-    parameterized : param.parameterized.Parameterized or dict, optional
-    type : type, optional
-    serializer_name_dict : dict, optional
-    serializer_type_dict : dict, optional
-    only : set or dict, optional
-    on_missing : {'ignore', 'warn', 'raise'}, optional
-    include_help : bool, optional
-    help : str, optional
-    out_stream : file_ptr, optional
-    help_prefix : str, optional
-    one_param_section : str, optional
-
-    Attributes
-    ----------
-    parameterized : param.parameterized.Parameterized or dict
-    serializer_name_dict : dict
-    serializer_type_dict : dict
-    only : set or dict
-    on_missing : {'ignore', 'warn', 'raise'}
-    include_help : boolean
-    out_stream : file_ptr
-    help_prefix : str
-    one_param_section : str
+    option_strings
+    dest
+    parameterized
+    type
+    serializer_name_dict
+    serializer_type_dict
+    only
+    on_missing
+    include_help
+    help
+    out_stream
+    help_prefix
+    one_param_section
 
     See Also
     --------
     ParameterizedPrintAction
         A full description of the parameters and behaviour of like actions
     pydrobert.param.serialization.serialize_to_ini
-        A description of the serialization process and of the additional
-        parameters
+        A description of the serialization process and of the additional parameters
     """
+
+    help_prefix: str
+    one_param_section: Optional[str]
 
     def __init__(
         self,
         option_strings: List[str],
         dest: str,
         parameterized: Optional[Union[param.Parameterized, dict]] = None,
-        type: Optional[type] = None,
+        type: Optional[Type[param.Parameterized]] = None,
         serializer_name_dict: Optional[dict] = None,
         serializer_type_dict: Optional[dict] = None,
         only: Optional[Collection[str]] = None,
@@ -746,44 +732,33 @@ class ParameterizedJsonPrintAction(ParameterizedPrintAction):
 
     Parameters
     ----------
-    option_strings : list
-    dest : str
-    parameterized : param.parameterized.Parameterized or dict, optional
-    type : type, optional
-    serializer_name_dict : dict, optional
-    serializer_type_dict : dict, optional
-    only : set or dict, optional
-    on_missing : {'ignore', 'warn', 'raise'}, optional
-    out_stream : file_ptr, optional
-    indent : int, optional
-
-    Attributes
-    ----------
-    parameterized : param.parameterized.Parameterized or dict
-    serializer_name_dict : dict
-    serializer_type_dict : dict
-    only : set or dict
-    on_missing : {'ignore', 'warn', 'raise'}
-    include_help : False
-        Ignored. JSON can't print help
-    out_stream : file_ptr
-    indent : int
+    option_strings
+    dest
+    parameterized
+    type
+    serializer_name_dict
+    serializer_type_dict
+    only
+    on_missing
+    out_stream
+    indent
 
     See Also
     --------
     ParameterizedPrintAction
         A full description of the parameters and behaviour of like actions
     pydrobert.param.serialization.serialize_to_json
-        A description of the serialization process and of the additional
-        parameters
+        A description of the serialization process and of the additional parameters
     """
+
+    indent: int
 
     def __init__(
         self,
         option_strings: List[str],
         dest: str,
         parameterized: Optional[Union[param.Parameterized, dict]] = None,
-        type: Optional[type] = None,
+        type: Optional[Type[param.Parameterized]] = None,
         serializer_name_dict: Optional[dict] = None,
         serializer_type_dict: Optional[dict] = None,
         only: Optional[Collection[str]] = None,
@@ -824,27 +799,24 @@ class ParameterizedYamlPrintAction(ParameterizedPrintAction):
 
     Parameters
     ----------
-    option_strings : list
-    dest : str
-    parameterized : param.parameterized.Parameterized or dict, optional
-    type : type, optional
-    serializer_name_dict : dict, optional
-    serializer_type_dict : dict, optional
-    only : set or dict, optional
-    on_missing : {'ignore', 'warn', 'raise'}, optional
-    include_help : bool, optional
-    help : str, optional
-    out_stream : file_ptr, optional
+    option_strings
+    dest
+    parameterized
+    type
+    serializer_name_dict
+    serializer_type_dict
+    only
+    on_missing
+    include_help
+    help
+    out_stream
 
-    Attributes
-    ----------
-    parameterized : param.parameterized.Parameterized or dict
-    serializer_name_dict : dict
-    serializer_type_dict : dict
-    only : set or dict
-    on_missing : {'ignore', 'warn', 'raise'}
-    include_help : boolean
-    out_stream : file_ptr
+    See Also
+    --------
+    ParameterizedPrintAction
+        A full description of the parameters and behaviour of like actions
+    pydrobert.param.serialization.serialize_to_yaml
+        A description of the serialization process and of the additional parameters
     """
 
     def print_parameters(self) -> None:
@@ -861,7 +833,7 @@ class ParameterizedYamlPrintAction(ParameterizedPrintAction):
 
 def add_parameterized_print_group(
     parser: argparse.ArgumentParser,
-    type: Optional[type] = None,
+    type: Optional[Type[param.Parameterized]] = None,
     parameterized: Optional[Union[param.Parameterized, dict]] = None,
     include_yaml: Optional[bool] = None,
     ini_option_strings: Sequence[str] = ("--print-ini",),
@@ -893,35 +865,35 @@ def add_parameterized_print_group(
 
     Parameters
     ----------
-    parser : argparse.ArgumentParser
-    type : type, optional
-    parametrized : param.Parameterized or dict, optional
-    include_yaml : bool, optional
-        Whether to include the YAML print flags. YAML requires one of
-        :mod:`ruamel.yaml` or :mod:`yaml` to be installed. If unset, we will
-        include the flags if it is possible to import a YAML module.
-    ini_option_strings : sequence, optional
-        Zero or more option strings specifying that INI format should be
-        printed. If no option strings are specified, INI printing is disabled
-    json_option_strings : sequence, optional
-        Zero or more option strings specifying that JSON format should be
-        printed. If no option strings are specified, JSON printing is disabled
-    yaml_option_strings : sequence, optional
-        Zero or more option strings specifying that YAML format should be
-        printed. If no option strings are specified, YAML printing is disabled
-    ini_kwargs : dict, optional
-        Additional keyword arguments to use when creating the INI flag.
-        See :class:`ParameterizedIniPrintAction` for more info
-    json_kwargs : dict, optional
-        Additional keyword arguments to use when creating the JSON flag.
-        See :class:`ParameterizedJsonPrintAction` for more info
-    yaml_kwargs : dict, optional
-        Additional keyword arguments to use when creating the YAML flag.
-        See :class:`ParameterizedYamlPrintAction` for more info
+    parser
+    type
+    parametrized
+    include_yaml
+        Whether to include the YAML print flags. YAML requires one of :mod:`ruamel.yaml`
+        or :mod:`yaml` to be installed. If unset, we will include the flags if it is
+        possible to import a YAML module.
+    ini_option_strings
+        Zero or more option strings specifying that INI format should be printed. If no
+        option strings are specified, INI printing is disabled
+    json_option_strings
+        Zero or more option strings specifying that JSON format should be printed. If no
+        option strings are specified, JSON printing is disabled
+    yaml_option_strings
+        Zero or more option strings specifying that YAML format should be printed. If no
+        option strings are specified, YAML printing is disabled
+    ini_kwargs
+        Additional keyword arguments to use when creating the INI flag. See
+        :class:`ParameterizedIniPrintAction` for more info
+    json_kwargs
+        Additional keyword arguments to use when creating the JSON flag. See
+        :class:`ParameterizedJsonPrintAction` for more info
+    yaml_kwargs
+        Additional keyword arguments to use when creating the YAML flag. See
+        :class:`ParameterizedYamlPrintAction` for more info
 
     Returns
     -------
-    group
+    group : obj
         The group containing the flags
 
     Examples
@@ -966,9 +938,8 @@ def add_parameterized_print_group(
 
     Notes
     -----
-    The returned `group` is technically mutally exclusive. However, since the
-    print action ends with a :func:`sys.exit` call, mutual exclusivity will
-    never be enforced
+    The returned `group` is technically mutally exclusive. However, since the print
+    action ends with a :func:`sys.exit` call, mutual exclusivity will never be enforced
     """
     if parameterized is None and type is None:
         raise TypeError("one of parameterized or type must be set")

@@ -1,14 +1,10 @@
+# pydrobert-param
+
 [![Documentation Status](https://readthedocs.org/projects/pydrobert-param/badge/?version=latest)](https://pydrobert-param.readthedocs.io/en/latest/?badge=latest)
 [![Build status](https://ci.appveyor.com/api/projects/status/67r8qy78u6bkf2qn/branch/master?svg=true)](https://ci.appveyor.com/project/sdrobert/pydrobert-param/branch/master)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-# pydrobert-param
-
-Utilities for the python package [param](http://param.pyviz.org/)
-
-**This is student-driven code, so don't expect a stable API. I'll try to use
-semantic versioning, but the best way to keep functionality stable is by
-pinning the version in the requirements or by forking.**
+Utilities for the python package [param](http://param.pyviz.org/).
 
 While _param_ is a great tool for keeping track of parameters, currently
 serialization is restricted to pickling and unpickling objects.
@@ -18,6 +14,7 @@ how _pydrobert-param_ (de)serializes `param.Parameterized` instances according
 to her needs.
 
 A teaser:
+
 ``` python
 import param
 import pydrobert.param.serialization as serial
@@ -38,10 +35,13 @@ hyperparameter optimization via [Optuna](https://optuna.org/). Check the
 documentation for more complicated examples of serialization, as well as for
 hyperparameter optimization.
 
+**This is student-driven code, so don't expect a stable API. I'll try to use
+semantic versioning, but the best way to keep functionality stable is by
+pinning the version in the requirements or by forking.**
+
 ## Documentation
 
 - [Latest](https://pydrobert-param.readthedocs.io/en/latest/)
-- [Stable](https://pydrobert-param.readthedocs.io/en/stable/)
 
 ## Installation
 
@@ -57,3 +57,7 @@ pip install git+https://github.com/sdrobert/pydrobert-param # bleeding edge
 
 Please see the [pydrobert page](https://github.com/sdrobert/pydrobert) for more
 details.
+
+The implementation of `pydrobert.param.abc._check_methods` was modified from
+the CPython codebase, Copyright 2007 Google with additional notices at
+<https://docs.python.org/3/copyright.html?highlight=copyright>.

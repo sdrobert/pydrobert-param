@@ -10,8 +10,10 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
+
 import os
 import sys
+
 import param
 
 param.parameterized.docstring_signature = False
@@ -34,16 +36,32 @@ language = "en"
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    "myst_parser",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosectionlabel",
-    "sphinx.ext.intersphinx",
-    "sphinx.ext.napoleon",
     "sphinx.ext.viewcode",
-    "sphinxcontrib.programoutput",
-    "myst_parser",
+    "sphinx.ext.napoleon",
+    "sphinx_autodoc_typehints",
+    "sphinx.ext.intersphinx",
 ]
 
-naploeon_numpy_docstring = True
+napoleon_numpy_docstring = True
+napoleon_google_docstring = False
+napoleon_include_init_with_doc = True
+autodoc_mock_imports = ["numpy", "pandas"]
+autodoc_typehints = "none"
+autodoc_type_aliases = napoleon_type_aliases = {
+    "np.ndarray": "numpy.ndarray",
+    "Literal": "typing.Literal",
+}
+autodoc_inherit_docstrings = False
+napoleon_preprocess_types = False
+always_document_param_types = False
+napoleon_use_rtype = False
+napoleon_use_ivar = True
+autoclass_content = "both"
+napoleon_attr_annotations = False
+typehints_document_rtype = False
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -65,49 +83,45 @@ intersphinx_mapping = {
 
 # -- Options for HTML output -------------------------------------------------
 
-on_rtd = os.environ.get("READTHEDOCS") == "True"
-if on_rtd:
-    html_theme = "default"
-else:
-    html_theme = "sphinx_rtd_theme"
+html_theme = "sphinx_rtd_theme"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
 
-highlight_language = "python"
+highlight_language = "none"
 
 master_doc = "index"
 
 
-def my_handler(app, what, name, obj, options, lines):
-    if "Params" in name.split(".")[-1]:
-        pdict = obj.param.objects(instance=False)
-        del pdict["name"]
-        new_lines = []
-        for name, p in pdict.items():
-            doc = p.doc
-            deft = p.default
-            bounds = p.bounds if hasattr(p, "bounds") else None
-            new_lines.append(
-                "- **{}**: {}. *default={}{}*".format(
-                    name, doc, deft, ", bounds={}".format(bounds) if bounds else ""
-                )
-            )
-            new_lines.append("")
-            new_lines.append("")
-        if new_lines:
-            new_lines.insert(0, "")
-            new_lines.insert(0, "")
-            new_lines.insert(1, "**Parameters**")
-            new_lines.insert(2, "")
-            new_lines.insert(2, "")
-            lines += new_lines
-        options["undoc-members"] = False
-    elif "Parameterized" in name.split(".")[-1]:
-        options["undoc-members"] = False
+# def my_handler(app, what, name, obj, options, lines):
+#     if "Params" in name.split(".")[-1]:
+#         pdict = obj.param.objects(instance=False)
+#         del pdict["name"]
+#         new_lines = []
+#         for name, p in pdict.items():
+#             doc = p.doc
+#             deft = p.default
+#             bounds = p.bounds if hasattr(p, "bounds") else None
+#             new_lines.append(
+#                 "- **{}**: {}. *default={}{}*".format(
+#                     name, doc, deft, ", bounds={}".format(bounds) if bounds else ""
+#                 )
+#             )
+#             new_lines.append("")
+#             new_lines.append("")
+#         if new_lines:
+#             new_lines.insert(0, "")
+#             new_lines.insert(0, "")
+#             new_lines.insert(1, "**Parameters**")
+#             new_lines.insert(2, "")
+#             new_lines.insert(2, "")
+#             lines += new_lines
+#         options["undoc-members"] = False
+#     elif "Parameterized" in name.split(".")[-1]:
+#         options["undoc-members"] = False
 
 
-def setup(app):
-    app.connect("autodoc-process-docstring", my_handler)
+# def setup(app):
+#     app.connect("autodoc-process-docstring", my_handler)

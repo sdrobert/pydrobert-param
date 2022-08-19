@@ -1,8 +1,14 @@
-# v0.4.0
+# Changelog
 
+## v0.3.1
+
+- Handle ABC issues with MRO instead of redefining base class.
+- No more `setup.py`.
+- Removed `recipe`.
+- Bumped minimum version to 3.7.
 - Updated documentation.
 
-# v0.3.0
+## v0.3.0
 
 A considerable amount of refactoring occurred for this build, chiefly to get
 rid of Python 2.7 support. While the functionality did not change much for this
