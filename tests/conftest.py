@@ -43,7 +43,7 @@ def with_yaml(request):
     if request.param:
         try:
             with StringIO() as fp:
-                serial._serialize_to_yaml(fp, {"foo": 1})
+                serial.serialize_from_dict_to_yaml(fp, {"foo": 1})
         except ImportError:
             pytest.skip("No yaml serializer")
         yield True
