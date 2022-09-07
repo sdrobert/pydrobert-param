@@ -79,6 +79,11 @@ from ._classic_serialization import (
     serialize_to_yaml,
     YAML_MODULE_PRIORITIES,
 )
+from ._serializer import (
+    RecklessJsonSerialization,
+    register_reckless_json,
+    unregister_reckless_json,
+)
 
 __all__ = [
     "DEFAULT_BACKUP_DESERIALIZER",
@@ -109,11 +114,11 @@ __all__ = [
     "DefaultSeriesSerializer",
     "DefaultStringDeserializer",
     "DefaultTupleSerializer",
-    "deserialize_form_yaml_to_dict",
     "deserialize_from_dict",
     "deserialize_from_ini",
     "deserialize_from_json_to_dict",
     "deserialize_from_json",
+    "deserialize_from_yaml_to_dict",
     "deserialize_from_yaml",
     "JSON_STRING_DESERIALIZER_DICT",
     "JSON_STRING_SERIALIZER_DICT",
@@ -137,11 +142,14 @@ __all__ = [
     "ParamConfigDeserializer",
     "ParamConfigSerializer",
     "ParamConfigTypeError",
+    "RecklessJsonSerialization",
+    "register_reckless_json",
     "serialize_from_dict_to_json",
     "serialize_from_dict_to_yaml",
     "serialize_to_dict",
     "serialize_to_ini",
     "serialize_to_json",
     "serialize_to_yaml",
+    "unregister_reckless_json",
     "YAML_MODULE_PRIORITIES",
 ]
