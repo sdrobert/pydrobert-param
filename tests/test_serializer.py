@@ -76,15 +76,15 @@ def test_reckless_json_nesting(with_registered_reckless_json):
     assert child.pprint() == parent.pprint()
 
 
-def default_action():
+def _default_action():
     return 1
 
 
-def another_action():
+def _another_action():
     return 2
 
 
-class CallableObject(object):
+class _CallableObject(object):
     def __init__(self, val=2):
         self.val = val
 
@@ -98,16 +98,16 @@ class CallableObject(object):
         return "CallableObject({})".format(self.val)
 
 
-class SpecialInt(int):
+class _SpecialInt(int):
     pass
 
 
 def test_reckless_json_otherwise_same(with_registered_reckless_json):
     class P(param.Parameterized):
-        action = param.Action(default_action, allow_None=True)
+        action = param.Action(_default_action, allow_None=True)
         array = param.Array(np.array([1.0, 2.0]))
         boolean = param.Boolean(True, allow_None=True)
-        callable = param.Callable(default_action, allow_None=True)
+        callable = param.Callable(_default_action, allow_None=True)
         class_selector = param.ClassSelector(int, is_instance=False, allow_None=True)
         color = param.Color("#FFFFFF", allow_None=True)
         composite = param.Composite(["action", "array"], allow_None=True)
@@ -120,7 +120,7 @@ def test_reckless_json_otherwise_same(with_registered_reckless_json):
         date = param.Date(datetime.now(), allow_None=True)
         date_range = param.DateRange((datetime.min, datetime.max), allow_None=True)
         dict_ = param.Dict({"foo": "bar"}, allow_None=True, doc="dict means dictionary")
-        dynamic = param.Dynamic(default=default_action, allow_None=True)
+        dynamic = param.Dynamic(default=_default_action, allow_None=True)
         file_selector = param.FileSelector(
             os.path.join(FILE_DIR_DIR, "LICENSE"),
             path=os.path.join(FILE_DIR_DIR, "*"),
@@ -131,7 +131,9 @@ def test_reckless_json_otherwise_same(with_registered_reckless_json):
         )
         foldername = param.Foldername(os.path.join(FILE_DIR_DIR), allow_None=True)
         hook_list = param.HookList(
-            [CallableObject(), CallableObject()], class_=CallableObject, allow_None=True
+            [_CallableObject(), _CallableObject()],
+            class_=_CallableObject,
+            allow_None=True,
         )
         integer = param.Integer(10, allow_None=True)
         list_ = param.List([1, 2, 3], allow_None=True, class_=int)

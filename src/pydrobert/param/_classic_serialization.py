@@ -145,7 +145,7 @@ def _get_name_from_param_range(name: str, parameterized: param.Parameterized, va
     for n, v in list(p.get_range().items()):
         if isinstance(v, val_type) and _equal(v, val):
             return n
-    parameterized.warning(
+    parameterized.param.warning(
         "Could not find value of {} in get_range(), so serializing value "
         "directly".format(name)
     )
