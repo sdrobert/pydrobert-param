@@ -1,7 +1,7 @@
 """Tests for pydrobert.param.serialization
 
 We test the various deserialization from file functions in
-``test_argparse``, since those actions are merely a thin wrapper around
+``test_classic_argparse``, since those actions are merely a thin wrapper around
 these functions
 """
 
@@ -144,8 +144,8 @@ def BigDumbParams(name=None):
         ),
         (
             "filename",
-            os.path.join(FILE_DIR, "test_argparse.py"),
-            os.path.join(FILE_DIR, "test_argparse.py"),
+            os.path.join(FILE_DIR, "test_classic_argparse.py"),
+            os.path.join(FILE_DIR, "test_classic_argparse.py"),
         ),
         ("foldername", FILE_DIR, FILE_DIR),
         ("hook_list", [CallableObject(4)], [CallableObject(4)]),
