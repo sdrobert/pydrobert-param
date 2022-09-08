@@ -81,10 +81,6 @@ def test_reckless_nesting(mode):
     assert child.pprint() != parent.pprint()
     child.nested.leaf2 = True
     assert child.pprint() != parent.pprint()
-    txt = txt.replace('"leaf1', '"name": "nested", "leaf1')
-    child = Parent(**Parent.param.deserialize_parameters(txt, mode=mode))
-    child.nested.leaf2 = True
-    assert child.pprint() == parent.pprint()
 
 
 def _default_action():
@@ -188,6 +184,7 @@ def test_deserialization_action(temp_dir, mode):
     class Foo(param.Parameterized):
         a = param.Integer(1)
         b = param.Boolean(False)
+        c = param.Magnitude(None)
 
     foo_0 = Foo(name="0", b=True)
     foo_1 = Foo(name="0", a=2)

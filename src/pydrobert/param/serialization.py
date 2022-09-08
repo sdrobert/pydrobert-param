@@ -75,9 +75,15 @@ from ._classic_serialization import (
     serialize_to_yaml,
 )
 from ._serializer import (
+    JsonSerializable,
     RecklessJsonSerialization,
+    RecklessYamlSerialization,
     register_serializer,
+    Serializable,
+    SerializableSerialization,
     unregister_serializer,
+    YamlSerializable,
+    YamlSerialization,
 )
 from ._file_serialization import (
     deserialize_from_json_to_obj,
@@ -124,6 +130,7 @@ __all__ = [
     "deserialize_from_yaml",
     "JSON_STRING_DESERIALIZER_DICT",
     "JSON_STRING_SERIALIZER_DICT",
+    "JsonSerializable",
     "JsonStringArrayDeserializer",
     "JsonStringArraySerializer",
     "JsonStringDataFrameDeserializer",
@@ -145,7 +152,10 @@ __all__ = [
     "ParamConfigSerializer",
     "ParamConfigTypeError",
     "RecklessJsonSerialization",
+    "RecklessYamlSerialization",
     "register_serializer",
+    "Serializable",
+    "SerializableSerialization",
     "serialize_from_obj_to_json",
     "serialize_from_obj_to_yaml",
     "serialize_to_dict",
@@ -153,4 +163,6 @@ __all__ = [
     "serialize_to_json",
     "serialize_to_yaml",
     "unregister_serializer",
+    "YamlSerializable",
+    "YamlSerialization",
 ]

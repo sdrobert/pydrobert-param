@@ -50,6 +50,7 @@ import abc
 import argparse
 import textwrap
 import json
+
 from typing import (
     Any,
     Collection,
@@ -63,6 +64,7 @@ from typing import (
     TypeVar,
     Union,
 )
+from io import StringIO
 
 try:
     from typing import Protocol, Literal
@@ -72,6 +74,11 @@ except ImportError:
 import param
 
 from param.serializer import Serialization
+
+from ._file_serialization import (
+    deserialize_from_yaml_to_obj,
+    serialize_from_obj_to_yaml,
+)
 
 
 class Serializable(Protocol):
@@ -99,11 +106,27 @@ class JsonSerializable(Serializable):
         return json.dumps(obj)
 
 
+class YamlSerializable(Serializable):
+    @classmethod
+    def loads(cls, serialized: str) -> Any:
+        with StringIO(serialized) as s:
+            return deserialize_from_yaml_to_obj(s)
+
+    @classmethod
+    def dumps(cls, obj: Any, help: Any = None) -> str:
+        with StringIO() as s:
+            serialize_from_obj_to_yaml(s, obj, help)
+            s.seek(0)
+            return s.read()
+
+
 PObjType = Union[param.Parameterized, Type[param.Parameterized]]
 NestedSubsetType = Optional[Dict[str, "NestedSubsetType"]]
 
 
 class SerializableSerialization(Serialization, Serializable):
+    """ABC for sensible serialization"""
+
     @classmethod
     def nest_subsets(cls, subset: Optional[Collection[str]]) -> NestedSubsetType:
         if subset is None:
@@ -209,7 +232,19 @@ class JsonSerialization(SerializableSerialization, JsonSerializable):
     pass
 
 
+class YamlSerialization(SerializableSerialization, YamlSerializable):
+    """YAML (de)serialization
+    
+    See Also
+    --------
+    register_serializer
+        For how this is used
+    """
+
+
 class RecklessSerializableSerialization(SerializableSerialization):
+    """ABC for reckless serialization"""
+
     @classmethod
     def get_serialize_pair(
         cls, pobj: PObjType, pname: str, nested_subsets: NestedSubsetType = None
@@ -246,16 +281,38 @@ class RecklessSerializableSerialization(SerializableSerialization):
 
 
 class RecklessJsonSerialization(RecklessSerializableSerialization, JsonSerializable):
+    """Reckless JSON (de)serialization
+    
+    See Also
+    --------
+    register_serializer
+        For how this is used
+    """
+
+    pass
+
+
+class RecklessYamlSerialization(RecklessSerializableSerialization, YamlSerializable):
+    """Reckless YAML (de)serialization
+    
+    See Also
+    --------
+    register_serializer
+        For how this is used
+    """
+
     pass
 
 
 _my_serializers = {
     "_json": JsonSerialization,  # don't advertise - for testing purposes
+    "yaml": YamlSerialization,
     "reckless_json": RecklessJsonSerialization,
+    "reckless_yaml": RecklessYamlSerialization,
 }
 
 
-def register_serializer(mode: Literal["reckless_json"]):
+def register_serializer(mode: Literal["reckless_json", "reckless_yaml", "yaml"]):
     """Add a custom (de)serialization protocol to parameterized instances
 
     The serialization protocol to be registered is passed as `mode`, which can be
@@ -265,13 +322,17 @@ def register_serializer(mode: Literal["reckless_json"]):
        serializer but for some simplifying assumptions to handle
        [nesting](https://param.holoviz.org/user_guide/Serialization_and_Persistence.html#json-limitations-and-workarounds).
        See the below note for more information.
+    2. :obj:`'yaml'`, which follows a similar parsing strategy to vanilla :obj:`'json'`
+       but (de)serializes in YAML format instead. Requires either :mod:`yaml` or
+       :mod:`ruamel.yaml` to be installed.
+    3. :obj:`'reckless_yaml'`, which makes the same reckless assumptions as
+       :obj:`reckless_json'` but (de)serialized in the YAML format.
 
     After calling this function, parameters can be serialized with the same `mode`
     registered via :func:`param.Parameterized.param.serialize_parameters`:
     
     >>> str_ = p.param.serialize_parameters(subset, mode)
     >>> p = P.param.deserialize_parameters(str_, subset, mode)
-
 
     Warnings
     --------
@@ -311,7 +372,7 @@ def register_serializer(mode: Literal["reckless_json"]):
     param.Parameter._serializers.setdefault(mode, _my_serializers[mode])
 
 
-def unregister_serializer(mode: Literal["reckless_json"]):
+def unregister_serializer(mode: Literal["reckless_json", "reckless_yaml", "yaml"]):
     """Unregister a previously registered custom serializer
     
     See Also
