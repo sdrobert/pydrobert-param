@@ -1,21 +1,59 @@
 # Copyright 2022 Sean Robertson
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# The Serialization subclasses are heavily inspired by the source code for
+# JSONSerialization from the param package:
+# https://github.com/holoviz/param/blob/76c7026346b73951dcf4308b6302f0742b0e83e7/param/serializer.py#L61
+#
+# param is BSD-3 licensed:
+#
+# Copyright (c) 2005-2022, HoloViz team.
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without modification, are
+# permitted provided that the following conditions are met:
+#
+#  * Redistributions of source code must retain the above copyright notice, this list of
+#    conditions and the following disclaimer.
+#
+#  * Redistributions in binary form must reproduce the above copyright notice, this list
+#    of conditions and the following disclaimer in the documentation and/or other
+#    materials provided with the distribution.
+#
+#  * Neither the name of the copyright holder nor the names of any contributors may be
+#    used to endorse or promote products derived from this software without specific
+#    prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
+# EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT
+# SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+# TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+# BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY
+# WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
+# DAMAGE.
+#
+# This code (Apache v2.0):
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not use this
+# file except in compliance with the License. You may obtain a copy of the License at
 #
 #    http://www.apache.org/licenses/LICENSE-2.0
 #
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Unless required by applicable law or agreed to in writing, software distributed under
+# the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
+# ANY KIND, either express or implied. See the License for the specific language
+# governing permissions and limitations under the License.
 
+import abc
 import argparse
+import textwrap
+import json
 from typing import (
     Any,
     Collection,
+    Dict,
     List,
     Optional,
     Sequence,
@@ -26,77 +64,185 @@ from typing import (
     Union,
 )
 
+try:
+    from typing import Protocol
+except ImportError:
+    from typing_extensions import Protocol
+
 import param
 
-from param.serializer import JSONSerialization
+from param.serializer import Serialization
 
 
-class RecklessJsonSerialization(JSONSerialization):
-    """JSON serializer which makes reckless assumptions
+class Serializable(Protocol):
+    @abc.abstractclassmethod
+    def loads(cls, serialized: str) -> Any:
+        """Read serialized string into an object"""
+        ...
 
-    See Also
-    --------
-    register_reckless_json
-        How to use this.
-    """
+    @abc.abstractclassmethod
+    def dumps(cls, obj: Any, help: Any = None) -> str:
+        """Dump object (and optional help object) to string
+        
+        `help` should not impact the deserialization of `obj`. It can be ignored.
+        """
+        ...
+
+
+class JsonSerializable(Serializable):
+    @classmethod
+    def loads(cls, serialized: str) -> Any:
+        return json.loads(serialized)
 
     @classmethod
-    def split_subset(cls, subset):
-        nested_subsets = dict()
-        if subset is not None:
-            subset_ = set()
-            for s in subset:
-                if "." in s:
-                    k, v = s.split(".", maxsplit=1)
-                    nested_subsets.setdefault(k, set()).add(v)
-                    subset_.add(k)
+    def dumps(cls, obj: Any, help: Any = None) -> str:
+        return json.dumps(obj)
+
+
+PObjType = Union[param.Parameterized, Type[param.Parameterized]]
+NestedSubsetType = Optional[Dict[str, "NestedSubsetType"]]
+
+
+class SerializableSerialization(Serialization, Serializable):
+    @classmethod
+    def nest_subsets(cls, subset: Optional[Collection[str]]) -> NestedSubsetType:
+        if subset is None:
+            return subset
+        nested_subsets: NestedSubsetType = dict()
+        for s in subset:
+            if "." in s:
+                k, v = s.split(".", maxsplit=1)
+                v = cls.nest_subsets({v})
+                d = nested_subsets.get(k, None)
+                if d is None:
+                    nested_subsets[k] = v
                 else:
-                    subset_.add(s)
-            subset = subset_
-        return subset, nested_subsets
+                    d.update(v)
+            else:
+                nested_subsets.setdefault(s, None)
+        return nested_subsets
 
     @classmethod
-    def serialize_parameters(cls, pobj, subset=None):
-        subset, nested_subsets = cls.split_subset(subset)
-        components = {}
-        for name, p in pobj.param.objects("existing").items():
-            if subset is not None and name not in subset:
-                continue
-            value = pobj.param.get_value_generator(name)
-            value = p.serialize(value)
-            if isinstance(value, param.Parameterized):
-                value = cls.loads(
-                    value.param.serialize_parameters(
-                        nested_subsets.get(name, None), "reckless_json"
-                    )
-                )
-            components[name] = value
-        return cls.dumps(components)
+    def get_serialize_pair(
+        cls, pobj: PObjType, pname: str, nested_subsets: NestedSubsetType = None
+    ) -> Tuple[Any, Any]:
+        p = pobj.param[pname]
+        value = pobj.param.get_value_generator(pname)
+        value = p.serialize(value)
+        doc = pobj.param[pname].doc
+        doc = doc if not doc else textwrap.dedent(doc).replace("\n", " ").strip()
+        return value, doc
 
     @classmethod
-    def deserialize_parameters(cls, pobj, serialization, subset=None):
-        subset, nested_subsets = cls.split_subset(subset)
-        deserialized = cls.loads(serialization)
-        components = {}
-        for name, value in deserialized.items():
-            if subset is not None and name not in subset:
+    def get_deserialize_value(
+        cls,
+        pobj: PObjType,
+        pname: str,
+        value: Any,
+        nested_subsets: NestedSubsetType = None,
+    ) -> Any:
+        return pobj.param[pname].deserialize(value)
+
+    @classmethod
+    def get_serialize_dict(
+        cls, pobj: PObjType, nested_subsets: NestedSubsetType = None
+    ) -> Tuple[Dict[str, Any], Dict[str, Optional[str]]]:
+        dict_, help = dict(), dict()
+        for pname in pobj.param.objects("existing"):
+            if nested_subsets is not None and pname not in nested_subsets:
                 continue
-            pobjp = pobj.param[name]
-            value = pobjp.deserialize(value)
-            class_ = getattr(pobjp, "class_", None)
-            if (
-                class_ is not None
-                and value is not None
-                and getattr(pobjp, "is_instance", False)
-                and issubclass(class_, param.Parameterized)
-            ):
-                value = class_(
-                    **cls.deserialize_parameters(
-                        class_, cls.dumps(value), nested_subsets.get(name, None)
-                    )
-                )
-            components[name] = value
+            value, doc = cls.get_serialize_pair(
+                pobj,
+                pname,
+                nested_subsets if nested_subsets is None else nested_subsets[pname],
+            )
+            dict_[pname] = value
+            help[pname] = doc
+        return dict_, help
+
+    @classmethod
+    def serialize_parameters(
+        cls, pobj: PObjType, subset: Optional[Collection[str]] = None
+    ) -> str:
+        return cls.dumps(*cls.get_serialize_dict(pobj, cls.nest_subsets(subset)))
+
+    @classmethod
+    def get_deserialize_dict(
+        cls,
+        pobj: PObjType,
+        deserialized: Dict[str, Any],
+        nested_subsets: NestedSubsetType = None,
+    ) -> Dict[str, Any]:
+        components = dict()
+        for pname, value in deserialized.items():
+            if nested_subsets is not None and pname not in nested_subsets:
+                continue
+            components[pname] = cls.get_deserialize_value(
+                pobj,
+                pname,
+                value,
+                nested_subsets if nested_subsets is None else nested_subsets[pname],
+            )
         return components
+
+    @classmethod
+    def deserialize_parameters(
+        cls,
+        pobj: PObjType,
+        serialization: str,
+        subset: Optional[Collection[str]] = None,
+    ) -> Dict[str, Any]:
+        return cls.get_deserialize_dict(
+            pobj, cls.loads(serialization), cls.nest_subsets(subset)
+        )
+
+    @classmethod
+    def serialize_parameter_value(cls, pobj: PObjType, pname: str) -> str:
+        return cls.dumps(*cls.get_serialize_pair(pobj, pname))
+
+    @classmethod
+    def deserialize_parameter_value(cls, pobj: PObjType, pname: str, value: str) -> Any:
+        return cls.get_deserialize_value(pobj, pname, cls.loads(value))
+
+
+class RecklessSerializableSerialization(SerializableSerialization):
+    @classmethod
+    def get_serialize_pair(
+        cls, pobj: PObjType, pname: str, nested_subsets: NestedSubsetType = None
+    ) -> Tuple[Any, Any]:
+        p = pobj.param[pname]
+        value = pobj.param.get_value_generator(pname)
+        value = p.serialize(value)
+        if isinstance(value, param.Parameterized):
+            value, doc = cls.get_serialize_dict(value, nested_subsets)
+        else:
+            doc = pobj.param[pname].doc
+            doc = doc if not doc else textwrap.dedent(doc).replace("\n", " ").strip()
+        return value, doc
+
+    @classmethod
+    def get_deserialize_value(
+        cls,
+        pobj: PObjType,
+        pname: str,
+        value: Any,
+        nested_subsets: NestedSubsetType = None,
+    ) -> Any:
+        pobjp = pobj.param[pname]
+        value = pobj.param[pname].deserialize(value)
+        class_ = getattr(pobjp, "class_", None)
+        if (
+            class_ is not None
+            and value is not None
+            and getattr(pobjp, "is_instance", False)
+            and issubclass(class_, param.Parameterized)
+        ):
+            value = class_(**cls.get_deserialize_dict(class_, value, nested_subsets))
+        return value
+
+
+class RecklessJsonSerialization(RecklessSerializableSerialization, JsonSerializable):
+    pass
 
 
 def register_reckless_json():
@@ -148,9 +294,7 @@ def register_reckless_json():
     --------
     unregister_reckless_json
     """
-    param.Parameter._serializers.setdefault(
-        "reckless_json", RecklessJsonSerialization()
-    )
+    param.Parameter._serializers.setdefault("reckless_json", RecklessJsonSerialization)
 
 
 def unregister_reckless_json():
@@ -160,8 +304,8 @@ def unregister_reckless_json():
     --------
     register_reckless_json
     """
-    if "reckless_json" in param.Parameter._serializers and isinstance(
-        param.Parameter._serializers["reckless_json"], RecklessJsonSerialization
+    if "reckless_json" in param.Parameter._serializers and (
+        param.Parameter._serializers["reckless_json"] is RecklessJsonSerialization
     ):
         param.Parameter._serializers.pop("reckless_json")
 
