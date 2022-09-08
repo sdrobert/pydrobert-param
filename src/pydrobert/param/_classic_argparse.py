@@ -27,7 +27,16 @@ except ImportError:
     from typing_extensions import Literal
 
 import param
-import pydrobert.param.serialization as serialization
+
+from ._classic_serialization import (
+    deserialize_from_ini,
+    deserialize_from_json,
+    deserialize_from_yaml,
+    serialize_to_ini,
+    serialize_to_json,
+    serialize_to_yaml,
+)
+from . import config
 
 
 class ParameterizedFileReadAction(argparse.Action, metaclass=abc.ABCMeta):
@@ -243,7 +252,7 @@ class ParameterizedIniReadAction(ParameterizedFileReadAction):
         )
 
     def deserialize(self, fp: Union[TextIO, str]) -> None:
-        serialization.deserialize_from_ini(
+        deserialize_from_ini(
             fp,
             self.parameterized,
             deserializer_name_dict=self.deserializer_name_dict,
@@ -283,7 +292,7 @@ class ParameterizedYamlReadAction(ParameterizedFileReadAction):
     """
 
     def deserialize(self, fp: Union[TextIO, str]) -> None:
-        serialization.deserialize_from_yaml(
+        deserialize_from_yaml(
             fp,
             self.parameterized,
             deserializer_name_dict=self.deserializer_name_dict,
@@ -319,7 +328,7 @@ class ParameterizedJsonReadAction(ParameterizedFileReadAction):
     """
 
     def deserialize(self, fp: Union[TextIO, str]) -> None:
-        serialization.deserialize_from_json(
+        deserialize_from_json(
             fp,
             self.parameterized,
             deserializer_name_dict=self.deserializer_name_dict,
@@ -330,7 +339,7 @@ class ParameterizedJsonReadAction(ParameterizedFileReadAction):
 
 def _yaml():
     yaml = None
-    for name in serialization.YAML_MODULE_PRIORITIES:
+    for name in config.YAML_MODULE_PRIORITIES:
         if name == "ruamel.yaml":
             try:
                 import ruamel.yaml  # type: ignore
@@ -700,7 +709,7 @@ class ParameterizedIniPrintAction(ParameterizedPrintAction):
         )
 
     def print_parameters(self):
-        serialization.serialize_to_ini(
+        serialize_to_ini(
             self.out_stream,
             self.parameterized,
             only=self.only,
@@ -769,7 +778,7 @@ class ParameterizedJsonPrintAction(ParameterizedPrintAction):
         )
 
     def print_parameters(self) -> None:
-        serialization.serialize_to_json(
+        serialize_to_json(
             self.out_stream,
             self.parameterized,
             only=self.only,
@@ -806,7 +815,7 @@ class ParameterizedYamlPrintAction(ParameterizedPrintAction):
     """
 
     def print_parameters(self) -> None:
-        serialization.serialize_to_yaml(
+        serialize_to_yaml(
             self.out_stream,
             self.parameterized,
             only=self.only,

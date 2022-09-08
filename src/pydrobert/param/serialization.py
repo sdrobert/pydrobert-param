@@ -77,13 +77,13 @@ from ._classic_serialization import (
     serialize_to_ini,
     serialize_to_json,
     serialize_to_yaml,
-    YAML_MODULE_PRIORITIES,
 )
 from ._serializer import (
     RecklessJsonSerialization,
     register_reckless_json,
     unregister_reckless_json,
 )
+from .config import YAML_MODULE_PRIORITIES  # deprecated
 
 __all__ = [
     "DEFAULT_BACKUP_DESERIALIZER",
@@ -151,5 +151,4 @@ __all__ = [
     "serialize_to_json",
     "serialize_to_yaml",
     "unregister_reckless_json",
-    "YAML_MODULE_PRIORITIES",
 ]

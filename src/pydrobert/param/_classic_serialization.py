@@ -29,6 +29,7 @@ except ImportError:
 
 import param
 
+from . import config
 
 try:
     import numpy as np
@@ -927,19 +928,6 @@ def serialize_to_ini(
     parser.write(file)
 
 
-"""Specifies the order with which to try YAML parser modules
-
-A number of different `YAML syntax <https://en.wikipedia.org/wiki/YAML>`__ parsers
-exist. This tuple specifies the order by which we attempt to import parsers
-
-See Also
---------
-serialize_to_yaml
-deserialize_from_yaml
-"""
-YAML_MODULE_PRIORITIES = ("ruamel.yaml", "ruamel_yaml", "pyyaml")
-
-
 def _serialize_to_ruamel_yaml_dict(yaml, type_, fp, dict_, help_dict):
     cdict = type_()
     c_stack = [cdict]
@@ -1038,15 +1026,15 @@ def serialize_from_dict_to_yaml(
     Notes
     -----
     This function tries to use the YAML (de)serialization module to load the YAML file
-    in the order listed in :obj:`YAML_MODULE_PRIORITIES`, falling back on the next if
-    there's an :class:`ImportError`
+    in the order listed in :obj:`config.YAML_MODULE_PRIORITIES`, falling back on the
+    next if there's an :class:`ImportError`
     """
     if help_dict is None:
         help_dict = dict()
     if isinstance(file_, str):
         with open(file_, "w") as file_:
             return serialize_from_dict_to_yaml(file_, dict_, help_dict)
-    for name in YAML_MODULE_PRIORITIES:
+    for name in config.YAML_MODULE_PRIORITIES:
         if name == "ruamel.yaml":
             try:
                 import ruamel.yaml  # type: ignore
@@ -1072,9 +1060,9 @@ def serialize_from_dict_to_yaml(
             except ImportError:
                 pass
         else:
-            raise ValueError(f"Invalid value in YAML_MODULE_PRIORITIES: {name}")
+            raise ValueError(f"Invalid value in config.YAML_MODULE_PRIORITIES: {name}")
     raise ImportError(
-        f"Could not import any of {YAML_MODULE_PRIORITIES} for YAML serialization"
+        f"Could not import any of {config.YAML_MODULE_PRIORITIES} for YAML serialization"
     )
 
 
@@ -2287,14 +2275,14 @@ def deserialize_from_yaml_to_dict(file_: Union[str, TextIO]) -> dict:
     Notes
     -----
     This function tries to use the YAML (de)serialization module to load the YAML file
-    in the order listed in :obj:`YAML_MODULE_PRIORITIES`, falling back on the next if
+    in the order listed in :obj:`config.YAML_MODULE_PRIORITIES`, falling back on the next if
     there's an :class:`ImportError`.
     """
     if isinstance(file_, str):
         with open(file_) as file_:
             return deserialize_from_yaml_to_dict(file_)
     yaml_loader = None
-    for name in YAML_MODULE_PRIORITIES:
+    for name in config.YAML_MODULE_PRIORITIES:
         if name in {"ruamel.yaml", "ruamel_yaml"}:
             try:
                 if name == "ruamel.yaml":
@@ -2328,10 +2316,10 @@ def deserialize_from_yaml_to_dict(file_: Union[str, TextIO]) -> dict:
             except ImportError:
                 pass
         else:
-            raise ValueError(f"Invalid value in YAML_MODULE_PRIORITIES: '{name}'")
+            raise ValueError(f"Invalid value in config.YAML_MODULE_PRIORITIES: '{name}'")
     if yaml_loader is None:
         raise ImportError(
-            f"Could not import any of {YAML_MODULE_PRIORITIES} for YAML deserialization"
+            f"Could not import any of {config.YAML_MODULE_PRIORITIES} for YAML deserialization"
         )
     dict_ = yaml_loader(file_)
     return dict_
