@@ -12,6 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import argparse
+from typing import (
+    Any,
+    Collection,
+    List,
+    Optional,
+    Sequence,
+    TextIO,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+)
+
 import param
 
 from param.serializer import JSONSerialization
@@ -150,3 +164,108 @@ def unregister_reckless_json():
         param.Parameter._serializers["reckless_json"], RecklessJsonSerialization
     ):
         param.Parameter._serializers.pop("reckless_json")
+
+
+P = TypeVar("P", bound=param.Parameterized)
+
+try:
+    Action = argparse.Action[P]
+except:
+    Action = argparse.Action
+
+
+class DeserializationAction(Action):
+    """Action to deserialize a parameterized object from file
+
+    Given some subclass of :class:`param.Parameterized`, `MyParameterized`, the action
+    can be added by calling, e.g.
+
+    >>> parser.add_argument('--param', type=MyParameterized)
+
+    In this example, the argument passed with the flag :obj:`--param` is treated as a
+    path to a JSON file from which a serialized copy of `MyParameterized` is read and
+    instantiatied.
+    
+    Deserialization is performed with the
+    :func:`param.Parameterized.param.deserialize_parameters`. The deserialization `mode`
+    and optionally the `subset` of parameters deserialized can be changed by passing the
+    `const` keyword argument to :func:`add_argument`. `const` can be either a string
+    (just the `mode`) or a tuple of a string (`mode`) and set of strings (`subset`).
+
+    See Also
+    --------
+    ParameterizedFileReadAction
+        Same intent, but using :mod:`pydrobert.param` custom deserialization routines.
+    register_reckless_json
+        To enable :obj:`'reckless_json'` mode for more flexible JSON parsing.
+    """
+
+    class_: Type[P]
+
+    def __init__(
+        self,
+        option_strings: Sequence[str],
+        dest: str,
+        nargs: Union[str, int, None] = None,
+        const: Union[str, Tuple[str, Optional[Collection[str]]]] = "json",
+        default: Any = None,
+        type: Type[P] = param.Parameterized,
+        choices=None,
+        required: bool = False,
+        help: Optional[str] = None,
+        metavar: Union[str, Tuple[str, ...], None] = None,
+    ) -> None:
+        if not issubclass(type, param.Parameterized):
+            raise ValueError("type is not a subclass of param.Parameterized")
+        self.class_ = type
+        if isinstance(const, str):
+            const = const, None
+        else:
+            const = const[0], (None if const[1] is None else set(const[1]))
+        super().__init__(
+            option_strings,
+            dest,
+            nargs,
+            const,
+            default,
+            argparse.FileType("r"),
+            choices,
+            required,
+            help,
+            metavar,
+        )
+
+    def __call__(
+        self,
+        parser: argparse.ArgumentParser,
+        namespace: argparse.Namespace,
+        values: Union[TextIO, List[TextIO]],
+        option_string: Union[str, None] = None,
+    ) -> None:
+        if values is None and issubclass(type(self.default), type):
+            values = self.default()
+        if not isinstance(values, list):
+            values_ = [values]
+        else:
+            values_ = list(values)
+        mode, subset = self.const
+        for i in range(len(values_)):
+            value = values_[i]
+            name = value.name
+            value = value.read()
+            try:
+                value = self.class_(
+                    **self.class_.param.deserialize_parameters(value, subset, mode)
+                )
+            except Exception as e:
+                msg = f": {e.msg}" if hasattr(e, msg) else ""
+                raise argparse.ArgumentError(
+                    self, f"error deserializing '{name}' as {mode}{msg}"
+                )
+            values_[i] = value
+        if isinstance(values, list):
+            values = values_
+        else:
+            values = values_[0]
+        setattr(namespace, self.dest, values)
+

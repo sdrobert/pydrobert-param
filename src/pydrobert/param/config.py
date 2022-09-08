@@ -23,10 +23,5 @@ __all__ = [
 
 A number of different `YAML syntax <https://en.wikipedia.org/wiki/YAML>`__ parsers
 exist. This tuple specifies the order by which we attempt to import parsers
-
-See Also
---------
-serialize_to_yaml
-deserialize_from_yaml
 """
 YAML_MODULE_PRIORITIES = ("ruamel.yaml", "ruamel_yaml", "pyyaml")

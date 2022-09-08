@@ -1,3 +1,4 @@
+import argparse
 import os
 
 from datetime import datetime
@@ -11,6 +12,7 @@ from pydrobert.param.serialization import (
     register_reckless_json,
     unregister_reckless_json,
 )
+from pydrobert.param.argparse import DeserializationAction
 
 
 FILE_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -175,3 +177,35 @@ def test_reckless_json_otherwise_same(with_registered_reckless_json):
             p_a = P(**P.param.deserialize_parameters(json_a, {pname}, "json"))
             p_b = P(**P.param.deserialize_parameters(json_a, {pname}, "reckless_json"))
             assert p_a.pprint() == p_b.pprint()
+
+
+@pytest.mark.parametrize("mode", ["json", "reckless_json"])
+def test_deserialization_action(temp_dir, mode, with_registered_reckless_json):
+    class Foo(param.Parameterized):
+        a = param.Integer(1)
+        b = param.Boolean(False)
+
+    foo_0 = Foo(name="0", b=True)
+    foo_1 = Foo(name="0", a=2)
+    assert foo_0.pprint() != foo_1.pprint() != Foo().pprint()
+    for i, foo in enumerate((foo_0, foo_1)):
+        temp_file = f"{temp_dir}/{i}.{mode}"
+        txt = foo.param.serialize_parameters(mode=mode)
+        with open(temp_file, "w") as f:
+            f.write(txt)
+
+    parser = argparse.ArgumentParser()
+    arg = parser.add_argument("--p", action=DeserializationAction, type=Foo, const=mode)
+    options = parser.parse_args([])
+    assert options.p is None
+    options = parser.parse_args(["--p", f"{temp_dir}/0.{mode}"])
+    assert options.p.pprint() == foo_0.pprint()
+    options = parser.parse_args(["--p", f"{temp_dir}/1.{mode}"])
+    assert options.p.pprint() == foo_1.pprint()
+    arg.nargs = "*"
+    options = parser.parse_args(["--p"])
+    assert options.p == []
+    options = parser.parse_args(["--p", f"{temp_dir}/0.{mode}", f"{temp_dir}/1.{mode}"])
+    assert len(options.p) == 2
+    assert options.p[0].pprint() == foo_0.pprint()
+    assert options.p[1].pprint() == foo_1.pprint()
