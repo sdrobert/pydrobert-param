@@ -65,9 +65,9 @@ from typing import (
 )
 
 try:
-    from typing import Protocol
+    from typing import Protocol, Literal
 except ImportError:
-    from typing_extensions import Protocol
+    from typing_extensions import Protocol, Literal
 
 import param
 
@@ -205,6 +205,10 @@ class SerializableSerialization(Serialization, Serializable):
         return cls.get_deserialize_value(pobj, pname, cls.loads(value))
 
 
+class JsonSerialization(SerializableSerialization, JsonSerializable):
+    pass
+
+
 class RecklessSerializableSerialization(SerializableSerialization):
     @classmethod
     def get_serialize_pair(
@@ -245,19 +249,29 @@ class RecklessJsonSerialization(RecklessSerializableSerialization, JsonSerializa
     pass
 
 
-def register_reckless_json():
-    """Add reckless JSON (de)serialization to parameters
+_my_serializers = {
+    "_json": JsonSerialization,  # don't advertise - for testing purposes
+    "reckless_json": RecklessJsonSerialization,
+}
+
+
+def register_serializer(mode: Literal["reckless_json"]):
+    """Add a custom (de)serialization protocol to parameterized instances
+
+    The serialization protocol to be registered is passed as `mode`, which can be
+    one of
+
+    1. :obj:`'reckless_json'`, which is identical to the standard :obj:`'json'`
+       serializer but for some simplifying assumptions to handle
+       [nesting](https://param.holoviz.org/user_guide/Serialization_and_Persistence.html#json-limitations-and-workarounds).
+       See the below note for more information.
+
+    After calling this function, parameters can be serialized with the same `mode`
+    registered via :func:`param.Parameterized.param.serialize_parameters`:
     
-    Similar to [regular JSON
-    serialization](https://param.holoviz.org/user_guide/Serialization_and_Persistence.html)
-    but makes simplifying assumptions to deal with [its
-    limitations](https://param.holoviz.org/user_guide/Serialization_and_Persistence.html#json-limitations-and-workarounds).
-    See the notes below for the specific assumptions.
+    >>> str_ = p.param.serialize_parameters(subset, mode)
+    >>> p = P.param.deserialize_parameters(str_, subset, mode)
 
-    After calling this function, parameters can be serialized according to these
-    assumptions by calling
-
-    >>> json_ = p.param.serialize_parameters(mode="reckless_json")
 
     Warnings
     --------
@@ -279,10 +293,10 @@ def register_reckless_json():
     
     For now (keep track of [this bug](https://github.com/holoviz/param/issues/520) for
     changes), ``mode="json"`` will throw if it sees a nested parameterized instance in
-    serialization or deserialization. Under ``mode="reckless_json"``, serialization is
-    performed recursively with no consideration for references. Deserialization is
-    performed by recursing on the class provided to the class selector (i.e.
-    `SomeParameterizedClass`), not any of its subclasses.
+    serialization or deserialization. Reckless serialization is performed recursively
+    with no consideration for references. Deserialization is performed by recursing on
+    the class provided to the class selector (i.e. `SomeParameterizedClass`), not any of
+    its subclasses.
 
     To (de)serialize only a subset of parameters in a child instance, delimit child
     parameters with ``<name_in_parent>.<name_in_child>`` in the `subset` argument. In
@@ -292,22 +306,22 @@ def register_reckless_json():
 
     See Also
     --------
-    unregister_reckless_json
+    unregister_serializer
     """
-    param.Parameter._serializers.setdefault("reckless_json", RecklessJsonSerialization)
+    param.Parameter._serializers.setdefault(mode, _my_serializers[mode])
 
 
-def unregister_reckless_json():
-    """Remove reckless JSON (de)serialization from parameters
+def unregister_serializer(mode: Literal["reckless_json"]):
+    """Unregister a previously registered custom serializer
     
     See Also
     --------
-    register_reckless_json
+    register_serializer
     """
-    if "reckless_json" in param.Parameter._serializers and (
-        param.Parameter._serializers["reckless_json"] is RecklessJsonSerialization
+    if mode in param.Parameter._serializers and (
+        param.Parameter._serializers[mode] is _my_serializers[mode]
     ):
-        param.Parameter._serializers.pop("reckless_json")
+        param.Parameter._serializers.pop(mode)
 
 
 P = TypeVar("P", bound=param.Parameterized)
@@ -412,4 +426,3 @@ class DeserializationAction(Action):
         else:
             values = values_[0]
         setattr(namespace, self.dest, values)
-

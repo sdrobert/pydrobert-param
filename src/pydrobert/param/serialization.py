@@ -76,8 +76,8 @@ from ._classic_serialization import (
 )
 from ._serializer import (
     RecklessJsonSerialization,
-    register_reckless_json,
-    unregister_reckless_json,
+    register_serializer,
+    unregister_serializer,
 )
 from ._file_serialization import (
     deserialize_from_json_to_obj,
@@ -145,12 +145,12 @@ __all__ = [
     "ParamConfigSerializer",
     "ParamConfigTypeError",
     "RecklessJsonSerialization",
-    "register_reckless_json",
+    "register_serializer",
     "serialize_from_obj_to_json",
     "serialize_from_obj_to_yaml",
     "serialize_to_dict",
     "serialize_to_ini",
     "serialize_to_json",
     "serialize_to_yaml",
-    "unregister_reckless_json",
+    "unregister_serializer",
 ]

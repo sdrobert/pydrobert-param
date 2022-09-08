@@ -9,9 +9,10 @@ import pandas as pd
 import numpy as np
 
 from pydrobert.param.serialization import (
-    register_reckless_json,
-    unregister_reckless_json,
+    register_serializer,
+    unregister_serializer,
 )
+from pydrobert.param._serializer import _my_serializers
 from pydrobert.param.argparse import DeserializationAction
 
 
@@ -19,22 +20,29 @@ FILE_DIR = os.path.dirname(os.path.realpath(__file__))
 FILE_DIR_DIR = os.path.dirname(FILE_DIR)
 
 
-@pytest.fixture(scope="function")
-def with_registered_reckless_json(request):
-    register_reckless_json()
-    yield
-    unregister_reckless_json()
+@pytest.fixture(scope="function", params=list(_my_serializers))
+def mode(request):
+    # we register all of them in case we use any
+    for mode in _my_serializers:
+        register_serializer(mode)
+    yield request.param
+    for mode in _my_serializers:
+        unregister_serializer(mode)
 
 
-def test_register_reckless_json(with_registered_reckless_json):
-    param.Parameterized.param.serialize_parameters(mode="reckless_json")
-    unregister_reckless_json()
+def test_register_serializer(mode):
+    param.Parameterized.param.serialize_parameters(mode=mode)
+    unregister_serializer(mode)
 
     with pytest.raises(Exception):
-        param.Parameterized.param.serialize_parameters(mode="reckless_json")
+        param.Parameterized.param.serialize_parameters(mode=mode)
 
 
-def test_reckless_json_nesting(with_registered_reckless_json):
+def test_reckless_nesting(mode):
+    if not mode.startswith("reckless_"):
+        pytest.skip(f"'{mode}' not reckless")
+    format = mode.split("_")[-1]
+
     class Nested(param.Parameterized):
         leaf1 = param.Integer(1)
         leaf2 = param.Boolean(False)
@@ -43,47 +51,44 @@ def test_reckless_json_nesting(with_registered_reckless_json):
         nested = param.ClassSelector(Nested)
 
     parent = Parent(name="parent")
-    json_ = parent.param.serialize_parameters(mode="reckless_json")
-    assert json_ == '{"name": "parent", "nested": null}'
-    child = Parent(**Parent.param.deserialize_parameters(json_, mode="reckless_json"))
+    txt = parent.param.serialize_parameters(mode=mode)
+    if format == "json":
+        assert txt == '{"name": "parent", "nested": null}'
+    child = Parent(**Parent.param.deserialize_parameters(txt, mode=mode))
     assert child.pprint() == parent.pprint()
     parent.nested = Nested(name="nested", leaf1=2, leaf2=True)
     assert child.pprint() != parent.pprint()
-    json_ = parent.param.serialize_parameters(mode="reckless_json")
-    assert (
-        json_
-        == '{"name": "parent", "nested": {"name": "nested", "leaf1": 2, "leaf2": true}}'
-    )
-    child = Parent(**Parent.param.deserialize_parameters(json_, mode="reckless_json"))
+    txt = parent.param.serialize_parameters(mode=mode)
+    if format == "json":
+        assert (
+            txt
+            == '{"name": "parent", "nested": {"name": "nested", "leaf1": 2, "leaf2": true}}'
+        )
+    child = Parent(**Parent.param.deserialize_parameters(txt, mode=mode))
     assert child.pprint() == parent.pprint()
     child = Parent(
         **Parent.param.deserialize_parameters(
-            json_, {"name", "nested.name", "nested.leaf1"}, mode="reckless_json"
+            txt, {"name", "nested.name", "nested.leaf1"}, mode=mode
         )
     )
     assert child.pprint() != parent.pprint()
     child.nested.leaf2 = True
     assert child.pprint() == parent.pprint()
-    json_ = parent.param.serialize_parameters(
-        {"name", "nested.leaf1"}, mode="reckless_json"
-    )
-    assert json_ == '{"name": "parent", "nested": {"leaf1": 2}}'
-    child = Parent(**Parent.param.deserialize_parameters(json_, mode="reckless_json"))
+    txt = parent.param.serialize_parameters({"name", "nested.leaf1"}, mode=mode)
+    if format == "json":
+        assert txt == '{"name": "parent", "nested": {"leaf1": 2}}'
+    child = Parent(**Parent.param.deserialize_parameters(txt, mode=mode))
     assert child.pprint() != parent.pprint()
     child.nested.leaf2 = True
     assert child.pprint() != parent.pprint()
-    json_ = json_.replace('"leaf1', '"name": "nested", "leaf1')
-    child = Parent(**Parent.param.deserialize_parameters(json_, mode="reckless_json"))
+    txt = txt.replace('"leaf1', '"name": "nested", "leaf1')
+    child = Parent(**Parent.param.deserialize_parameters(txt, mode=mode))
     child.nested.leaf2 = True
     assert child.pprint() == parent.pprint()
 
 
 def _default_action():
     return 1
-
-
-def _another_action():
-    return 2
 
 
 class _CallableObject(object):
@@ -100,11 +105,11 @@ class _CallableObject(object):
         return "CallableObject({})".format(self.val)
 
 
-class _SpecialInt(int):
-    pass
+def test_reckless_otherwise_same(mode):
+    if not mode.startswith("reckless_"):
+        pytest.skip(f"'{mode}' not reckless")
+    safe_mode = mode[9:]
 
-
-def test_reckless_json_otherwise_same(with_registered_reckless_json):
     class P(param.Parameterized):
         action = param.Action(_default_action, allow_None=True)
         array = param.Array(np.array([1.0, 2.0]))
@@ -164,23 +169,22 @@ def test_reckless_json_otherwise_same(with_registered_reckless_json):
     for pname in pnames:
         except_a = except_b = json_a = json_b = None
         try:
-            json_a = p.param.serialize_parameters({pname}, "json")
+            json_a = p.param.serialize_parameters({pname}, safe_mode)
         except Exception as e:
             except_a = type(e)
         try:
-            json_b = p.param.serialize_parameters({pname}, "reckless_json")
+            json_b = p.param.serialize_parameters({pname}, mode)
         except Exception as e:
             except_b = type(e)
         assert json_a == json_b
         assert except_a == except_b
         if json_a is not None:
-            p_a = P(**P.param.deserialize_parameters(json_a, {pname}, "json"))
-            p_b = P(**P.param.deserialize_parameters(json_a, {pname}, "reckless_json"))
+            p_a = P(**P.param.deserialize_parameters(json_a, {pname}, safe_mode))
+            p_b = P(**P.param.deserialize_parameters(json_a, {pname}, mode))
             assert p_a.pprint() == p_b.pprint()
 
 
-@pytest.mark.parametrize("mode", ["json", "reckless_json"])
-def test_deserialization_action(temp_dir, mode, with_registered_reckless_json):
+def test_deserialization_action(temp_dir, mode):
     class Foo(param.Parameterized):
         a = param.Integer(1)
         b = param.Boolean(False)
