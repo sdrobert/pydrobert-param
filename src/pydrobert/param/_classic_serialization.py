@@ -29,7 +29,12 @@ except ImportError:
 
 import param
 
-from . import config
+from ._file_serialization import (
+    serialize_from_obj_to_json,
+    serialize_from_obj_to_yaml,
+    deserialize_from_json_to_obj,
+    deserialize_from_yaml_to_obj,
+)
 
 try:
     import numpy as np
@@ -928,144 +933,6 @@ def serialize_to_ini(
     parser.write(file)
 
 
-def _serialize_to_ruamel_yaml_dict(yaml, type_, fp, dict_, help_dict):
-    cdict = type_()
-    c_stack = [cdict]
-    d_stack = [dict_]
-    h_stack = [help_dict]
-    while len(c_stack):
-        c = c_stack.pop()
-        d = d_stack.pop()
-        h = h_stack.pop()
-        for key, dval in list(d.items()):
-            hval = h.get(key, None)
-            if hval is None or isinstance(hval, str):
-                c.insert(len(c), key, dval, comment=hval)
-            else:
-                assert len(d)
-                c2 = type_()
-                c.insert(len(c), key, c2)
-                c_stack.append(c2)
-                d_stack.append(dval)
-                h_stack.append(hval)
-    yaml.dump(cdict, stream=fp)
-
-
-def _serialize_to_ruamel_yaml(ruamel_yaml, fp, obj, help_dict):
-    # yaml has an !!omap tag for ordered dictionaries. We don't *need* an
-    # ordering when deserializing, but we want an order when serializing. This
-    # is a hack to ensure an OrderedDict is serialized like any other dict
-    yaml = ruamel_yaml.YAML()
-
-    class MyRepresenter(yaml.Representer):
-        pass
-
-    yaml.Representer = MyRepresenter  # don't pollute the base class
-    yaml.representer.add_representer(OrderedDict, MyRepresenter.represent_dict)
-    if help_dict:
-        return _serialize_to_ruamel_yaml_dict(
-            yaml, ruamel_yaml.comments.CommentedMap, fp, obj, help_dict
-        )
-    yaml.dump(obj, stream=fp)
-
-
-def _serialize_to_pyyaml(yaml, fp, obj, help_dict):
-    if help_dict:
-        help_string_io = StringIO()
-        yaml.dump(help_dict, stream=help_string_io, default_flow_style=False)
-        help_string = help_string_io.getvalue().replace("\n", "\n# ")
-        help_string = "# == Help ==\n# " + help_string + "\n"
-        fp.write(help_string)
-    # https://stackoverflow.com/questions/5121931/in-python-how-can-you-load-yaml-mappings-as-ordereddicts
-    # we also always serialize "None" in order to be consistent with
-    # ruamel_yaml using the method from
-    # https://stackoverflow.com/questions/37200150/can-i-dump-blank-instead-of-null-in-yaml-pyyaml
-
-    class OrderedDumper(yaml.SafeDumper):
-        pass
-
-    def dict_representer(dumper, data):
-        return dumper.represent_mapping(
-            yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, list(data.items())
-        )
-
-    def none_representer(dumper, data):
-        return dumper.represent_scalar("tag:yaml.org,2002:null", "")
-
-    OrderedDumper.add_representer(OrderedDict, dict_representer)
-    OrderedDumper.add_representer(type(None), none_representer)
-    yaml.dump(obj, Dumper=OrderedDumper, stream=fp, default_flow_style=False)
-
-
-def serialize_from_dict_to_yaml(
-    file_: Union[str, TextIO], dict_: dict, help_dict: Optional[dict] = None
-):
-    """Serialize a dictionary of parameter values into a YAML file
-    
-    `YAML syntax <https://en.wikipedia.org/wiki/YAML>`__. Given a dictionary of
-    parameter values, fills a YAML file with the contents of this dictionary.
-
-    Parameters
-    ----------
-    file_
-        The YAML file to serialize to. Can be a pointer or a path.
-    dict_
-        The sort of dictionary returned by :func:`serialized_to_dict`. Stores the
-        parameter values.
-    help_dict
-        The other dictionary returned by :func:`serialized_to_dict` when `include_help`
-        is :obj:`True`. Stores help docs. `ruamel YAML
-        <https://yaml.readthedocs.io/en/latest/>`__ can be imported, help strings will
-        be inline. Otherwise, all documentation will be at the top of the file.
-    
-    See Also
-    --------
-    serialize_to_yaml
-        Composes :func:`serialize_to_dict` with this function.
-    
-    Notes
-    -----
-    This function tries to use the YAML (de)serialization module to load the YAML file
-    in the order listed in :obj:`config.YAML_MODULE_PRIORITIES`, falling back on the
-    next if there's an :class:`ImportError`
-    """
-    if help_dict is None:
-        help_dict = dict()
-    if isinstance(file_, str):
-        with open(file_, "w") as file_:
-            return serialize_from_dict_to_yaml(file_, dict_, help_dict)
-    for name in config.YAML_MODULE_PRIORITIES:
-        if name == "ruamel.yaml":
-            try:
-                import ruamel.yaml  # type: ignore
-
-                _serialize_to_ruamel_yaml(ruamel.yaml, file_, dict_, help_dict)
-                return
-            except ImportError:
-                pass
-        elif name == "ruamel_yaml":
-            try:
-                import ruamel_yaml  # type: ignore
-
-                _serialize_to_ruamel_yaml(ruamel_yaml, file_, dict_, help_dict)
-                return
-            except ImportError:
-                pass
-        elif name == "pyyaml":
-            try:
-                import yaml  # type: ignore
-
-                _serialize_to_pyyaml(yaml, file_, dict_, help_dict)
-                return
-            except ImportError:
-                pass
-        else:
-            raise ValueError(f"Invalid value in config.YAML_MODULE_PRIORITIES: {name}")
-    raise ImportError(
-        f"Could not import any of {config.YAML_MODULE_PRIORITIES} for YAML serialization"
-    )
-
-
 def serialize_to_yaml(
     file_: Union[str, TextIO],
     parameterized: Union[param.Parameterized, dict],
@@ -1077,7 +944,7 @@ def serialize_to_yaml(
 ) -> None:
     """Serialize a parameterized instance into a YAML file
 
-    Composes :func:`serialize_to_dict` with :func:`serialize_from_dict_to_yaml`.
+    Composes :func:`serialize_to_dict` with :func:`serialize_from_obj_to_yaml`.
     """
     dict_ = serialize_to_dict(
         parameterized,
@@ -1091,36 +958,7 @@ def serialize_to_yaml(
         dict_, help_dict = dict_
     else:
         help_dict = None
-    serialize_from_dict_to_yaml(file_, dict_, help_dict)
-
-
-def serialize_from_dict_to_json(
-    file_: Union[str, TextIO], dict_: dict, indent: Optional[int] = 2
-) -> None:
-    """Serialize a dictionary of parameter values into a json file
-    
-    `JSON syntax <https://en.wikipedia.org/wiki/JSON>`__. Given a dictionary of
-    parameter values, fills an JSON file with the contents of this dictionary.
-
-    Parameters
-    ----------
-    file_
-        The JSON file to serialize to. Can be a pointer or a path.
-    dict_
-        The sort of dictionary returned by :func:`serialized_to_dict`.
-    indent
-        The indentation level of nested keys. If :obj:`None`, the output will
-        be compact.
-    
-    See Also
-    --------
-    serialize_to_json
-        Composes :func:`serialize_to_dict` with this function.
-    """
-    if isinstance(file_, str):
-        with open(file_, "w") as file_:
-            return serialize_from_dict_to_json(file_, dict_, indent)
-    json.dump(dict_, file_, indent=indent)
+    serialize_from_obj_to_yaml(file_, dict_, help_dict)
 
 
 def serialize_to_json(
@@ -1134,7 +972,7 @@ def serialize_to_json(
 ) -> None:
     """Serialize a parameterized instance into a JSON file
 
-    Composes :func:`serialize_to_dict` with :func:`serialize_from_dict_to_json`.
+    Composes :func:`serialize_to_dict` with :func:`serialize_from_obj_to_json`.
     """
     dict_ = serialize_to_dict(
         parameterized,
@@ -1144,7 +982,7 @@ def serialize_to_json(
         on_missing=on_missing,
         include_help=False,
     )
-    serialize_from_dict_to_json(file_, dict_, indent)
+    serialize_from_obj_to_json(file_, dict_, indent)
 
 
 class ParamConfigDeserializer(object, metaclass=abc.ABCMeta):
@@ -2258,73 +2096,6 @@ def deserialize_from_ini(
     )
 
 
-def deserialize_from_yaml_to_dict(file_: Union[str, TextIO]) -> dict:
-    """Deserialize a YAML file into a dictionary of parameters
-    
-    `YAML syntax <https://en.wikipedia.org/wiki/YAML>`__.
-
-    Parameters
-    ----------
-    file_
-        A path or pointer to the YAML file.
-    
-    Returns
-    -------
-    dict_ : dict
-
-    Notes
-    -----
-    This function tries to use the YAML (de)serialization module to load the YAML file
-    in the order listed in :obj:`config.YAML_MODULE_PRIORITIES`, falling back on the next if
-    there's an :class:`ImportError`.
-    """
-    if isinstance(file_, str):
-        with open(file_) as file_:
-            return deserialize_from_yaml_to_dict(file_)
-    yaml_loader = None
-    for name in config.YAML_MODULE_PRIORITIES:
-        if name in {"ruamel.yaml", "ruamel_yaml"}:
-            try:
-                if name == "ruamel.yaml":
-                    from ruamel.yaml import YAML  # type: ignore
-                else:
-                    from ruamel_yaml import YAML  # type: ignore
-                yaml_loader = YAML().load
-                break
-            except ImportError:
-                pass
-        elif name == "pyyaml":
-            try:
-                import yaml  # type: ignore
-
-                # https://stackoverflow.com/questions/5121931/in-python-how-can-you-load-yaml-mappings-as-ordereddicts
-                class OrderedLoader(yaml.FullLoader):
-                    pass
-
-                def construct_mapping(loader, node):
-                    loader.flatten_mapping(node)
-                    return OrderedDict(loader.construct_pairs(node))
-
-                OrderedLoader.add_constructor(
-                    yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, construct_mapping
-                )
-
-                def yaml_loader(x):
-                    return yaml.load(x, Loader=OrderedLoader)
-
-                break
-            except ImportError:
-                pass
-        else:
-            raise ValueError(f"Invalid value in config.YAML_MODULE_PRIORITIES: '{name}'")
-    if yaml_loader is None:
-        raise ImportError(
-            f"Could not import any of {config.YAML_MODULE_PRIORITIES} for YAML deserialization"
-        )
-    dict_ = yaml_loader(file_)
-    return dict_
-
-
 def deserialize_from_yaml(
     file: Union[TextIO, str],
     parameterized: Union[param.Parameterized, dict],
@@ -2334,9 +2105,9 @@ def deserialize_from_yaml(
 ) -> None:
     """Deserialize a YAML file into a parameterized instance
 
-    Composes :func:`deserialize_from_yaml_to_dict` with :func:`deserialize_from_dict`.
+    Composes :func:`deserialize_from_yaml_to_obj` with :func:`deserialize_from_dict`.
     """
-    dict_ = deserialize_from_yaml_to_dict(file)
+    dict_ = deserialize_from_yaml_to_obj(file)
     deserialize_from_dict(
         dict_,
         parameterized,
@@ -2344,27 +2115,6 @@ def deserialize_from_yaml(
         deserializer_type_dict=deserializer_type_dict,
         on_missing=on_missing,
     )
-
-
-def deserialize_from_json_to_dict(file_: Union[TextIO, str]) -> dict:
-    """Deserialize a JSON file into a dictionary of parameter values
-
-    `JSON syntax <https://en.wikipedia.org/wiki/JSON>`__.
-
-    Parameters
-    ----------
-    file_
-        A path or pointer to the JSON file.
-    
-    Returns
-    -------
-    dict_
-    """
-    if isinstance(file_, str):
-        with open(file_) as file_:
-            return json.load(file_)
-    else:
-        return json.load(file_)
 
 
 def deserialize_from_json(
@@ -2376,9 +2126,9 @@ def deserialize_from_json(
 ) -> None:
     """Deserialize a YAML file into a parameterized instance
 
-    Composes :func:`deserialize_from_json_to_dict` with :func:`deserialize_from_dict`.
+    Composes :func:`deserialize_from_json_to_obj` with :func:`deserialize_from_dict`.
     """
-    dict_ = deserialize_from_json_to_dict(file_)
+    dict_ = deserialize_from_json_to_obj(file_)
     deserialize_from_dict(
         dict_,
         parameterized,

@@ -5,7 +5,7 @@ from io import StringIO
 import pytest
 import param
 import pydrobert.param.config as config
-from pydrobert.param.serialization import serialize_from_dict_to_yaml
+from pydrobert.param.serialization import serialize_from_obj_to_yaml
 
 
 param.parameterized.warnings_as_exceptions = True
@@ -44,7 +44,7 @@ def with_yaml(request):
     if request.param:
         try:
             with StringIO() as fp:
-                serialize_from_dict_to_yaml(fp, {"foo": 1})
+                serialize_from_obj_to_yaml(fp, {"foo": 1})
         except ImportError:
             pytest.skip("No yaml serializer")
         yield True

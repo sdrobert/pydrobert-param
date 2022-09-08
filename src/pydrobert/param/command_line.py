@@ -24,9 +24,9 @@ from collections import OrderedDict
 from itertools import chain
 from configparser import ConfigParser
 
-from ._classic_serialization import (
-    serialize_from_dict_to_yaml,
-    deserialize_from_yaml_to_dict,
+from ._file_serialization import (
+    serialize_from_obj_to_yaml,
+    deserialize_from_yaml_to_obj,
 )
 
 __all__ = [
@@ -253,7 +253,7 @@ Whether comments are ignored depends on the parsing backend."""
         return ex.code
     vals = []
     for fp in options.sources:
-        vals.append(deserialize_from_yaml_to_dict(fp))
+        vals.append(deserialize_from_yaml_to_obj(fp))
     v = _combine_container_vals(vals, not options.quiet, options.nested)
-    serialize_from_dict_to_yaml(options.dest, v)
+    serialize_from_obj_to_yaml(options.dest, v)
     return 0
