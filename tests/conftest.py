@@ -39,6 +39,33 @@ def yaml_loader(request):
     config.YAML_MODULE_PRIORITIES = old_props
 
 
+@pytest.fixture(params=["ruamel_yaml", "pyyaml"])
+def yaml_dumper(request):
+    if request.param == "ruamel_yaml":
+        YAML = None
+        try:
+            from ruamel_yaml import YAML  # type: ignore
+        except ImportError:
+            pass
+        if YAML is None:
+            try:
+                from ruamel.yaml import YAML  # type: ignore
+            except ImportError:
+                pytest.skip("No yaml parser found")
+        yaml_dumper = YAML().dump
+        module_names = ("ruamel_yaml", "ruamel.yaml")
+    else:
+        yaml = pytest.importorskip("yaml")
+
+        yaml_dumper = yaml.dump
+
+        module_names = ("pyyaml",)
+    old_props = config.YAML_MODULE_PRIORITIES
+    config.YAML_MODULE_PRIORITIES = module_names
+    yield yaml_dumper
+    config.YAML_MODULE_PRIORITIES = old_props
+
+
 @pytest.fixture(params=[True, False])
 def with_yaml(request):
     if request.param:

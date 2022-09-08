@@ -22,73 +22,6 @@ from io import StringIO
 from . import config
 
 
-def _serialize_from_obj_to_ruamel_yaml_dict(ruamel_yaml, dict_, help_dict):
-    cdict = ruamel_yaml.comments.CommentedMap()
-    c_stack = [cdict]
-    d_stack = [dict_]
-    h_stack = [help_dict]
-    while len(c_stack):
-        c = c_stack.pop()
-        d = d_stack.pop()
-        h = h_stack.pop()
-        for key, dval in list(d.items()):
-            hval = h.get(key, None)
-            if hval is None or isinstance(hval, str):
-                c.insert(len(c), key, dval, comment=hval)
-            else:
-                assert len(d)
-                c2 = type(cdict)()
-                c.insert(len(c), key, c2)
-                c_stack.append(c2)
-                d_stack.append(dval)
-                h_stack.append(hval)
-    return cdict
-
-
-def _serialize_from_obj_to_ruamel_yaml(ruamel_yaml, fp, obj, help_dict):
-    # yaml has an !!omap tag for ordered dictionaries. We don't *need* an
-    # ordering when deserializing, but we want an order when serializing. This
-    # is a hack to ensure an OrderedDict is serialized like any other dict
-    yaml = ruamel_yaml.YAML()
-
-    class MyRepresenter(yaml.Representer):
-        pass
-
-    yaml.Representer = MyRepresenter  # don't pollute the base class
-    yaml.representer.add_representer(OrderedDict, MyRepresenter.represent_dict)
-    if isinstance(obj, dict) and isinstance(help_dict, dict):
-        obj = _serialize_from_obj_to_ruamel_yaml_dict(ruamel_yaml, obj, help_dict)
-    yaml.dump(obj, stream=fp)
-
-
-def _serialize_from_obj_to_pyyaml(yaml, fp, obj, help_dict):
-    if help_dict:
-        help_string_io = StringIO()
-        yaml.dump(help_dict, stream=help_string_io, default_flow_style=False)
-        help_string = help_string_io.getvalue().replace("\n", "\n# ")
-        help_string = "# == Help ==\n# " + help_string + "\n"
-        fp.write(help_string)
-    # https://stackoverflow.com/questions/5121931/in-python-how-can-you-load-yaml-mappings-as-ordereddicts
-    # we also always serialize "None" in order to be consistent with
-    # ruamel_yaml using the method from
-    # https://stackoverflow.com/questions/37200150/can-i-dump-blank-instead-of-null-in-yaml-pyyaml
-
-    class OrderedDumper(yaml.SafeDumper):
-        pass
-
-    def dict_representer(dumper, data):
-        return dumper.represent_mapping(
-            yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, list(data.items())
-        )
-
-    def none_representer(dumper, data):
-        return dumper.represent_scalar("tag:yaml.org,2002:null", "")
-
-    OrderedDumper.add_representer(OrderedDict, dict_representer)
-    OrderedDumper.add_representer(type(None), none_representer)
-    yaml.dump(obj, Dumper=OrderedDumper, stream=fp, default_flow_style=False)
-
-
 def serialize_from_obj_to_json(
     file_: Union[str, TextIO], obj: dict, indent: Optional[int] = 2
 ) -> None:
@@ -119,9 +52,7 @@ def serialize_from_obj_to_json(
         json.dump(obj, file_, indent=indent)
 
 
-def serialize_from_obj_to_yaml(
-    file_: Union[str, TextIO], obj: Any, help: Optional[dict] = None
-):
+def serialize_from_obj_to_yaml(file_: Union[str, TextIO], obj: Any, help: Any = None):
     """Serialize an object into a YAML file
     
     `YAML syntax <https://en.wikipedia.org/wiki/YAML>`__.
@@ -133,7 +64,9 @@ def serialize_from_obj_to_yaml(
     obj
         The thing to serialize.
     help
-        An optional dictionary of help strings. If both 
+        An optional thing containing strings representing help information. Will try to
+        save as comments. If `obj` and `help` share a structure (e.g. both :obj:`list`
+        or :obj:`dict`), the backend will try to organize `help` in similar fashion.
 
     Notes
     -----
@@ -259,3 +192,109 @@ def deserialize_from_json_to_obj(file_: Union[TextIO, str]) -> Any:
             return json.load(file_)
     else:
         return json.load(file_)
+
+
+def _serialize_from_obj_to_ruamel_yaml_list(
+    ruamel_yaml, list_: list, help_list: Union[list, str]
+):
+    clist = ruamel_yaml.comments.CommentedSeq()
+    if isinstance(help_list, str):
+        help_list = [help_list]
+    if len(help_list) != len(list_):
+        # put the comment at the top and hope for the best
+        help_list = ". ".join(help_list)
+        if len(help_list):
+            clist.yaml_set_start_comment(help_list)
+        clist.extend(list_)
+    else:
+        for dval, hval in zip(list_, help_list):
+            if isinstance(hval, str) and hval:
+                i = len(clist)
+                clist.append(dval)
+                clist.yaml_add_eol_comment(hval, i)
+            elif isinstance(dval, dict) and isinstance(hval, dict):
+                clist.append(
+                    _serialize_from_obj_to_ruamel_yaml_dict(ruamel_yaml, dval, hval)
+                )
+            elif isinstance(dval, list) and isinstance(hval, list):
+                clist.append(
+                    _serialize_from_obj_to_ruamel_yaml_list(ruamel_yaml, dval, hval)
+                )
+            else:
+                clist.append(dval)
+    return clist
+
+
+def _serialize_from_obj_to_ruamel_yaml_dict(
+    ruamel_yaml, dict_: dict, help_dict: Union[str, dict]
+):
+    cdict = ruamel_yaml.comments.CommentedMap()
+    if isinstance(help_dict, str):
+        if help_dict:
+            cdict.yaml_set_start_comment(help_dict)
+        help_dict = dict()
+    for key, dval in dict_.items():
+        hval = help_dict.get(key, None)
+        if isinstance(hval, str) and hval:
+            cdict.insert(len(cdict), key, dval, comment=hval)
+        elif isinstance(dval, dict) and isinstance(hval, dict):
+            cdict.insert(
+                len(cdict),
+                key,
+                _serialize_from_obj_to_ruamel_yaml_dict(ruamel_yaml, dval, hval),
+            )
+        elif isinstance(dval, list) and isinstance(hval, list):
+            cdict.insert(
+                len(cdict),
+                key,
+                _serialize_from_obj_to_ruamel_yaml_list(ruamel_yaml, dval, hval),
+            )
+        else:
+            cdict.insert(len(cdict), key, dval)
+    return cdict
+
+
+def _serialize_from_obj_to_ruamel_yaml(ruamel_yaml, fp, obj, help):
+    # yaml has an !!omap tag for ordered dictionaries. We don't *need* an
+    # ordering when deserializing, but we want an order when serializing. This
+    # is a hack to ensure an OrderedDict is serialized like any other dict
+    yaml = ruamel_yaml.YAML()
+
+    class MyRepresenter(yaml.Representer):
+        pass
+
+    yaml.Representer = MyRepresenter  # don't pollute the base class
+    yaml.representer.add_representer(OrderedDict, MyRepresenter.represent_dict)
+    if isinstance(obj, dict) and isinstance(help, (dict, str)):
+        obj = _serialize_from_obj_to_ruamel_yaml_dict(ruamel_yaml, obj, help)
+    elif isinstance(obj, list) and isinstance(help, (list, str)):
+        obj = _serialize_from_obj_to_ruamel_yaml_list(ruamel_yaml, obj, help)
+    yaml.dump(obj, stream=fp)
+
+
+def _serialize_from_obj_to_pyyaml(yaml, fp, obj, help):
+    if help:
+        help_string_io = StringIO()
+        yaml.dump(help, stream=help_string_io, default_flow_style=False)
+        help_string = help_string_io.getvalue().strip().replace("\n", "\n# ")
+        help_string = "# == Help ==\n# " + help_string + "\n\n"
+        fp.write(help_string)
+    # https://stackoverflow.com/questions/5121931/in-python-how-can-you-load-yaml-mappings-as-ordereddicts
+    # we also always serialize "None" in order to be consistent with
+    # ruamel_yaml using the method from
+    # https://stackoverflow.com/questions/37200150/can-i-dump-blank-instead-of-null-in-yaml-pyyaml
+
+    class OrderedDumper(yaml.SafeDumper):
+        pass
+
+    def dict_representer(dumper, data):
+        return dumper.represent_mapping(
+            yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, list(data.items())
+        )
+
+    def none_representer(dumper, data):
+        return dumper.represent_scalar("tag:yaml.org,2002:null", "")
+
+    OrderedDumper.add_representer(OrderedDict, dict_representer)
+    OrderedDumper.add_representer(type(None), none_representer)
+    yaml.dump(obj, Dumper=OrderedDumper, stream=fp, default_flow_style=False)
