@@ -4,7 +4,8 @@ from io import StringIO
 
 import pytest
 import param
-import pydrobert.param.serialization as serial
+import pydrobert.param.config as config
+from pydrobert.param.serialization import serialize_from_obj_to_yaml
 
 
 param.parameterized.warnings_as_exceptions = True
@@ -31,11 +32,38 @@ def yaml_loader(request):
         def yaml_loader(x):
             return yaml.load(x, Loader=yaml.FullLoader)
 
-        module_names = ("pyyaml",)
-    old_props = serial.YAML_MODULE_PRIORITIES
-    serial.YAML_MODULE_PRIORITIES = module_names
+        module_names = ("yaml",)
+    old_props = config.YAML_MODULE_PRIORITIES
+    config.YAML_MODULE_PRIORITIES = module_names
     yield yaml_loader
-    serial.YAML_MODULE_PRIORITIES = old_props
+    config.YAML_MODULE_PRIORITIES = old_props
+
+
+@pytest.fixture(params=["ruamel_yaml", "pyyaml"])
+def yaml_dumper(request):
+    if request.param == "ruamel_yaml":
+        YAML = None
+        try:
+            from ruamel_yaml import YAML  # type: ignore
+        except ImportError:
+            pass
+        if YAML is None:
+            try:
+                from ruamel.yaml import YAML  # type: ignore
+            except ImportError:
+                pytest.skip("No yaml parser found")
+        yaml_dumper = YAML().dump
+        module_names = ("ruamel_yaml", "ruamel.yaml")
+    else:
+        yaml = pytest.importorskip("yaml")
+
+        yaml_dumper = yaml.dump
+
+        module_names = ("yaml",)
+    old_props = config.YAML_MODULE_PRIORITIES
+    config.YAML_MODULE_PRIORITIES = module_names
+    yield yaml_dumper
+    config.YAML_MODULE_PRIORITIES = old_props
 
 
 @pytest.fixture(params=[True, False])
@@ -43,15 +71,15 @@ def with_yaml(request):
     if request.param:
         try:
             with StringIO() as fp:
-                serial._serialize_to_yaml(fp, {"foo": 1})
+                serialize_from_obj_to_yaml(fp, {"foo": 1})
         except ImportError:
             pytest.skip("No yaml serializer")
         yield True
     else:
-        old_props = serial.YAML_MODULE_PRIORITIES
-        serial.YAML_MODULE_PRIORITIES = tuple()
+        old_props = config.YAML_MODULE_PRIORITIES
+        config.YAML_MODULE_PRIORITIES = tuple()
         yield False
-        serial.YAML_MODULE_PRIORITIES = old_props
+        config.YAML_MODULE_PRIORITIES = old_props
 
 
 @pytest.fixture

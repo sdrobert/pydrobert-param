@@ -11,6 +11,7 @@ pydrobert.param API
 
    pydrobert.param.abc
    pydrobert.param.argparse
+   pydrobert.param.config
    pydrobert.param.optuna
    pydrobert.param.serialization
 

@@ -1,7 +1,7 @@
 """Tests for pydrobert.param.serialization
 
 We test the various deserialization from file functions in
-``test_argparse``, since those actions are merely a thin wrapper around
+``test_classic_argparse``, since those actions are merely a thin wrapper around
 these functions
 """
 
@@ -20,6 +20,8 @@ import param
 import numpy as np
 import pandas as pd
 import pydrobert.param.serialization as serial
+
+from pydrobert.param._classic_serialization import _timestamp
 
 FILE_DIR = os.path.dirname(os.path.realpath(__file__))
 FILE_DIR_DIR = os.path.dirname(FILE_DIR)
@@ -142,8 +144,8 @@ def BigDumbParams(name=None):
         ),
         (
             "filename",
-            os.path.join(FILE_DIR, "test_argparse.py"),
-            os.path.join(FILE_DIR, "test_argparse.py"),
+            os.path.join(FILE_DIR, "test_classic_argparse.py"),
+            os.path.join(FILE_DIR, "test_classic_argparse.py"),
         ),
         ("foldername", FILE_DIR, FILE_DIR),
         ("hook_list", [CallableObject(4)], [CallableObject(4)]),
@@ -470,7 +472,7 @@ def test_can_deserialize_none():
             FILE_DIR + "/pandas_data_frame.csv",
             pd.DataFrame(OrderedDict([("foo", [1.0, 3.0]), ("bar", [2.0, 4.0])])),
         ),
-        ("date", serial._timestamp(datetime(2020, 10, 2)), datetime(2020, 10, 2)),
+        ("date", _timestamp(datetime(2020, 10, 2)), datetime(2020, 10, 2)),
         ("date", datetime(2030, 1, 8).toordinal(), datetime(2030, 1, 8)),
         ("date", "2040-10-04", datetime(2040, 10, 4)),
         ("date", "2050-11-05T06:07:08", datetime(2050, 11, 5, 6, 7, 8)),
@@ -493,8 +495,8 @@ def test_can_deserialize_none():
         (
             "date_range",
             (
-                serial._timestamp(datetime(2018, 12, 7, 18, 16, 28, 610366)),
-                serial._timestamp(datetime(2018, 12, 7, 18, 16, 38, 466311)),
+                _timestamp(datetime(2018, 12, 7, 18, 16, 28, 610366)),
+                _timestamp(datetime(2018, 12, 7, 18, 16, 38, 466311)),
             ),
             (
                 datetime(2018, 12, 7, 18, 16, 28, 610366),
@@ -510,8 +512,8 @@ def test_can_deserialize_none():
         ),
         (
             "filename",
-            os.path.join(FILE_DIR, "test_serialization.py"),
-            os.path.join(FILE_DIR, "test_serialization.py"),
+            os.path.join(FILE_DIR, "test_classic_serialization.py"),
+            os.path.join(FILE_DIR, "test_classic_serialization.py"),
         ),
         ("foldername", FILE_DIR, FILE_DIR),
         ("hook_list", [CallableObject(3)], [CallableObject(3)]),
@@ -534,8 +536,8 @@ def test_can_deserialize_none():
         ("object_selector", False, False),
         (
             "path",
-            os.path.join(FILE_DIR, "test_serialization.py"),
-            os.path.join(FILE_DIR, "test_serialization.py"),
+            os.path.join(FILE_DIR, "test_classic_serialization.py"),
+            os.path.join(FILE_DIR, "test_classic_serialization.py"),
         ),
         ("range_", ("-10", 4), (-10.0, 4.0)),
         ("series", pd.Series([1, 2, 3]), pd.Series([1, 2, 3])),
@@ -612,13 +614,15 @@ def test_deserialize_from_dict():
     parameterized_a = BigDumbParams(name="test_deserialize_from_dict_a")
     dict_ = {
         "array": [1, 2, 3],
-        "filename": os.path.join(FILE_DIR, "test_serialization.py"),
+        "filename": os.path.join(FILE_DIR, "test_classic_serialization.py"),
         "list_": [3, 4, 5],
         "x_y_coordinates": ("3.4", "5"),
     }
     serial.deserialize_from_dict(dict_, parameterized_a)
     assert np.allclose(parameterized_a.array, [1, 2, 3])
-    assert parameterized_a.filename == os.path.join(FILE_DIR, "test_serialization.py")
+    assert parameterized_a.filename == os.path.join(
+        FILE_DIR, "test_classic_serialization.py"
+    )
     assert np.allclose(parameterized_a.list_, [3, 4, 5])
     assert np.allclose(parameterized_a.x_y_coordinates, (3.4, 5.0))
 

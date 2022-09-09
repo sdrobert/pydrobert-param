@@ -12,25 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Utilities for python module param"""
+"""Configuration variables"""
 
-from __future__ import annotations
-
-
-__author__ = "Sean Robertson"
-__email__ = "sdrobert@cs.toronto.edu"
-__license__ = "Apache 2.0"
-__copyright__ = "Copyright 2022 Sean Robertson"
-
-try:
-    from ._version import version as __version__  # type: ignore
-except ImportError:
-    __version__ = "inplace"
+from typing import Tuple
 
 __all__ = [
-    "abc",
-    "argparse",
-    "config",
-    "optuna",
-    "serialization",
+    "YAML_MODULE_PRIORITIES",
 ]
+
+"""Specifies the order with which to try YAML parser modules
+
+A number of different `YAML syntax <https://en.wikipedia.org/wiki/YAML>`__ parsers
+exist. This tuple specifies the order by which we attempt to import parsers
+"""
+YAML_MODULE_PRIORITIES: Tuple[str] = ("ruamel.yaml", "ruamel_yaml", "yaml")
+

@@ -24,8 +24,10 @@ from collections import OrderedDict
 from itertools import chain
 from configparser import ConfigParser
 
-from pydrobert.param.serialization import _serialize_to_yaml
-from pydrobert.param.serialization import _deserialize_from_yaml
+from ._file_serialization import (
+    serialize_from_obj_to_yaml,
+    deserialize_from_yaml_to_obj,
+)
 
 __all__ = [
     "combine_ini_files",
@@ -251,7 +253,7 @@ Whether comments are ignored depends on the parsing backend."""
         return ex.code
     vals = []
     for fp in options.sources:
-        vals.append(_deserialize_from_yaml(fp))
+        vals.append(deserialize_from_yaml_to_obj(fp, True))
     v = _combine_container_vals(vals, not options.quiet, options.nested)
-    _serialize_to_yaml(options.dest, v)
+    serialize_from_obj_to_yaml(options.dest, v)
     return 0
