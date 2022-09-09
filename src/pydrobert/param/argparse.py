@@ -27,9 +27,14 @@ from ._classic_argparse import (
     ParameterizedYamlPrintAction,
     ParameterizedYamlReadAction,
 )
-from ._serializer import DeserializationAction, SerializationAction
+from ._serializer import (
+    add_deserialization_group_to_parser,
+    DeserializationAction,
+    SerializationAction,
+)
 
 __all__ = [
+    "add_deserialization_group_to_parser",
     "add_parameterized_print_group",
     "add_parameterized_read_group",
     "DeserializationAction",

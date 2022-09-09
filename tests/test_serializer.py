@@ -14,7 +14,11 @@ from pydrobert.param.serialization import (
     unregister_serializer,
 )
 from pydrobert.param._serializer import _my_serializers
-from pydrobert.param.argparse import DeserializationAction, SerializationAction
+from pydrobert.param.argparse import (
+    DeserializationAction,
+    SerializationAction,
+    add_deserialization_group_to_parser,
+)
 
 
 FILE_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -250,3 +254,43 @@ def test_serialization_action(temp_dir, mode, capsys, yaml_loader):
         print(txt)
         bar_0_ = Bar(**Bar.param.deserialize_parameters(txt, mode=mode))
     assert bar_0_.pprint() == bar_0.pprint()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["--b1", temp_file_1])
+    with open(temp_file_1) as f:
+        txt = f.read()
+        print(txt)
+        bar_1_ = Bar(**Bar.param.deserialize_parameters(txt, mode=mode))
+    assert bar_1_.pprint() == bar_1.pprint()
+
+
+def test_add_deserialization_group_to_parser(temp_dir, yaml_loader, mode):
+
+    file_format = mode.split("_")[-1]
+    reckless = "reckless" in mode
+
+    class Baz(param.Parameterized):
+        pass
+
+    bazs, temps = [], []
+    for i in range(3):
+        temp_file = f"{temp_dir}/{i}.{file_format}"
+        baz = Baz(name=f"baz{i}")
+        with open(temp_file, "w") as f:
+            f.write(baz.param.serialize_parameters(mode=mode))
+        bazs.append(baz)
+        temps.append(temp_file)
+
+    parser = argparse.ArgumentParser()
+    add_deserialization_group_to_parser(parser, Baz, "p", reckless=reckless)
+    options = parser.parse_args([])
+    assert options.p is None
+
+    parser = argparse.ArgumentParser()
+    add_deserialization_group_to_parser(parser, bazs[0], "p", reckless=reckless)
+    options = parser.parse_args([])
+    assert options.p is bazs[0]
+
+    for i, (baz, temp_file) in enumerate(zip(bazs, temps)):
+        options = parser.parse_args([f"--read-{file_format}", temp_file])
+        assert options.p.name == baz.name

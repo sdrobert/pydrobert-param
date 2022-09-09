@@ -90,6 +90,7 @@ from ._file_serialization import (
     deserialize_from_yaml_to_obj,
     serialize_from_obj_to_json,
     serialize_from_obj_to_yaml,
+    yaml_is_available,
 )
 from .config import YAML_MODULE_PRIORITIES  # deprecated
 
@@ -163,6 +164,7 @@ __all__ = [
     "serialize_to_json",
     "serialize_to_yaml",
     "unregister_serializer",
+    "yaml_is_available",
     "YamlSerializable",
     "YamlSerialization",
 ]

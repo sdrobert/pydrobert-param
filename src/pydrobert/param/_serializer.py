@@ -48,7 +48,6 @@
 
 import abc
 import argparse
-from re import A
 import textwrap
 import json
 import sys
@@ -63,7 +62,6 @@ from typing import (
     TextIO,
     Tuple,
     Type,
-    TypeVar,
     Union,
 )
 from io import StringIO
@@ -78,6 +76,7 @@ import param
 from param.serializer import Serialization
 
 from ._file_serialization import (
+    yaml_is_available,
     deserialize_from_yaml_to_obj,
     serialize_from_obj_to_yaml,
 )
@@ -166,9 +165,7 @@ class SerializableSerialization(Serialization, Serializable):
         value: Any,
         nested_subsets: NestedSubsetType = None,
     ) -> Any:
-        val = pobj.param[pname].deserialize(value)
-        print("val", type(val), val)
-        return val
+        return pobj.param[pname].deserialize(value)
 
     @classmethod
     def get_serialize_dict(
@@ -375,7 +372,11 @@ def register_serializer(mode: Literal["reckless_json", "reckless_yaml", "yaml"])
     --------
     unregister_serializer
     """
-    param.Parameter._serializers.setdefault(mode, _my_serializers[mode])
+    # avoids the case where the user mistakenly treats a standard serializer (e.g. json)
+    # as something to be registered
+    if mode in param.Parameter._serializers:
+        return
+    param.Parameter._serializers[mode] = _my_serializers[mode]
 
 
 def unregister_serializer(mode: Literal["reckless_json", "reckless_yaml", "yaml"]):
@@ -391,10 +392,8 @@ def unregister_serializer(mode: Literal["reckless_json", "reckless_yaml", "yaml"
         param.Parameter._serializers.pop(mode)
 
 
-P = TypeVar("P", bound=param.Parameterized)
-
 try:
-    Action = argparse.Action[P]
+    Action = argparse.Action[param.Parameterized]
 except:
     Action = argparse.Action
 
@@ -426,7 +425,7 @@ class DeserializationAction(Action):
         To enable custom parsing modes.
     """
 
-    class_: Type[P]
+    class_: Type[param.Parameterized]
 
     def __init__(
         self,
@@ -435,7 +434,7 @@ class DeserializationAction(Action):
         nargs: Union[str, int, None] = None,
         const: Union[str, Tuple[str, Optional[Collection[str]]]] = "json",
         default: Any = None,
-        type: Type[P] = param.Parameterized,
+        type: Type[param.Parameterized] = param.Parameterized,
         choices=None,
         required: bool = False,
         help: Optional[str] = None,
@@ -588,3 +587,145 @@ class SerializationAction(Action):
         for value in values:
             value.write(txt)
         sys.exit(0)
+
+
+def add_deserialization_group_to_parser(
+    parser: argparse.ArgumentParser,
+    pobj: PObjType,
+    dest: str,
+    file_formats: Union[
+        Literal["json", "yaml"], Collection[Literal["json", "yaml"]], None
+    ] = None,
+    subset: Optional[Collection[str]] = None,
+    reckless: bool = False,
+    flag_format_str: Union[str, Sequence[str]] = "--read-{file_format}",
+    help_format_str: Optional[str] = (
+        "Path to {file_format} file (or '-' for stdin) from which to read in "
+        "{dest} parameters"
+    ),
+    required: bool = False,
+    register_missing: bool = True,
+):
+    """Add flags to parser for deserializing parameterized objects from file
+    
+    A convenience function for coordinating :class:`DeserializationAction` arguments
+    over multiple file formats. The usual case might look like
+
+    >>> add_deserialization_group_to_parser(parser, MyParameterized, 'param')
+    >>> namespace = parser.parse_args()
+    >>> namespace.param  # stores the MyParameterized instance or None
+
+    Here it adds mutually exclusive flags to deserialize a `MyParameterized` instance
+    using serialization protocols for the available file formats.
+
+    Parameters
+    ----------
+    parser
+    pobj
+        Either a subclass of :class:`param.Parameterized` or an instance of one.
+        Determines the type of parameterized object to deserialize. If `pobj` is a
+        :class:`type`, the default value for the parameters in the namespace will be
+        :obj:`None`. Otherwise (when `pobj` is an instance), `pobj` will be the default
+        value.
+    dest
+        The name of the attribute in `namespace` to store the deserialized instance
+        under.
+    file_formats
+        If specified, one or a list of file formats to add flags for. If unspecified,
+        flags for every available file format will be added. Availability means both
+        the correct backend is installed to parse the file and, if `register_missing`
+        is :obj:`False`, that the corresponding mode has already been registered. The
+        :obj:`'json'` format is always available.
+    subset
+        If specified, only the parameters with names in this set will be deserialized.
+    reckless
+        Whether to allow simplifying assumptions to make parsing easier.
+    flag_format_str
+        One or more Python format strings which, after formatting, will act as the flags
+        for the argument. The following keys are available for formatting:
+        
+        - `file_format`, an entry in `file_formats`
+        - `dest`
+        - `pobj_name`, either :obj:`pobj.name` if `pobj` is an instance or
+          :obj:`pobj.__name__` if `pobj` is a class.
+    help_format_str
+        A python format string which, after formatting, describes the flags. The same
+        keys are available as those to `flag_format_str`.
+    required
+        Whether to require the user to specify one flag.
+    register_missing
+        Whether to register any custom modes corresponding to the `file_formats` (and
+        `reckless`) which have yet to be registered via :func:`register_serializer`.
+        Setting to :obj:`False` will restrict the dynamically chosen value of
+        `file_formats`. If `file_formats` is manually specified, the parser will throw
+        when it tries to deserialize using an unspecified mode.
+    
+    Returns
+    -------
+    grp
+        The mutually exclusive group which the flags have beed added to
+
+    Warnings
+    --------
+    Functionality is in beta and subject to additions and modifications.
+    
+    See Also
+    --------
+    add_parameterized_read_group
+        An analogous function using custom deserialization routines.
+    pydrobert.param.register_serializer
+        More information on the file formats and modes of serialization.
+    """
+    if isinstance(flag_format_str, str):
+        flag_format_str = (flag_format_str,)
+    elif not len(flag_format_str):
+        raise ValueError("Must specify at least one string in flag_format_str")
+    if isinstance(pobj, type):
+        default, pobj_name = None, pobj.__name__
+    else:
+        default, pobj_name = pobj, pobj.name
+    if reckless:
+        fmt2mode = {"json": "reckless_json", "yaml": "reckless_yaml"}
+        mode2fmt = {"reckless_json": "json", "reckless_yaml": "yaml"}
+    else:
+        fmt2mode = mode2fmt = {"json": "json", "yaml": "yaml"}
+    if file_formats is None:
+        file_formats = set(fmt2mode)
+        if not register_missing:
+            file_formats &= {mode2fmt[s] for s in param.Parameter._serializers}
+        if "yaml" in file_formats and not yaml_is_available():
+            file_formats.remove("yaml")
+    else:
+        file_formats = set(file_formats)
+        missing_formats = file_formats - set(fmt2mode)
+        if missing_formats:
+            raise ValueError(f"No serialization known for: {missing_formats}")
+
+    grp = parser.add_mutually_exclusive_group(required=required)
+    grp.set_defaults(**{dest: default})
+    for file_format in file_formats:
+        mode = fmt2mode[file_format]
+        if register_missing:
+            register_serializer(mode)
+        const = (mode, subset)
+        flag_str = (
+            f.format(file_format=file_format, dest=dest, pobj_name=pobj_name)
+            for f in flag_format_str
+        )
+        if help_format_str is None:
+            help_str = None
+        else:
+            help_str = help_format_str.format(
+                file_format=file_format, dest=dest, pobj_name=pobj_name
+            )
+        grp.add_argument(
+            *flag_str,
+            dest=dest,
+            action=DeserializationAction,
+            metavar=file_format.upper(),
+            const=const,
+            help=help_str,
+        )
+
+    return grp
+

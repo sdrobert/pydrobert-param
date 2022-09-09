@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import json
+import importlib
 
 from typing import Any, TextIO, Optional, Union
 
@@ -20,6 +21,18 @@ from collections import OrderedDict
 from io import StringIO
 
 from . import config
+
+
+def yaml_is_available() -> bool:
+    """Returns whether one of the YAML backends is available
+    
+    Checks only those in :obj:`config.YAML_MODULE_PRIORITIES`
+    """
+    for name in config.YAML_MODULE_PRIORITIES:
+        spec = importlib.util.find_spec(name)
+        if spec is not None:
+            return True
+    return False
 
 
 def serialize_from_obj_to_json(
@@ -96,7 +109,7 @@ def serialize_from_obj_to_yaml(file_: Union[str, TextIO], obj: Any, help: Any = 
                 return
             except ImportError:
                 pass
-        elif name == "pyyaml":
+        elif name == "yaml":
             try:
                 import yaml  # type: ignore
 
@@ -162,7 +175,7 @@ def deserialize_from_yaml_to_obj(
                 break
             except ImportError:
                 pass
-        elif name == "pyyaml":
+        elif name == "yaml":
             try:
                 import yaml  # type: ignore
 

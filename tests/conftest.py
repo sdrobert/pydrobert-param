@@ -32,7 +32,7 @@ def yaml_loader(request):
         def yaml_loader(x):
             return yaml.load(x, Loader=yaml.FullLoader)
 
-        module_names = ("pyyaml",)
+        module_names = ("yaml",)
     old_props = config.YAML_MODULE_PRIORITIES
     config.YAML_MODULE_PRIORITIES = module_names
     yield yaml_loader
@@ -59,7 +59,7 @@ def yaml_dumper(request):
 
         yaml_dumper = yaml.dump
 
-        module_names = ("pyyaml",)
+        module_names = ("yaml",)
     old_props = config.YAML_MODULE_PRIORITIES
     config.YAML_MODULE_PRIORITIES = module_names
     yield yaml_dumper
