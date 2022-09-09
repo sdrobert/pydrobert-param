@@ -1,5 +1,15 @@
 # Changelog
 
+## HEAD
+
+- New serialization protocols based on `param`'s built-in serialization are in
+  beta. Added code, tests, and documentation
+- Refactored code to separate serialization from/to file from the dict stuff.
+  Extended file serialization to handle non-dict stuff and avoid some bugs.
+- Moved to `pydrobert.config` and redefined an element in
+  `YAML_MODULE_PRIORITIES`. Technically a breaking change, but one unlikely to
+  cause many issues.
+
 ## v0.3.1
 
 - Handle ABC issues with MRO instead of redefining base class.

@@ -1,6 +1,14 @@
 Serialization Tutorial
 ======================
 
+In this package there are two ways of performing serialization and
+deserialization: the "classic" and "new" methods. The classic method predates
+the built-in JSON serialization of :mod:`param` while the new method extends
+the built-in serialization to new file types. The new method is still in beta.
+
+Classic method
+--------------
+
 As an example, suppose we have parameterized classes and instances:
 
 .. code-block:: python
@@ -181,3 +189,80 @@ With ``conf.ini``:
     [model]
     activations = relu
     layers = conv,conv,fc
+
+
+New method
+----------
+
+Because (de)serialization is straightforward in most cases, :mod:`param`s
+built-in serialization protocol matches the classic serialization protocol
+above in most values for JSON:
+
+.. code-block:: python
+
+    t_params = TrainingHyperparameters()
+    with open("conf.json", "w") as f:
+        f.write(t_params.param.serialize_parameters())
+
+yielding
+
+.. code-block:: json
+    
+    {"name": "TrainingHyperparameters00002", "lr": 1e-05, "max_epochs": 10, "model_regex": "model-{epoch:05d}.pkl"}
+
+Note the additional inclusion of the "name" parameter. Deserialization is
+similarly performed:
+
+.. code-block:: python
+
+    with open("conf.json") as f:
+        t_params = TrainingHyperparameters.param.deserialize_parameters(
+            f.read())
+
+Using a similar strategy as :mod:`param` did for JSON, I have extended
+serialization to YAML. The custom protocol requires registration once at
+runtime to be used
+
+.. code-block:: python
+
+    serial.register_serializer("yaml")
+
+Afterwards files can be read and written to in YAML.
+
+.. code-block:: python
+
+    with open("conf.yaml", "w") as f:
+        f.write(t_params.param.serialize_parameters(mode="yaml"))
+
+yielding
+
+.. code-block:: yaml
+
+    name: TrainingHyperparameters00002  # String identifier for this object.
+    lr: 1e-05 # The learning rate
+    max_epochs: 10
+    model_regex: model-{epoch:05d}.pkl  # Regular exp for storing model weights after every epoch
+
+There are a few other goodies as well. Once again there are convenience
+functions for (de)serialization to/from different file types (including JSON)
+
+.. code-block:: python
+
+    parser = argparse.ArgumentParser()
+    pargparse.add_deserialization_group_to_parser(
+        parser, TrainingHyperparameters, 't_params')
+    pargparse.add_serialization_group_to_parser(parser, t_params)
+    namespace = parser.parse_args(['--read-json', 'conf.json'])
+    assert namespace.t_params.pprint() == t_params.pprint()
+    parser.parse_args(['--print-yaml'])  # prints to stdout and exits
+
+You'll note that the new style does away with the dictionary of parameterized
+objects. :mod:`param` prefers to recreate this structure by nesting
+parameterized instances as parameters. As of writing, [nesting cannot be
+serialized](https://param.holoviz.org/user_guide/Serialization_and_Persistence.html#json-limitations-and-workarounds)
+by default in :mod:`param`. :mod:`pydrobert.param` offers a solution in the
+form of "reckless" parsing. Once registered, the :obj:`'reckless_json'` and
+:obj:`'reckless_yaml'` act as drop-in replacements for the :obj:`'json'` and
+:obj:`'yaml'` modes which can also handle nesting. Unfortunately, they do so by
+making assumptions which aren't always correct. See
+:func:`pydrobert.param.serialization.register_serializer` for more discussion.
