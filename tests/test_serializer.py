@@ -18,6 +18,7 @@ from pydrobert.param.argparse import (
     DeserializationAction,
     SerializationAction,
     add_deserialization_group_to_parser,
+    add_serialization_group_to_parser,
 )
 
 
@@ -251,7 +252,6 @@ def test_serialization_action(temp_dir, mode, capsys, yaml_loader):
         parser.parse_args(["--b0", temp_file_0])
     with open(temp_file_0) as f:
         txt = f.read()
-        print(txt)
         bar_0_ = Bar(**Bar.param.deserialize_parameters(txt, mode=mode))
     assert bar_0_.pprint() == bar_0.pprint()
 
@@ -259,7 +259,6 @@ def test_serialization_action(temp_dir, mode, capsys, yaml_loader):
         parser.parse_args(["--b1", temp_file_1])
     with open(temp_file_1) as f:
         txt = f.read()
-        print(txt)
         bar_1_ = Bar(**Bar.param.deserialize_parameters(txt, mode=mode))
     assert bar_1_.pprint() == bar_1.pprint()
 
@@ -270,12 +269,12 @@ def test_add_deserialization_group_to_parser(temp_dir, yaml_loader, mode):
     reckless = "reckless" in mode
 
     class Baz(param.Parameterized):
-        pass
+        int = param.Integer(-1)
 
     bazs, temps = [], []
     for i in range(3):
         temp_file = f"{temp_dir}/{i}.{file_format}"
-        baz = Baz(name=f"baz{i}")
+        baz = Baz(name=f"baz{i}", int=i)
         with open(temp_file, "w") as f:
             f.write(baz.param.serialize_parameters(mode=mode))
         bazs.append(baz)
@@ -293,4 +292,35 @@ def test_add_deserialization_group_to_parser(temp_dir, yaml_loader, mode):
 
     for i, (baz, temp_file) in enumerate(zip(bazs, temps)):
         options = parser.parse_args([f"--read-{file_format}", temp_file])
-        assert options.p.name == baz.name
+        assert options.p.pprint() == baz.pprint()
+
+
+def test_add_serialization_group_to_parser(temp_dir, yaml_loader, mode):
+
+    file_format = mode.split("_")[-1]
+    reckless = "reckless" in mode
+
+    class Boop(param.Parameterized):
+        int = param.Integer(-1)
+
+    parser = argparse.ArgumentParser()
+    add_serialization_group_to_parser(parser, Boop, reckless=reckless)
+
+    temp_file = f"{temp_dir}/temp.{file_format}"
+    with pytest.raises(SystemExit):
+        parser.parse_args([f"--print-{file_format}", temp_file])
+    with open(temp_file) as f:
+        txt = f.read()
+    boop = Boop(**Boop.param.deserialize_parameters(txt, mode=mode))
+    assert boop.pprint() == Boop().pprint()
+
+    boop.int = 5
+    assert boop.pprint() != Boop().pprint()
+    parser = argparse.ArgumentParser()
+    add_serialization_group_to_parser(parser, boop, reckless=reckless)
+    with pytest.raises(SystemExit):
+        parser.parse_args([f"--print-{file_format}", temp_file])
+    with open(temp_file) as f:
+        txt = f.read()
+    boop_ = Boop(**Boop.param.deserialize_parameters(txt, mode=mode))
+    assert boop.pprint() == boop_.pprint()

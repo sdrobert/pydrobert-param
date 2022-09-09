@@ -482,7 +482,9 @@ class DeserializationAction(Action):
             except Exception as e:
                 msg = f": {e.msg}" if hasattr(e, "msg") else ""
                 raise argparse.ArgumentError(
-                    self, f"error deserializing '{name}' as {mode}{msg}"
+                    self,
+                    f"error deserializing '{name}' as '{self.class_.__name__}' with "
+                    f"protocol '{mode}'{msg}",
                 )
             values_[i] = value
         if isinstance(values, list):
@@ -577,12 +579,17 @@ class SerializationAction(Action):
         if not len(values):
             values.append(self.default)
         mode, subset = self.const
+        pobj_name = (
+            self.pobj.__name__ if isinstance(self.pobj, type) else self.pobj.name
+        )
         try:
             txt = self.pobj.param.serialize_parameters(subset, mode)
         except Exception as e:
             msg = f": {e.msg}" if hasattr(e, "msg") else ""
             raise argparse.ArgumentError(
-                self, f"error serializing parameterized '{self.pobj}'{msg}"
+                self,
+                f"error serializing parameterized '{pobj_name}' with protocol "
+                f"'{mode}'{msg}",
             )
         for value in values:
             value.write(txt)
@@ -599,9 +606,10 @@ def add_deserialization_group_to_parser(
     subset: Optional[Collection[str]] = None,
     reckless: bool = False,
     flag_format_str: Union[str, Sequence[str]] = "--read-{file_format}",
-    help_format_str: Optional[str] = (
-        "Path to {file_format} file (or '-' for stdin) from which to read in "
-        "{dest} parameters"
+    help_format_str: Optional[str] = "Read as a {file_format} file",
+    title_format_str: Optional[str] = "{pobj_name} deserialization",
+    desc_format_str: Optional[str] = (
+        "Flags to read in {pobj_name} parameters from file. Only one may be specified"
     ),
     required: bool = False,
     register_missing: bool = True,
@@ -651,6 +659,12 @@ def add_deserialization_group_to_parser(
     help_format_str
         A python format string which, after formatting, describes the flags. The same
         keys are available as those to `flag_format_str`.
+    title_format_str
+        A python format string which, after formatting, is used to name the group `grp`.
+        Can only be formatted with the keys `dest` and `pobj_name`.
+    desc_format_str
+        A python format string which, after formatting, is used to describe the group
+        `grp`. Can only be formatted with the keys `dest` and `pobj_name`.
     required
         Whether to require the user to specify one flag.
     register_missing
@@ -663,7 +677,8 @@ def add_deserialization_group_to_parser(
     Returns
     -------
     grp
-        The mutually exclusive group which the flags have beed added to
+        The group containing the added arguments. The mutually-exclusive group
+        containing them is nested in a regular argument group.
 
     Warnings
     --------
@@ -681,9 +696,9 @@ def add_deserialization_group_to_parser(
     elif not len(flag_format_str):
         raise ValueError("Must specify at least one string in flag_format_str")
     if isinstance(pobj, type):
-        default, pobj_name = None, pobj.__name__
+        default, pobj_name, class_ = None, pobj.__name__, pobj
     else:
-        default, pobj_name = pobj, pobj.name
+        default, pobj_name, class_ = pobj, pobj.name, type(pobj)
     if reckless:
         fmt2mode = {"json": "reckless_json", "yaml": "reckless_yaml"}
         mode2fmt = {"reckless_json": "json", "reckless_yaml": "yaml"}
@@ -700,9 +715,18 @@ def add_deserialization_group_to_parser(
         missing_formats = file_formats - set(fmt2mode)
         if missing_formats:
             raise ValueError(f"No serialization known for: {missing_formats}")
+    if title_format_str is None:
+        title_str = None
+    else:
+        title_str = title_format_str.format(dest=dest, pobj_name=pobj_name)
+    if desc_format_str is None:
+        desc_str = None
+    else:
+        desc_str = desc_format_str.format(dest=dest, pobj_name=pobj_name)
 
-    grp = parser.add_mutually_exclusive_group(required=required)
-    grp.set_defaults(**{dest: default})
+    grp = parser.add_argument_group(title=title_str, description=desc_str)
+    grp_ = grp.add_mutually_exclusive_group(required=required)
+    grp_.set_defaults(**{dest: default})
     for file_format in file_formats:
         mode = fmt2mode[file_format]
         if register_missing:
@@ -718,10 +742,11 @@ def add_deserialization_group_to_parser(
             help_str = help_format_str.format(
                 file_format=file_format, dest=dest, pobj_name=pobj_name
             )
-        grp.add_argument(
+        grp_.add_argument(
             *flag_str,
             dest=dest,
             action=DeserializationAction,
+            type=class_,
             metavar=file_format.upper(),
             const=const,
             help=help_str,
@@ -729,3 +754,148 @@ def add_deserialization_group_to_parser(
 
     return grp
 
+
+def add_serialization_group_to_parser(
+    parser: argparse.ArgumentParser,
+    pobj: PObjType,
+    file_formats: Union[
+        Literal["json", "yaml"], Collection[Literal["json", "yaml"]], None
+    ] = None,
+    subset: Optional[Collection[str]] = None,
+    reckless: bool = False,
+    flag_format_str: Union[str, Sequence[str]] = "--print-{file_format}",
+    help_format_str: Optional[str] = "Print as a {file_format} file",
+    title_format_str: Optional[str] = "{pobj_name} serialization",
+    desc_format_str: Optional[str] = (
+        "Flags to print {pobj_name} parameters to file (one arg) or stdout (no args) "
+        "and then exit"
+    ),
+    register_missing: bool = True,
+):
+    """Add flags to parser to serialize parameters to file or stdout
+    
+    A convenience function for coordinating :class:`SerializationAction` arguments over
+    multiple file formats. The usual case might look like
+
+    >>> add_deserialization_group_to_parser(parser, MyParameterized())
+    >>> parser.parse_args()
+
+    Here it adds flags to serialize a `MyParameterized` instance to either a file or
+    stdout using serialization protocols for the available file formats. If any
+    associated flag is passed as an argument, the program will exit (and the
+    :func:`parse_args` call will not return).
+
+    Parameters
+    ----------
+    parser
+    pobj
+        Either a subclass of :class:`param.Parameterized` or an instance of one.
+        Determines the parameterized object to serialize. If `pobj` is a :class:`type`,
+        only the default values of the parameters of the class will end up serialized.
+        If `pobj` is an instance, that instance's parameters will be serialized.
+    file_formats
+        If specified, one or a list of file formats to add flags for. If unspecified,
+        flags for every available file format will be added. Availability means both the
+        correct backend is installed to parse the file and, if `register_missing` is
+        :obj:`False`, that the corresponding mode has already been registered. The
+        :obj:`'json'` format is always available.
+    subset
+        If specified, only the parameters with names in this set will be serialized.
+    reckless
+        Whether to allow simplifying assumptions to make parsing easier.
+    flag_format_str
+        One or more Python format strings which, after formatting, will act as the flags
+        for the argument. The following keys are available for formatting:
+        
+        - `file_format`, an entry in `file_formats`
+        - `pobj_name`, either :obj:`pobj.name` if `pobj` is an instance or
+          :obj:`pobj.__name__` if `pobj` is a class.
+    help_format_str
+        A python format string which, after formatting, describes the flags. The same
+        keys are available as those to `flag_format_str`.
+    title_format_str
+        A python format string which, after formatting, is used to name the group `grp`.
+        Can only be formatted with the key `pobj_name`.
+    desc_format_str
+        A python format string which, after formatting, is used to describe the group
+        `grp`. Can only be formatted with the key `pobj_name`.
+    register_missing
+        Whether to register any custom modes corresponding to the `file_formats` (and
+        `reckless`) which have yet to be registered via :func:`register_serializer`.
+        Setting to :obj:`False` will restrict the dynamically chosen value of
+        `file_formats`. If `file_formats` is manually specified, the parser will throw
+        when it tries to serialize using an unspecified mode.
+    
+    Returns
+    -------
+    grp
+        The group which the flags have beed added to. Note that only the first argument
+        in the group can ever be parsed as the program will try to exit after printing.
+    
+    Warnings
+    --------
+    Functionality is in beta and subject to additions and modifications.
+
+    See Also
+    --------
+    add_parameterized_print_group
+        An analogous function using custom serialization routines.
+    pydrobert.param.register_serializer
+        More information on the file formats and modes of serialization.
+    """
+    if isinstance(flag_format_str, str):
+        flag_format_str = (flag_format_str,)
+    elif not len(flag_format_str):
+        raise ValueError("Must specify at least one string in flag_format_str")
+    pobj_name = pobj.__name__ if isinstance(pobj, type) else pobj.name
+    if reckless:
+        fmt2mode = {"json": "reckless_json", "yaml": "reckless_yaml"}
+        mode2fmt = {"reckless_json": "json", "reckless_yaml": "yaml"}
+    else:
+        fmt2mode = mode2fmt = {"json": "json", "yaml": "yaml"}
+    if file_formats is None:
+        file_formats = set(fmt2mode)
+        if not register_missing:
+            file_formats &= {mode2fmt[s] for s in param.Parameter._serializers}
+        if "yaml" in file_formats and not yaml_is_available():
+            file_formats.remove("yaml")
+    else:
+        file_formats = set(file_formats)
+        missing_formats = file_formats - set(fmt2mode)
+        if missing_formats:
+            raise ValueError(f"No serialization known for: {missing_formats}")
+    if title_format_str is None:
+        title_str = None
+    else:
+        title_str = title_format_str.format(pobj_name=pobj_name)
+    if desc_format_str is None:
+        desc_str = None
+    else:
+        desc_str = desc_format_str.format(pobj_name=pobj_name)
+
+    grp = parser.add_argument_group(title=title_str, description=desc_str)
+    for file_format in file_formats:
+        mode = fmt2mode[file_format]
+        if register_missing:
+            register_serializer(mode)
+        const = (mode, subset)
+        flag_str = (
+            f.format(file_format=file_format, pobj_name=pobj_name)
+            for f in flag_format_str
+        )
+        if help_format_str is None:
+            help_str = None
+        else:
+            help_str = help_format_str.format(
+                file_format=file_format, pobj_name=pobj_name
+            )
+        grp.add_argument(
+            *flag_str,
+            action=SerializationAction,
+            type=pobj,
+            metavar=file_format.upper(),
+            const=const,
+            help=help_str,
+        )
+
+    return grp
