@@ -48,8 +48,10 @@
 
 import abc
 import argparse
+from re import A
 import textwrap
 import json
+import sys
 
 from typing import (
     Any,
@@ -164,7 +166,9 @@ class SerializableSerialization(Serialization, Serializable):
         value: Any,
         nested_subsets: NestedSubsetType = None,
     ) -> Any:
-        return pobj.param[pname].deserialize(value)
+        val = pobj.param[pname].deserialize(value)
+        print("val", type(val), val)
+        return val
 
     @classmethod
     def get_serialize_dict(
@@ -324,7 +328,8 @@ def register_serializer(mode: Literal["reckless_json", "reckless_yaml", "yaml"])
        See the below note for more information.
     2. :obj:`'yaml'`, which follows a similar parsing strategy to vanilla :obj:`'json'`
        but (de)serializes in YAML format instead. Requires either :mod:`yaml` or
-       :mod:`ruamel.yaml` to be installed.
+       :mod:`ruamel.yaml` to be installed or will raise an import error at the
+       first request.
     3. :obj:`'reckless_yaml'`, which makes the same reckless assumptions as
        :obj:`reckless_json'` but (de)serialized in the YAML format.
 
@@ -399,7 +404,8 @@ class DeserializationAction(Action):
     Given some subclass of :class:`param.Parameterized`, `MyParameterized`, the action
     can be added by calling, e.g.
 
-    >>> parser.add_argument('--param', type=MyParameterized)
+    >>> parser.add_argument(
+    ...     '--param', type=MyParameterized, action=DeserializationAction)
 
     In this example, the argument passed with the flag :obj:`--param` is treated as a
     path to a JSON file from which a serialized copy of `MyParameterized` is read and
@@ -415,8 +421,8 @@ class DeserializationAction(Action):
     --------
     ParameterizedFileReadAction
         Same intent, but using :mod:`pydrobert.param` custom deserialization routines.
-    register_reckless_json
-        To enable :obj:`'reckless_json'` mode for more flexible JSON parsing.
+    register_serializer
+        To enable custom parsing modes.
     """
 
     class_: Type[P]
@@ -461,12 +467,9 @@ class DeserializationAction(Action):
         values: Union[TextIO, List[TextIO]],
         option_string: Union[str, None] = None,
     ) -> None:
-        if values is None and issubclass(type(self.default), type):
-            values = self.default()
-        if not isinstance(values, list):
-            values_ = [values]
-        else:
-            values_ = list(values)
+        if values is self.const:
+            values = []
+        values_ = list(values) if isinstance(values, list) else [values]
         mode, subset = self.const
         for i in range(len(values_)):
             value = values_[i]
@@ -477,7 +480,7 @@ class DeserializationAction(Action):
                     **self.class_.param.deserialize_parameters(value, subset, mode)
                 )
             except Exception as e:
-                msg = f": {e.msg}" if hasattr(e, msg) else ""
+                msg = f": {e.msg}" if hasattr(e, "msg") else ""
                 raise argparse.ArgumentError(
                     self, f"error deserializing '{name}' as {mode}{msg}"
                 )
@@ -487,3 +490,100 @@ class DeserializationAction(Action):
         else:
             values = values_[0]
         setattr(namespace, self.dest, values)
+
+
+class SerializationAction(Action):
+    """Action to serialize a parameterized object and then exit
+
+    The counterpart to :class:`DeserializationAction`, adding this action as an
+    argument to an :class:`argparse.ArgumentParser` as such
+
+    >>> parser.add_argument(
+    ...     '--print', type=MyParameterized, action=SerializationAction)
+
+    will, by default, serialize a new `MyParameterized` instance as JSON and print it to
+    stdout if ``'--print'`` is parsed without an argument. Afterwards, the command will
+    terminate. If ``'--print'`` is passed a path, the JSON will be printed there
+    instead.
+
+    Serialization is performed with
+    :func:`param.Parameterized.param.serialize_parameters`. The serialization `mode` and
+    optionally the `subset` of parameters serialized can be changed by passing the
+    `const` keyword argument to :func:`add_argument`. `const` can be either a string
+    (just the `mode`) or a tuple of a string (`mode`) and set of strings (`subset`).
+    
+    The `type` argument can be either a subclass of :class:`param.Parameterized` or an
+    instance of one. In the latter case, the parameter values of that instance will
+    be serialized instead.
+
+    See Also
+    --------
+    ParameterizedFilePrintAction
+        Same intent, but using :mod:`pydrobert.param` custom serialization routines.
+    register_serializer
+        To enable custom parsing modes.
+    """
+
+    pobj: PObjType
+
+    def __init__(
+        self,
+        option_strings: Sequence[str],
+        dest: str,
+        nargs: Union[str, int, None] = "?",
+        const: Union[str, Tuple[str, Optional[Collection[str]]]] = "json",
+        default: TextIO = argparse.FileType("w")("-"),
+        type: PObjType = param.Parameterized,
+        choices=None,
+        required: bool = False,
+        help: Optional[str] = None,
+        metavar: Union[str, Tuple[str, ...], None] = None,
+    ) -> None:
+        if not isinstance(type, param.Parameterized) and not issubclass(
+            type, param.Parameterized
+        ):
+            raise ValueError(
+                "type is neither an instance nor a subclass of param.Parameterized"
+            )
+        self.pobj = type
+        if isinstance(const, str):
+            const = const, None
+        else:
+            const = const[0], (None if const[1] is None else set(const[1]))
+        super().__init__(
+            option_strings,
+            dest,
+            nargs,
+            const,
+            default,
+            argparse.FileType("w"),
+            choices,
+            required,
+            help,
+            metavar,
+        )
+
+    def __call__(
+        self,
+        parser: argparse.ArgumentParser,
+        namespace: argparse.Namespace,
+        values: Union[TextIO, List[TextIO]],
+        option_string: Union[str, None] = None,
+    ) -> None:
+        if values is self.const:
+            values = []  # nargs = '?'
+        if not isinstance(values, list):
+            values = [values]
+        if not len(values):
+            values.append(self.default)
+        mode, subset = self.const
+        try:
+            txt = self.pobj.param.serialize_parameters(subset, mode)
+        except Exception as e:
+            msg = f": {e.msg}" if hasattr(e, "msg") else ""
+            raise argparse.ArgumentError(
+                self, f"error serializing parameterized '{self.pobj}'{msg}"
+            )
+        for value in values:
+            value.write(txt)
+        sys.exit(0)

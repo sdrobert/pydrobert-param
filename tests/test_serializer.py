@@ -1,5 +1,6 @@
 import argparse
 import os
+import sys
 
 from datetime import datetime
 
@@ -13,7 +14,7 @@ from pydrobert.param.serialization import (
     unregister_serializer,
 )
 from pydrobert.param._serializer import _my_serializers
-from pydrobert.param.argparse import DeserializationAction
+from pydrobert.param.argparse import DeserializationAction, SerializationAction
 
 
 FILE_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -101,7 +102,7 @@ class _CallableObject(object):
         return "CallableObject({})".format(self.val)
 
 
-def test_reckless_otherwise_same(mode):
+def test_reckless_otherwise_same(mode, yaml_loader):
     if not mode.startswith("reckless_"):
         pytest.skip(f"'{mode}' not reckless")
     safe_mode = mode[9:]
@@ -187,7 +188,7 @@ def test_deserialization_action(temp_dir, mode):
         c = param.Magnitude(None)
 
     foo_0 = Foo(name="0", b=True)
-    foo_1 = Foo(name="0", a=2)
+    foo_1 = Foo(name="1", a=2)
     assert foo_0.pprint() != foo_1.pprint() != Foo().pprint()
     for i, foo in enumerate((foo_0, foo_1)):
         temp_file = f"{temp_dir}/{i}.{mode}"
@@ -201,6 +202,7 @@ def test_deserialization_action(temp_dir, mode):
     assert options.p is None
     options = parser.parse_args(["--p", f"{temp_dir}/0.{mode}"])
     assert options.p.pprint() == foo_0.pprint()
+    arg.nargs = "?"
     options = parser.parse_args(["--p", f"{temp_dir}/1.{mode}"])
     assert options.p.pprint() == foo_1.pprint()
     arg.nargs = "*"
@@ -210,3 +212,41 @@ def test_deserialization_action(temp_dir, mode):
     assert len(options.p) == 2
     assert options.p[0].pprint() == foo_0.pprint()
     assert options.p[1].pprint() == foo_1.pprint()
+
+
+def test_serialization_action(temp_dir, mode, capsys, yaml_loader):
+    class Bar(param.Parameterized):
+        dict_ = param.Dict(None)
+        list_ = param.List(None, class_=int)
+
+    bar_0 = Bar(name="0", dict_={"a": "b", "c": [1, 2, 3]})
+    bar_1 = Bar(name="1", list_=[-1, 2, 4])
+    assert bar_0.pprint() != bar_1.pprint() != Bar().pprint()
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--b",
+        action=SerializationAction,
+        type=Bar,
+        const=(mode, {"dict_", "list_"}),
+        default=sys.stdout,  # need to do this or pytest won't wrap it
+    )
+    parser.add_argument("--b0", action=SerializationAction, type=bar_0, const=mode)
+    parser.add_argument("--b1", action=SerializationAction, type=bar_1, const=mode)
+    temp_file_0 = f"{temp_dir}/0.{mode}"
+    temp_file_1 = f"{temp_dir}/1.{mode}"
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["--b"])
+    txt, err = capsys.readouterr()
+    assert not err
+    bar_ = Bar(**Bar.param.deserialize_parameters(txt, mode=mode))
+    assert bar_.pprint() == Bar().pprint()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["--b0", temp_file_0])
+    with open(temp_file_0) as f:
+        txt = f.read()
+        print(txt)
+        bar_0_ = Bar(**Bar.param.deserialize_parameters(txt, mode=mode))
+    assert bar_0_.pprint() == bar_0.pprint()

@@ -112,7 +112,20 @@ def serialize_from_obj_to_yaml(file_: Union[str, TextIO], obj: Any, help: Any = 
     )
 
 
-def deserialize_from_yaml_to_obj(file_: Union[str, TextIO]) -> Any:
+def _deorder(d):
+    if isinstance(d, dict):
+        return dict((str(k), _deorder(v)) for (k, v) in d.items())
+    elif isinstance(d, list):
+        return [_deorder(v) for v in d]
+    elif isinstance(d, set):
+        return {_deorder(v) for v in d}
+    else:
+        return d
+
+
+def deserialize_from_yaml_to_obj(
+    file_: Union[str, TextIO], ordered: bool = False
+) -> Any:
     """Deserialize a YAML file into an object
     
     `YAML syntax <https://en.wikipedia.org/wiki/YAML>`__.
@@ -121,6 +134,8 @@ def deserialize_from_yaml_to_obj(file_: Union[str, TextIO]) -> Any:
     ----------
     file_
         A path or pointer to the YAML file.
+    ordered
+        Whether to respect ordering in the deserialized dictionaries.
     
     Notes
     -----
@@ -132,14 +147,18 @@ def deserialize_from_yaml_to_obj(file_: Union[str, TextIO]) -> Any:
         with open(file_) as file_:
             return deserialize_from_yaml_to_obj(file_)
     yaml_loader = None
+
     for name in config.YAML_MODULE_PRIORITIES:
         if name in {"ruamel.yaml", "ruamel_yaml"}:
             try:
                 if name == "ruamel.yaml":
-                    from ruamel.yaml import YAML  # type: ignore
+                    import ruamel.yaml as ruamel_yaml  # type: ignore
                 else:
-                    from ruamel_yaml import YAML  # type: ignore
-                yaml_loader = YAML().load
+                    import ruamel_yaml  # type: ignore
+                yaml = ruamel_yaml.YAML()
+
+                yaml_loader = yaml.load
+
                 break
             except ImportError:
                 pass
@@ -151,13 +170,16 @@ def deserialize_from_yaml_to_obj(file_: Union[str, TextIO]) -> Any:
                 class OrderedLoader(yaml.FullLoader):
                     pass
 
-                def construct_mapping(loader, node):
-                    loader.flatten_mapping(node)
-                    return OrderedDict(loader.construct_pairs(node))
+                if ordered:
 
-                OrderedLoader.add_constructor(
-                    yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, construct_mapping
-                )
+                    def construct_mapping(loader, node):
+                        loader.flatten_mapping(node)
+                        return OrderedDict(loader.construct_pairs(node))
+
+                    OrderedLoader.add_constructor(
+                        yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
+                        construct_mapping,
+                    )
 
                 def yaml_loader(x):
                     return yaml.load(x, Loader=OrderedLoader)
@@ -171,9 +193,13 @@ def deserialize_from_yaml_to_obj(file_: Union[str, TextIO]) -> Any:
             )
     if yaml_loader is None:
         raise ImportError(
-            f"Could not import any of {config.YAML_MODULE_PRIORITIES} for YAML deserialization"
+            f"Could not import any of {config.YAML_MODULE_PRIORITIES} for YAML "
+            "deserialization"
         )
     obj = yaml_loader(file_)
+
+    if not ordered:
+        obj = _deorder(obj)
     return obj
 
 
