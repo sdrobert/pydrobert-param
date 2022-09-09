@@ -353,9 +353,10 @@ def register_serializer(mode: Literal["reckless_json", "reckless_yaml", "yaml"])
     >>> parent = Parent(child=SomeParameterizedClass(leaf_value=1))
 
     While the obvious solution is to recursively call (de)serialization on child
-    instances, this solution is ambiguous. In deserialization, the child may be of type
-    `SomeParameterizedClass`, but may also be one of its subclasses. If children are
-    sharing references to the same instance, that information will be lost.
+    instances, this solution is not suited to all situations. In deserialization, the
+    child may be of type `SomeParameterizedClass`, but may also be one of its
+    subclasses. If children are sharing references to the same instance, that
+    information will be lost in serialization.
     
     For now (keep track of [this bug](https://github.com/holoviz/param/issues/520) for
     changes), ``mode="json"`` will throw if it sees a nested parameterized instance in
@@ -513,8 +514,8 @@ class SerializationAction(Action):
     (just the `mode`) or a tuple of a string (`mode`) and set of strings (`subset`).
     
     The `type` argument can be either a subclass of :class:`param.Parameterized` or an
-    instance of one. In the latter case, the parameter values of that instance will
-    be serialized instead.
+    instance of one. In the latter case, the parameter values of that instance will be
+    serialized instead.
 
     See Also
     --------
