@@ -3,10 +3,14 @@ image: Visual Studio 2019
 
 environment:
   matrix:
-    - TOXENV: py37
-    - TOXENV: py38
-    - TOXENV: py39
-    - TOXENV: py310
+    - TOXENV: py37-pyyaml
+    - TOXENV: py37-ruamel
+    - TOXENV: py38-pyyaml
+    - TOXENV: py38-ruamel
+    - TOXENV: py39-pyyaml
+    - TOXENV: py39-ruamel
+    - TOXENV: py310-pyyaml
+    - TOXENV: py310-ruamel
     - job_name: dist
 
 branches:
@@ -17,8 +21,9 @@ for:
   -
     matrix:
       only:
-        - TOXENV: "py38"
-        - TOXENV: "py39"
+        - TOXENV: /py3[89]-.*/
+        - TOXENV: py37-ruamel
+        - TOXENV: py310-pyyaml
     skip_non_tags: true
   
   -
