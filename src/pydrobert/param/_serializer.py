@@ -418,10 +418,11 @@ class DeserializationAction(Action):
     instantiatied.
     
     Deserialization is performed with the
-    :func:`param.Parameterized.param.deserialize_parameters`. The deserialization `mode`
-    and optionally the `subset` of parameters deserialized can be changed by passing the
-    `const` keyword argument to :func:`add_argument`. `const` can be either a string
-    (just the `mode`) or a tuple of a string (`mode`) and set of strings (`subset`).
+    :func:`param.parameterized.Parameterized.param.deserialize_parameters`. The
+    deserialization `mode` and optionally the `subset` of parameters deserialized can be
+    changed by passing the `const` keyword argument to :func:`add_argument`. `const` can
+    be either a string (just the `mode`) or a tuple of a string (`mode`) and set of
+    strings (`subset`).
 
     See Also
     --------
@@ -515,10 +516,11 @@ class SerializationAction(Action):
     instead.
 
     Serialization is performed with
-    :func:`param.Parameterized.param.serialize_parameters`. The serialization `mode` and
-    optionally the `subset` of parameters serialized can be changed by passing the
-    `const` keyword argument to :func:`add_argument`. `const` can be either a string
-    (just the `mode`) or a tuple of a string (`mode`) and set of strings (`subset`).
+    :func:`param.parameterized.Parameterized.param.serialize_parameters`. The
+    serialization `mode` and optionally the `subset` of parameters serialized can be
+    changed by passing the `const` keyword argument to :func:`add_argument`. `const` can
+    be either a string (just the `mode`) or a tuple of a string (`mode`) and set of
+    strings (`subset`).
     
     The `type` argument can be either a subclass of
     :class:`param.parameterized.Parameterized` or an instance of one. In the latter

@@ -20,10 +20,10 @@ __all__ = [
     "YAML_MODULE_PRIORITIES",
 ]
 
+
+YAML_MODULE_PRIORITIES: Tuple[str] = ("ruamel.yaml", "ruamel_yaml", "yaml")
 """Specifies the order with which to try YAML parser modules
 
 A number of different `YAML syntax <https://en.wikipedia.org/wiki/YAML>`__ parsers
-exist. This tuple specifies the order by which we attempt to import parsers
+exist. This tuple specifies the order by which we attempt to import parsers.
 """
-YAML_MODULE_PRIORITIES: Tuple[str] = ("ruamel.yaml", "ruamel_yaml", "yaml")
-
