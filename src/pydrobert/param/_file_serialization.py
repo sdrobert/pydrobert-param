@@ -29,7 +29,10 @@ def yaml_is_available() -> bool:
     Checks only those in :obj:`config.YAML_MODULE_PRIORITIES`
     """
     for name in config.YAML_MODULE_PRIORITIES:
-        spec = importlib.util.find_spec(name)
+        try:
+            spec = importlib.util.find_spec(name)
+        except:
+            spec = None
         if spec is not None:
             return True
     return False
