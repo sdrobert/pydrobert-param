@@ -41,7 +41,7 @@ for:
       - py -3.7 -m build -o dist
     test_script:
       - ps: py -3.7 -m twine check (Resolve-Path 'dist\*').Path
-      - ps: py -3.7 -m pip install (Resolve-Path 'dist\*.whl').Path pytest numpy pandas
+      - ps: py -3.7 -m pip install (Resolve-Path 'dist\*.whl').Path pytest numpy pandas --no-warn-script-location
       - py -3.7 -m pytest
     artifacts:
       path: 'dist\*'
