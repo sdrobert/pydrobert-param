@@ -26,7 +26,7 @@ from . import config
 def yaml_is_available() -> bool:
     """Returns whether one of the YAML backends is available
     
-    Checks only those in :obj:`config.YAML_MODULE_PRIORITIES`
+    Checks only those in :obj:`pydrobert.param.config.YAML_MODULE_PRIORITIES`
     """
     for name in config.YAML_MODULE_PRIORITIES:
         try:
@@ -87,8 +87,8 @@ def serialize_from_obj_to_yaml(file_: Union[str, TextIO], obj: Any, help: Any = 
     Notes
     -----
     This function tries to use the YAML (de)serialization module to load the YAML file
-    in the order listed in :obj:`config.YAML_MODULE_PRIORITIES`, falling back on the
-    next if there's an :class:`ImportError`
+    in the order listed in :obj:`pydrobert.param.config.YAML_MODULE_PRIORITIES`, falling
+    back on the next if there's an :class:`ImportError`
     """
     if help is None:
         help = dict()
@@ -156,8 +156,8 @@ def deserialize_from_yaml_to_obj(
     Notes
     -----
     This function tries to use the YAML (de)serialization module to load the YAML file
-    in the order listed in :obj:`config.YAML_MODULE_PRIORITIES`, falling back on the
-    next if there's an :class:`ImportError`.
+    in the order listed in :obj:`pydrobert.param.config.YAML_MODULE_PRIORITIES`, falling
+    back on the next if there's an :class:`ImportError`.
     """
     if isinstance(file_, str):
         with open(file_) as file_:

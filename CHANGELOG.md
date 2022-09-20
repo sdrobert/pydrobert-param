@@ -1,6 +1,6 @@
 # Changelog
 
-## HEAD
+## v0.4.0
 
 - Added extras.
 - Bug fix for YAML backends when only one backend is installed.
