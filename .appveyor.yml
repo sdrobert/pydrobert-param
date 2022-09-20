@@ -21,7 +21,8 @@ for:
   -
     matrix:
       only:
-        - TOXENV: /py3[89]-.*/
+        - TOXENV: /py38-.*/
+        - TOXENV: /py39-.*/
         - TOXENV: py37-ruamel
         - TOXENV: py310-pyyaml
     skip_non_tags: true
