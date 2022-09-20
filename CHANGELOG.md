@@ -2,8 +2,9 @@
 
 ## HEAD
 
+- Bug fix for YAML backends when only one backend is installed.
 - New serialization protocols based on `param`'s built-in serialization are in
-  beta. Added code, tests, and documentation
+  beta. Added code, tests, and documentation.
 - Refactored code to separate serialization from/to file from the dict stuff.
   Extended file serialization to handle non-dict stuff and avoid some bugs.
 - Moved to `pydrobert.config` and redefined an element in

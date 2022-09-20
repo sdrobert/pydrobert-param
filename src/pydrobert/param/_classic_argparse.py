@@ -20,6 +20,7 @@ import argparse
 import abc
 import sys
 from typing import List, Optional, Sequence, TextIO, Tuple, Type, Union, Collection
+from xml.etree.ElementInclude import include
 
 try:
     from typing import Literal
@@ -36,6 +37,7 @@ from ._classic_serialization import (
     serialize_to_json,
     serialize_to_yaml,
 )
+from ._file_serialization import yaml_is_available
 from . import config
 
 
@@ -337,35 +339,6 @@ class ParameterizedJsonReadAction(ParameterizedFileReadAction):
         )
 
 
-def _yaml():
-    yaml = None
-    for name in config.YAML_MODULE_PRIORITIES:
-        if name == "ruamel.yaml":
-            try:
-                import ruamel.yaml  # type: ignore
-
-                yaml = ruamel.yaml
-                break
-            except ImportError:
-                pass
-        elif name == "ruamel_yaml":
-            try:
-                import ruamel_yaml  # type: ignore
-
-                yaml = ruamel_yaml
-                break
-            except ImportError:
-                pass
-        elif name == "pyyaml":
-            try:
-                import yaml  # type: ignore
-
-                break
-            except ImportError:
-                pass
-    return yaml
-
-
 def add_parameterized_read_group(
     parser: argparse.ArgumentParser,
     parameterized: Optional[Union[param.Parameterized, dict]] = None,
@@ -520,8 +493,8 @@ def add_parameterized_read_group(
             parameterized=parameterized,
             **json_kwargs
         )
-    if include_yaml is None and len(yaml_option_strings):
-        include_yaml = _yaml()
+    if include_yaml is None:
+        include_yaml = yaml_is_available()
     if include_yaml and len(yaml_option_strings):
         group.add_argument(
             *yaml_option_strings,
@@ -968,8 +941,8 @@ def add_parameterized_print_group(
             parameterized=parameterized,
             **json_kwargs
         )
-    if include_yaml is None and len(yaml_option_strings):
-        include_yaml = _yaml()
+    if include_yaml is None:
+        include_yaml = yaml_is_available()
     if include_yaml and len(yaml_option_strings):
         group.add_argument(
             *yaml_option_strings,
