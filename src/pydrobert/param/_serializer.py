@@ -696,7 +696,7 @@ def add_deserialization_group_to_parser(
     --------
     add_parameterized_read_group
         An analogous function using custom deserialization routines.
-    pydrobert.param.register_serializer
+    pydrobert.param.serialization.register_serializer
         More information on the file formats and modes of serialization.
     """
     if isinstance(flag_format_str, str):
@@ -849,7 +849,7 @@ def add_serialization_group_to_parser(
     --------
     add_parameterized_print_group
         An analogous function using custom serialization routines.
-    pydrobert.param.register_serializer
+    pydrobert.param.serialization.register_serializer
         More information on the file formats and modes of serialization.
     """
     if isinstance(flag_format_str, str):
