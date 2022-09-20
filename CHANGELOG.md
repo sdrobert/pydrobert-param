@@ -2,6 +2,7 @@
 
 ## HEAD
 
+- Added extras.
 - Bug fix for YAML backends when only one backend is installed.
 - New serialization protocols based on `param`'s built-in serialization are in
   beta. Added code, tests, and documentation.

@@ -77,6 +77,7 @@ from ._classic_serialization import (
 from ._serializer import (
     JsonSerializable,
     RecklessJsonSerialization,
+    RecklessSerializableSerialization,
     RecklessYamlSerialization,
     register_serializer,
     Serializable,
@@ -153,6 +154,7 @@ __all__ = [
     "ParamConfigSerializer",
     "ParamConfigTypeError",
     "RecklessJsonSerialization",
+    "RecklessSerializableSerialization",
     "RecklessYamlSerialization",
     "register_serializer",
     "Serializable",

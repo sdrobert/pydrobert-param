@@ -258,8 +258,9 @@ functions for (de)serialization to/from different file types (including JSON)
 
 You'll note that the new style does away with the dictionary of parameterized
 objects. :mod:`param` prefers to recreate this structure by nesting
-parameterized instances as parameters. As of writing, [nesting cannot be
-serialized](https://param.holoviz.org/user_guide/Serialization_and_Persistence.html#json-limitations-and-workarounds)
+parameterized instances as parameters. As of writing, `nesting cannot be
+serialized
+<https://param.holoviz.org/user_guide/Serialization_and_Persistence.html#json-limitations-and-workarounds>`_
 by default in :mod:`param`. :mod:`pydrobert.param` offers a solution in the
 form of "reckless" parsing. Once registered, the :obj:`'reckless_json'` and
 :obj:`'reckless_yaml'` act as drop-in replacements for the :obj:`'json'` and
