@@ -12,6 +12,7 @@ import numpy as np
 from pydrobert.param.serialization import (
     register_serializer,
     unregister_serializer,
+    yaml_is_available,
 )
 from pydrobert.param._serializer import _my_serializers
 from pydrobert.param.argparse import (
@@ -28,6 +29,8 @@ FILE_DIR_DIR = os.path.dirname(FILE_DIR)
 
 @pytest.fixture(scope="function", params=list(_my_serializers))
 def mode(request):
+    if "yaml" in request.param and not yaml_is_available():
+        pytest.skip("yaml unavailable")
     # we register all of them in case we use any
     for mode in _my_serializers:
         register_serializer(mode)
