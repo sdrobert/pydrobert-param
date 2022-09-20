@@ -42,6 +42,7 @@ pinning the version in the requirements or by forking.**
 ## Documentation
 
 - [Latest](https://pydrobert-param.readthedocs.io/en/latest/)
+- [v0.3.1](https://pydrobert-param.readthedocs.io/en/v0.3.1/)
 
 ## Installation
 
@@ -51,6 +52,16 @@ _pydrobert-param_ is available via both PyPI and Conda.
 conda install -c sdrobert pydrobert-param
 pip install pydrobert-param
 pip install git+https://github.com/sdrobert/pydrobert-param # bleeding edge
+```
+
+There are also optional dependencies on PyPI:
+
+``` sh
+pip install 'pydrobert-param[yaml]'    # installs ruamel.yaml YAML backend
+pip install 'pydrobert-param[optuna]'  # installs optuna
+pip install 'pydrobert-param[types]'   # installs numpy and pandas
+                                       # (to handle all types)
+pip install 'pydrobert-param[all]'     # all of the above
 ```
 
 ## Licensing and How to Cite

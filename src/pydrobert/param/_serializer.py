@@ -83,6 +83,8 @@ from ._file_serialization import (
 
 
 class Serializable(Protocol):
+    """Protocol for classes capable of reading and writing objects from/to strings"""
+
     @abc.abstractclassmethod
     def loads(cls, serialized: str) -> Any:
         """Read serialized string into an object"""
@@ -98,6 +100,8 @@ class Serializable(Protocol):
 
 
 class JsonSerializable(Serializable):
+    """Write/read to/from strings using JSON protocol"""
+
     @classmethod
     def loads(cls, serialized: str) -> Any:
         return json.loads(serialized)
@@ -108,6 +112,8 @@ class JsonSerializable(Serializable):
 
 
 class YamlSerializable(Serializable):
+    """Write/read to/from strings using YAML protocol"""
+
     @classmethod
     def loads(cls, serialized: str) -> Any:
         with StringIO(serialized) as s:
@@ -320,8 +326,8 @@ def register_serializer(mode: Literal["reckless_json", "reckless_yaml", "yaml"])
     one of
 
     1. :obj:`'reckless_json'`, which is identical to the standard :obj:`'json'`
-       serializer but for some simplifying assumptions to handle
-       [nesting](https://param.holoviz.org/user_guide/Serialization_and_Persistence.html#json-limitations-and-workarounds).
+       serializer but for some simplifying assumptions to handle `nesting
+       <https://param.holoviz.org/user_guide/Serialization_and_Persistence.html#json-limitations-and-workarounds>`_.
        See the below note for more information.
     2. :obj:`'yaml'`, which follows a similar parsing strategy to vanilla :obj:`'json'`
        but (de)serializes in YAML format instead. Requires either :mod:`yaml` or
@@ -343,7 +349,7 @@ def register_serializer(mode: Literal["reckless_json", "reckless_yaml", "yaml"])
     Notes
     -----
     We make strong simplifying assumptions to handle nesting. The usual means of nesting
-    :class:`param.Parameterized` instances is
+    :class:`param.parameterized.Parameterized` instances is
 
     >>> class Parent(param.Parameterized):
     ...     child = param.ClassSelector(SomeParameterizedClass)
@@ -355,7 +361,7 @@ def register_serializer(mode: Literal["reckless_json", "reckless_yaml", "yaml"])
     subclasses. If children are sharing references to the same instance, that
     information will be lost in serialization.
     
-    For now (keep track of [this bug](https://github.com/holoviz/param/issues/520) for
+    For now (keep track of `this bug <https://github.com/holoviz/param/issues/520>`_ for
     changes), ``mode="json"`` will throw if it sees a nested parameterized instance in
     serialization or deserialization. Reckless serialization is performed recursively
     with no consideration for references. Deserialization is performed by recursing on
@@ -401,8 +407,8 @@ except:
 class DeserializationAction(Action):
     """Action to deserialize a parameterized object from file
 
-    Given some subclass of :class:`param.Parameterized`, `MyParameterized`, the action
-    can be added by calling, e.g.
+    Given some subclass of :class:`param.parameterized.Parameterized`,
+    `MyParameterized`, the action can be added by calling, e.g.
 
     >>> parser.add_argument(
     ...     '--param', type=MyParameterized, action=DeserializationAction)
@@ -514,9 +520,9 @@ class SerializationAction(Action):
     `const` keyword argument to :func:`add_argument`. `const` can be either a string
     (just the `mode`) or a tuple of a string (`mode`) and set of strings (`subset`).
     
-    The `type` argument can be either a subclass of :class:`param.Parameterized` or an
-    instance of one. In the latter case, the parameter values of that instance will be
-    serialized instead.
+    The `type` argument can be either a subclass of
+    :class:`param.parameterized.Parameterized` or an instance of one. In the latter
+    case, the parameter values of that instance will be serialized instead.
 
     See Also
     --------
@@ -630,9 +636,9 @@ def add_deserialization_group_to_parser(
     ----------
     parser
     pobj
-        Either a subclass of :class:`param.Parameterized` or an instance of one.
-        Determines the type of parameterized object to deserialize. If `pobj` is a
-        :class:`type`, the default value for the parameters in the namespace will be
+        Either a subclass of :class:`param.parameterized.Parameterized` or an instance
+        of one. Determines the type of parameterized object to deserialize. If `pobj` is
+        a :class:`type`, the default value for the parameters in the namespace will be
         :obj:`None`. Otherwise (when `pobj` is an instance), `pobj` will be the default
         value.
     dest
@@ -789,10 +795,11 @@ def add_serialization_group_to_parser(
     ----------
     parser
     pobj
-        Either a subclass of :class:`param.Parameterized` or an instance of one.
-        Determines the parameterized object to serialize. If `pobj` is a :class:`type`,
-        only the default values of the parameters of the class will end up serialized.
-        If `pobj` is an instance, that instance's parameters will be serialized.
+        Either a subclass of :class:`param.parameterized.Parameterized` or an instance
+        of one. Determines the parameterized object to serialize. If `pobj` is a
+        :class:`type`, only the default values of the parameters of the class will end
+        up serialized. If `pobj` is an instance, that instance's parameters will be
+        serialized.
     file_formats
         If specified, one or a list of file formats to add flags for. If unspecified,
         flags for every available file format will be added. Availability means both the

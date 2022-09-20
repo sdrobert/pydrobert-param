@@ -194,7 +194,7 @@ With ``conf.ini``:
 New method
 ----------
 
-Because (de)serialization is straightforward in most cases, :mod:`param`s
+Because (de)serialization is straightforward in most cases, the :mod:`param`
 built-in serialization protocol matches the classic serialization protocol
 above in most values for JSON:
 
@@ -216,8 +216,7 @@ similarly performed:
 .. code-block:: python
 
     with open("conf.json") as f:
-        t_params = TrainingHyperparameters.param.deserialize_parameters(
-            f.read())
+        t_params = TrainingHyperparameters.param.deserialize_parameters(f.read())
 
 Using a similar strategy as :mod:`param` did for JSON, I have extended
 serialization to YAML. The custom protocol requires registration once at
@@ -258,8 +257,9 @@ functions for (de)serialization to/from different file types (including JSON)
 
 You'll note that the new style does away with the dictionary of parameterized
 objects. :mod:`param` prefers to recreate this structure by nesting
-parameterized instances as parameters. As of writing, [nesting cannot be
-serialized](https://param.holoviz.org/user_guide/Serialization_and_Persistence.html#json-limitations-and-workarounds)
+parameterized instances as parameters. As of writing, `nesting cannot be
+serialized
+<https://param.holoviz.org/user_guide/Serialization_and_Persistence.html#json-limitations-and-workarounds>`_
 by default in :mod:`param`. :mod:`pydrobert.param` offers a solution in the
 form of "reckless" parsing. Once registered, the :obj:`'reckless_json'` and
 :obj:`'reckless_yaml'` act as drop-in replacements for the :obj:`'json'` and
