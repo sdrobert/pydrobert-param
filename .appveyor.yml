@@ -3,14 +3,14 @@ image: Visual Studio 2019
 
 environment:
   matrix:
-    # - TOXENV: py37-pyyaml
-    # - TOXENV: py37-ruamel
-    # - TOXENV: py38-pyyaml
-    # - TOXENV: py38-ruamel
-    # - TOXENV: py39-pyyaml
-    # - TOXENV: py39-ruamel
-    # - TOXENV: py310-pyyaml
-    # - TOXENV: py310-ruamel
+    - TOXENV: py37-pyyaml
+    - TOXENV: py37-ruamel
+    - TOXENV: py38-pyyaml
+    - TOXENV: py38-ruamel
+    - TOXENV: py39-pyyaml
+    - TOXENV: py39-ruamel
+    - TOXENV: py310-pyyaml
+    - TOXENV: py310-ruamel
     - job_name: dist
 
 branches:
@@ -33,7 +33,7 @@ for:
     matrix:
       only:
         - job_name: dist
-    # skip_non_tags: true
+    skip_non_tags: true
     install:
       - py -3.7 -m pip install -U pip build twine wheel
     build: script
