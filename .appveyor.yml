@@ -34,16 +34,15 @@ for:
       only:
         - job_name: dist
     skip_non_tags: true
-    stack: python 3.7
     install:
-      - python -m pip install -U pip build twine wheel
+      - py -3.7 -m pip install -U pip build twine wheel
     build: script
     build_script:
-      - python -m build -o dist
+      - py -3.7 -m build -o dist
     test_script:
-      - ps: python -m twine check (Resolve-Path 'dist\*').Path
-      - ps: python -m pip install (Resolve-Path 'dist\*.whl').Path pytest numpy pandas
-      - python -m pytest
+      - ps: py -3.7 -m twine check (Resolve-Path 'dist\*').Path
+      - ps: py -3.7 -m pip install (Resolve-Path 'dist\*.whl').Path pytest numpy pandas --no-warn-script-location
+      - py -3.7 -m pytest
     artifacts:
       path: 'dist\*'
 
