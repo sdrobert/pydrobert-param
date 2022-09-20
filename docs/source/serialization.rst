@@ -194,7 +194,7 @@ With ``conf.ini``:
 New method
 ----------
 
-Because (de)serialization is straightforward in most cases, :mod:`param`s
+Because (de)serialization is straightforward in most cases, the :mod:`param`
 built-in serialization protocol matches the classic serialization protocol
 above in most values for JSON:
 
@@ -216,8 +216,7 @@ similarly performed:
 .. code-block:: python
 
     with open("conf.json") as f:
-        t_params = TrainingHyperparameters.param.deserialize_parameters(
-            f.read())
+        t_params = TrainingHyperparameters.param.deserialize_parameters(f.read())
 
 Using a similar strategy as :mod:`param` did for JSON, I have extended
 serialization to YAML. The custom protocol requires registration once at
