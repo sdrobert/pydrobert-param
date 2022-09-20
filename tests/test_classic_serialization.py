@@ -21,7 +21,15 @@ import numpy as np
 import pandas as pd
 import pydrobert.param.serialization as serial
 
-from pydrobert.param._classic_serialization import _timestamp
+from pydrobert.param._classic_serialization import (
+    _timestamp,
+    DEFAULT_BACKUP_DESERIALIZER,
+    DEFAULT_BACKUP_SERIALIZER,
+    DEFAULT_DESERIALIZER_DICT,
+    DEFAULT_SERIALIZER_DICT,
+    JSON_STRING_DESERIALIZER_DICT,
+    JSON_STRING_SERIALIZER_DICT,
+)
 
 FILE_DIR = os.path.dirname(os.path.realpath(__file__))
 FILE_DIR_DIR = os.path.dirname(FILE_DIR)
@@ -172,10 +180,10 @@ def test_can_serialize_with_defaults(name, set_to, expected):
     parameterized = BigDumbParams(name="test_can_serialize_with_defaults")
     parameterized.param.set_param(name, set_to)
     p = parameterized.param.params()[name]
-    if type(p) in serial.DEFAULT_SERIALIZER_DICT:
-        serializer = serial.DEFAULT_SERIALIZER_DICT[type(p)]
+    if type(p) in DEFAULT_SERIALIZER_DICT:
+        serializer = DEFAULT_SERIALIZER_DICT[type(p)]
     else:
-        serializer = serial.DEFAULT_BACKUP_SERIALIZER
+        serializer = DEFAULT_BACKUP_SERIALIZER
     actual = serializer.serialize(name, parameterized)
     if type(expected) in {np.ndarray, pd.DataFrame, pd.Series}:
         assert all(expected == actual)
@@ -216,7 +224,7 @@ def test_json_str_serializers(name, set_to, expected):
     parameterized = BigDumbParams(name="test_json_str_serializers")
     parameterized.param.set_param(name, set_to)
     p = parameterized.param.params()[name]
-    serializer = serial.JSON_STRING_SERIALIZER_DICT[type(p)]
+    serializer = JSON_STRING_SERIALIZER_DICT[type(p)]
     actual = serializer.serialize(name, parameterized)
     assert expected == actual
 
@@ -443,10 +451,10 @@ def test_can_deserialize_none():
         }:
             continue
         assert p.allow_None, name
-        if type(p) in serial.DEFAULT_DESERIALIZER_DICT:
-            deserializer = serial.DEFAULT_DESERIALIZER_DICT[type(p)]
+        if type(p) in DEFAULT_DESERIALIZER_DICT:
+            deserializer = DEFAULT_DESERIALIZER_DICT[type(p)]
         else:
-            deserializer = serial.DEFAULT_BACKUP_DESERIALIZER
+            deserializer = DEFAULT_BACKUP_DESERIALIZER
         deserializer.deserialize(name, None, parameterized)
         assert getattr(parameterized, name) is None
 
@@ -549,10 +557,10 @@ def test_can_deserialize_none():
 def test_can_deserialize_with_defaults(name, block, expected):
     parameterized = BigDumbParams(name="test_can_deserialize_with_defaults")
     p = parameterized.param.params()[name]
-    if type(p) in serial.DEFAULT_DESERIALIZER_DICT:
-        deserializer = serial.DEFAULT_DESERIALIZER_DICT[type(p)]
+    if type(p) in DEFAULT_DESERIALIZER_DICT:
+        deserializer = DEFAULT_DESERIALIZER_DICT[type(p)]
     else:
-        deserializer = serial.DEFAULT_BACKUP_DESERIALIZER
+        deserializer = DEFAULT_BACKUP_DESERIALIZER
     deserializer.deserialize(name, block, parameterized)
     if type(expected) in {np.ndarray, pd.DataFrame, pd.Series}:
         assert all(expected == getattr(parameterized, name))
@@ -600,7 +608,7 @@ def test_can_deserialize_with_defaults(name, block, expected):
 def test_json_str_deserializers(name, block, expected):
     parameterized = BigDumbParams(name="test_json_str_deserializers")
     p = parameterized.param.params()[name]
-    deserializer = serial.JSON_STRING_DESERIALIZER_DICT[type(p)]
+    deserializer = JSON_STRING_DESERIALIZER_DICT[type(p)]
     deserializer.deserialize(name, block, parameterized)
     if type(expected) in {np.ndarray, pd.Series}:
         assert all(expected == getattr(parameterized, name))

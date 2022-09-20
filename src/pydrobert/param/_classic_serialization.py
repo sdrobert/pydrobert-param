@@ -566,26 +566,8 @@ DEFAULT_SERIALIZER_DICT = {
     param.Tuple: DefaultTupleSerializer(),
     param.XYCoordinates: DefaultTupleSerializer(),
 }
-"""Default serializers by param type
-
-:meta hide-value:
-
-See Also
---------
-serialize_to_dict
-    How these are used
-"""
 
 DEFAULT_BACKUP_SERIALIZER = DefaultSerializer()
-"""Default serializer to use when not type specific
-
-:meta hide-value:
-
-See Also
---------
-serialize_to_dict
-    How this is used
-"""
 
 
 JSON_STRING_SERIALIZER_DICT = {
@@ -602,17 +584,6 @@ JSON_STRING_SERIALIZER_DICT = {
     param.Tuple: JsonStringTupleSerializer(),
     param.XYCoordinates: JsonStringTupleSerializer(),
 }
-"""JSON string serializers by param type
-
-Used as defaults when writing an INI file
-
-:meta hide-value:
-
-See Also
---------
-serialize_to_ini
-    How these are used
-"""
 
 
 def _serialize_to_dict_flat(
@@ -683,10 +654,9 @@ def serialize_to_dict(
     2. If `serializer_type_dict` and the type of the parameter in question
        *exactly matches* a key in `serializer_type_dict`, the value of the
        item in `serializer_type_dict` will be used.
-    3. If the type of the parameter in question *exactly matches* a key in
-       :obj:`DEFAULT_SERIALIZER_DICT`, the value of the item in
-       :obj:`DEFAULT_SERIALIZER_DICT` will be used.
-    4. :obj:`DEFAULT_BACKUP_SERIALIZER` will be used.
+    3. If the type of the parameter in question has a ``Default<type>Serializer``, it
+       will be used.
+    4. :class:`DefaultBackupSerializer` will be used.
 
     Default serializers are likely appropriate for basic types like strings,
     ints, bools, floats, and numeric tuples. For more complex data types,
@@ -815,10 +785,9 @@ def serialize_to_ini(
     out-of-the-box, this function uses the ``JsonString*Serializer`` to convert
     container values to JSON strings before writing them to the INI file. This solution
     was proposed `here
-    <https://stackoverflow.com/questions/335695/lists-in-configparser>`__. Defaults from
-    :obj:`DEFAULT_SERIALIZER_DICT` are clobbered by those from
-    :obj:`JSON_STRING_SERIALIZER_DICT`. You can get the original defaults back by
-    including them in `serializer_type_dict`
+    <https://stackoverflow.com/questions/335695/lists-in-configparser>`__. Defaults
+    ``Default<type>Serializer`` are clobbered with ``Json<type>Serializer``.You can get
+    the original defaults back by including them in `serializer_type_dict`.
 
     Parameters
     ----------
@@ -1041,8 +1010,8 @@ class ParamConfigDeserializer(object, metaclass=abc.ABCMeta):
         If one of these conditions wasn't met, the parameter remains unset and the
         method returns :obj:`False`.
 
-        In ``Default*Deseriazer`` documentation, a call to this method is referred to as
-        a "none check".
+        In ``Default*Deserializer`` documentation, a call to this method is referred to
+        as a "none check".
         """
         p = parameterized.param.params()[name]
         if block is None and p.allow_None:
@@ -1784,15 +1753,6 @@ JsonStringTupleDeserializer = _to_json_string_deserializer(
 )
 
 
-"""Default deserializers by parameter type
-
-:meta hide-value:
-
-See Also
---------
-deserialize_from_dict
-    How these are used
-"""
 DEFAULT_DESERIALIZER_DICT = {
     param.Array: DefaultArrayDeserializer(),
     param.Boolean: DefaultBooleanDeserializer(),
@@ -1816,29 +1776,9 @@ DEFAULT_DESERIALIZER_DICT = {
     param.XYCoordinates: DefaultNumericTupleDeserializer(),
 }
 
-"""Default deserializer that is not type specific
-
-:meta hide-value:
-
-See Also
---------
-deserialize_from_dict
-    How this is used
-"""
 DEFAULT_BACKUP_DESERIALIZER = DefaultDeserializer()
 
 
-"""JSON string deserializers by param type
-
-Used as defaults when parsing an INI file
-
-:meta hide-value:
-
-See Also
---------
-deserialize_from_ini
-    How these are used
-"""
 JSON_STRING_DESERIALIZER_DICT = {
     param.Array: JsonStringArrayDeserializer(),
     param.DataFrame: JsonStringDataFrameDeserializer(),
@@ -1907,10 +1847,9 @@ def deserialize_from_dict(
      2. If `deserializer_type_dict` and the type of the parameter in question *exactly
         matches* a key in `deserializer_type_dict`, the value of the item in
         `deserializer_type_dict` will be used.
-     3. If the type of the parameter in question *exactly matches* a key in
-        :obj:`DEFAULT_DESERIALIZER_DICT`, the value of the item in
-        :obj:`DEFAULT_DESERIALIZER_DICT` will be used.
-     4. :obj:`DEFAULT_BACKUP_DESERIALIZER` will be used.
+     3. If the type of the parameter in question has a default deserializer (i.e.
+        ``Default<type>Deserializer``), it will be used.
+     4. :class:`DefaultBackupDeserializer` will be used.
 
     It is possible to pass a dictionary as `parameterized` instead of a
     :class:`param.parameterized.Parameterized` instance to this function. This is
@@ -2017,10 +1956,10 @@ def deserialize_from_ini(
     out-of-the-box, this function uses the ``JsonString*Deserializer`` to read container
     values to JSON strings before trying the standard method of deserialization. This
     solution was proposed `here
-    <https://stackoverflow.com/questions/335695/lists-in-configparser>`__. Defaults from
-    :obj:`DEFAULT_DESERIALIZER_DICT` are clobbered by those from
-    :obj:`JSON_STRING_DESERIALIZER_DICT`. You can get the original defaults back by
-    including them in `deserializer_type_dict`
+    <https://stackoverflow.com/questions/335695/lists-in-configparser>`__. Defaults
+    ``Default<type>Deserializer`` are clobbered by those of form
+    ``Json<type>Deserializer``. You can get the original defaults back by including them
+    in `deserializer_type_dict`
 
     Parameters
     ----------

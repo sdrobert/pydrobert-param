@@ -8,6 +8,9 @@
   beta. Added code, tests, and documentation.
 - Refactored code to separate serialization from/to file from the dict stuff.
   Extended file serialization to handle non-dict stuff and avoid some bugs.
+- `DEFAULT_*` globals are no longer exposed in `pydrobert.serialization`. A
+  breaking change, but since functions already have a means of updating the
+  default dictionary temporarily, one unlikely to cause many issues.
 - Moved to `pydrobert.config` and redefined an element in
   `YAML_MODULE_PRIORITIES`. Technically a breaking change, but one unlikely to
   cause many issues.

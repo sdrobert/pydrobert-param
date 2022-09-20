@@ -42,6 +42,7 @@ pinning the version in the requirements or by forking.**
 ## Documentation
 
 - [Latest](https://pydrobert-param.readthedocs.io/en/latest/)
+- [v0.4.0](https://pydrobert-param.readthedocs.io/en/v0.4.0/)
 - [v0.3.1](https://pydrobert-param.readthedocs.io/en/v0.3.1/)
 
 ## Installation
