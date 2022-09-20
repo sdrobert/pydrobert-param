@@ -69,7 +69,3 @@ pip install 'pydrobert-param[all]'     # all of the above
 
 Please see the [pydrobert page](https://github.com/sdrobert/pydrobert) for more
 details.
-
-The implementation of `pydrobert.param.abc._check_methods` was modified from
-the CPython codebase, Copyright 2007 Google with additional notices at
-<https://docs.python.org/3/copyright.html?highlight=copyright>.
