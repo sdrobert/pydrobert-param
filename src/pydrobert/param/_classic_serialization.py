@@ -551,15 +551,6 @@ JsonStringSeriesSerializer = _to_json_string_serializer(
 
 JsonStringTupleSerializer = _to_json_string_serializer(DefaultTupleSerializer, "tuple")
 
-"""Default serializers by param type
-
-:meta hide-value:
-
-See Also
---------
-serialize_to_dict
-    How these are used
-"""
 DEFAULT_SERIALIZER_DICT = {
     param.Array: DefaultArraySerializer(),
     param.ClassSelector: DefaultClassSelectorSerializer(),
@@ -575,7 +566,17 @@ DEFAULT_SERIALIZER_DICT = {
     param.Tuple: DefaultTupleSerializer(),
     param.XYCoordinates: DefaultTupleSerializer(),
 }
+"""Default serializers by param type
 
+:meta hide-value:
+
+See Also
+--------
+serialize_to_dict
+    How these are used
+"""
+
+DEFAULT_BACKUP_SERIALIZER = DefaultSerializer()
 """Default serializer to use when not type specific
 
 :meta hide-value:
@@ -585,20 +586,8 @@ See Also
 serialize_to_dict
     How this is used
 """
-DEFAULT_BACKUP_SERIALIZER = DefaultSerializer()
 
 
-"""JSON string serializers by param type
-
-Used as defaults when writing an INI file
-
-:meta hide-value:
-
-See Also
---------
-serialize_to_ini
-    How these are used
-"""
 JSON_STRING_SERIALIZER_DICT = {
     param.Array: JsonStringArraySerializer(),
     param.DataFrame: JsonStringDataFrameSerializer(),
@@ -613,6 +602,17 @@ JSON_STRING_SERIALIZER_DICT = {
     param.Tuple: JsonStringTupleSerializer(),
     param.XYCoordinates: JsonStringTupleSerializer(),
 }
+"""JSON string serializers by param type
+
+Used as defaults when writing an INI file
+
+:meta hide-value:
+
+See Also
+--------
+serialize_to_ini
+    How these are used
+"""
 
 
 def _serialize_to_dict_flat(
@@ -684,9 +684,9 @@ def serialize_to_dict(
        *exactly matches* a key in `serializer_type_dict`, the value of the
        item in `serializer_type_dict` will be used.
     3. If the type of the parameter in question *exactly matches* a key in
-       `DEFAULT_SERIALIZER_DICT`, the value of the item in
-       `DEFAULT_SERIALIZER_DICT` will be used.
-    4. `DEFAULT_BACKUP_SERIALIZER` will be used.
+       :obj:`DEFAULT_SERIALIZER_DICT`, the value of the item in
+       :obj:`DEFAULT_SERIALIZER_DICT` will be used.
+    4. :obj:`DEFAULT_BACKUP_SERIALIZER` will be used.
 
     Default serializers are likely appropriate for basic types like strings,
     ints, bools, floats, and numeric tuples. For more complex data types,
