@@ -15,10 +15,6 @@
 """Utilities for (de)serializing Parameterized objects"""
 
 from ._classic_serialization import (
-    DEFAULT_BACKUP_DESERIALIZER,
-    DEFAULT_BACKUP_SERIALIZER,
-    DEFAULT_DESERIALIZER_DICT,
-    DEFAULT_SERIALIZER_DICT,
     DefaultArrayDeserializer,
     DefaultArraySerializer,
     DefaultBooleanDeserializer,
@@ -47,8 +43,6 @@ from ._classic_serialization import (
     deserialize_from_ini,
     deserialize_from_json,
     deserialize_from_yaml,
-    JSON_STRING_DESERIALIZER_DICT,
-    JSON_STRING_SERIALIZER_DICT,
     JsonStringArrayDeserializer,
     JsonStringArraySerializer,
     JsonStringDataFrameDeserializer,
@@ -93,13 +87,8 @@ from ._file_serialization import (
     serialize_from_obj_to_yaml,
     yaml_is_available,
 )
-from .config import YAML_MODULE_PRIORITIES  # deprecated
 
 __all__ = [
-    "DEFAULT_BACKUP_DESERIALIZER",
-    "DEFAULT_BACKUP_SERIALIZER",
-    "DEFAULT_DESERIALIZER_DICT",
-    "DEFAULT_SERIALIZER_DICT",
     "DefaultArrayDeserializer",
     "DefaultArraySerializer",
     "DefaultBooleanDeserializer",
@@ -130,8 +119,6 @@ __all__ = [
     "deserialize_from_json",
     "deserialize_from_yaml_to_obj",
     "deserialize_from_yaml",
-    "JSON_STRING_DESERIALIZER_DICT",
-    "JSON_STRING_SERIALIZER_DICT",
     "JsonSerializable",
     "JsonStringArrayDeserializer",
     "JsonStringArraySerializer",
