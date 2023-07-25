@@ -129,7 +129,7 @@ def test_reckless_otherwise_same(mode, yaml_loader):
             )
         except TypeError:
             data_frame = param.DataFrame(pd.DataFrame({"A": 1.0, "B": np.arange(5)}))
-        date = param.Date(datetime.now(), allow_None=True)
+        date = param.Date(datetime.min, allow_None=True)
         date_range = param.DateRange((datetime.min, datetime.max), allow_None=True)
         dict_ = param.Dict({"foo": "bar"}, allow_None=True, doc="dict means dictionary")
         dynamic = param.Dynamic(default=_default_action, allow_None=True)
