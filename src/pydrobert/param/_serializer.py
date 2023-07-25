@@ -487,7 +487,7 @@ class DeserializationAction(Action):
                     **self.class_.param.deserialize_parameters(value, subset, mode)
                 )
             except Exception as e:
-                msg = f": {e.msg}" if hasattr(e, "msg") else ""
+                msg = f": {e.args[0]}" if hasattr(e, "args") else ""
                 raise argparse.ArgumentError(
                     self,
                     f"error deserializing '{name}' as '{self.class_.__name__}' with "

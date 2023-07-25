@@ -2,7 +2,7 @@ import argparse
 import os
 import sys
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import pytest
 import param
@@ -130,7 +130,10 @@ def test_reckless_otherwise_same(mode, yaml_loader):
         except TypeError:
             data_frame = param.DataFrame(pd.DataFrame({"A": 1.0, "B": np.arange(5)}))
         date = param.Date(datetime.now(), allow_None=True)
-        date_range = param.DateRange((datetime.min, datetime.max), allow_None=True)
+        date_range = param.DateRange(
+            (datetime.now() - timedelta(days=1), datetime.now() + timedelta(days=1)),
+            allow_None=True,
+        )
         dict_ = param.Dict({"foo": "bar"}, allow_None=True, doc="dict means dictionary")
         dynamic = param.Dynamic(default=_default_action, allow_None=True)
         file_selector = param.FileSelector(
@@ -189,14 +192,14 @@ def test_reckless_otherwise_same(mode, yaml_loader):
             assert p_a.pprint() == p_b.pprint()
 
 
-def test_deserialization_action(temp_dir, mode):
+def test_deserialization_action(temp_dir, mode, capsys):
     class Foo(param.Parameterized):
-        a = param.Integer(1)
-        b = param.Boolean(False)
-        c = param.Magnitude(None)
+        my_int = param.Integer(1)
+        my_bool = param.Boolean(False)
+        my_mag = param.Magnitude(None)
 
-    foo_0 = Foo(name="0", b=True)
-    foo_1 = Foo(name="1", a=2)
+    foo_0 = Foo(name="0", my_bool=True)
+    foo_1 = Foo(name="1", my_int=2)
     assert foo_0.pprint() != foo_1.pprint() != Foo().pprint()
     for i, foo in enumerate((foo_0, foo_1)):
         temp_file = f"{temp_dir}/{i}.{mode}"
@@ -220,6 +223,18 @@ def test_deserialization_action(temp_dir, mode):
     assert len(options.p) == 2
     assert options.p[0].pprint() == foo_0.pprint()
     assert options.p[1].pprint() == foo_1.pprint()
+
+    with open(f"{temp_dir}/0.{mode}", "w") as f:
+        if mode.endswith("yaml"):
+            f.write("my_int: 'snarf'\n")
+        elif mode.endswith("json"):
+            f.write(r'{"my_int": "snarf"}')
+        else:
+            assert False, f"{mode} check missing"
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["--p", f"{temp_dir}/0.{mode}"])
+    assert capsys.readouterr().err.index("my_int") >= 0
 
 
 def test_serialization_action(temp_dir, mode, capsys, yaml_loader):
