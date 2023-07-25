@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.4.1
+
+- Made deserialization error messages more informative
+- Switched to GitHub workflows
+
 ## v0.4.0
 
 - Added extras.
