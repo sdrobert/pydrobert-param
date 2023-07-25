@@ -1,7 +1,7 @@
 # pydrobert-param
 
 [![Documentation Status](https://readthedocs.org/projects/pydrobert-param/badge/?version=latest)](https://pydrobert-param.readthedocs.io/en/latest/?badge=latest)
-[![Build status](https://ci.appveyor.com/api/projects/status/67r8qy78u6bkf2qn/branch/master?svg=true)](https://ci.appveyor.com/project/sdrobert/pydrobert-param/branch/master)
+[![Build status](https://github.com/sdrobert/pydrobert-param/actions/workflows/tox.yml/badge.svg)](https://github.com/sdrobert/pydrobert-param/actions/workflows/tox.yml)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 Utilities for the python package [param](http://param.pyviz.org/).
