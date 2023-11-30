@@ -67,7 +67,10 @@ def BigDumbParams(name=None):
     # ensures they reset each initialization.
     class _BigDumbParams(param.Parameterized):
         action = param.Action(default_action, allow_None=True)
-        array = param.Array(np.array([1.0, 2.0]), allow_None=True)
+        if param.__version__ < "2":
+            array = param.Array(np.array([1.0, 2.0]))
+        else:
+            array = param.Array(np.array([1.0, 2.0]), allow_None=True)
         boolean = param.Boolean(True, allow_None=True)
         callable = param.Callable(default_action, allow_None=True)
         class_selector = param.ClassSelector(int, is_instance=False, allow_None=True)
