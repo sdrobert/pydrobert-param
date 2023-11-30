@@ -1355,7 +1355,9 @@ class DefaultDateDeserializer(ParamConfigDeserializer):
         try:
             float_block = float(block)
             if float_block % 1 or float_block > datetime.datetime.max.toordinal():
-                block = datetime.datetime.fromtimestamp(float_block, datetime.UTC)
+                block = datetime.datetime.fromtimestamp(
+                    float_block, datetime.timezone.utc
+                )
                 block = block.replace(tzinfo=None)
             else:
                 block = datetime.datetime.fromordinal(int(float_block))
@@ -1415,14 +1417,16 @@ class DefaultDateRangeDeserializer(ParamConfigDeserializer):
             try:
                 float_elem = float(elem)
                 if float_elem % 1 or float_elem > datetime.datetime.max.toordinal():
-                    elem = datetime.datetime.fromtimestamp(float_elem, datetime.UTC)
+                    elem = datetime.datetime.fromtimestamp(
+                        float_elem, datetime.timezone.utc
+                    )
                     elem = elem.replace(tzinfo=None)
                 else:
                     elem = datetime.datetime.fromordinal(int(float_elem))
                 val.append(elem)
                 continue
             except Exception:
-                raise
+                pass
             for dt_type in param.dt_types:
                 try:
                     elem = dt_type(elem)
