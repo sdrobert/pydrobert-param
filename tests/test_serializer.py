@@ -57,7 +57,7 @@ def test_reckless_nesting(mode):
         leaf2 = param.Boolean(False)
 
     class Parent(param.Parameterized):
-        nested = param.ClassSelector(Nested)
+        nested = param.ClassSelector(class_=Nested)
 
     parent = Parent(name="parent")
     txt = parent.param.serialize_parameters(mode=mode)
@@ -120,9 +120,11 @@ def test_reckless_otherwise_same(mode, yaml_loader):
         array = param.Array(np.array([1.0, 2.0]))
         boolean = param.Boolean(True, allow_None=True)
         callable = param.Callable(_default_action, allow_None=True)
-        class_selector = param.ClassSelector(int, is_instance=False, allow_None=True)
+        class_selector = param.ClassSelector(
+            class_=int, is_instance=False, allow_None=True
+        )
         color = param.Color("#FFFFFF", allow_None=True)
-        composite = param.Composite(["action", "array"], allow_None=True)
+        composite = param.Composite(attribs=["action", "array"], allow_None=True)
         try:
             data_frame = param.DataFrame(
                 pd.DataFrame({"A": 1.0, "B": np.arange(5)}), allow_None=True
@@ -147,11 +149,11 @@ def test_reckless_otherwise_same(mode, yaml_loader):
         foldername = param.Foldername(os.path.join(FILE_DIR_DIR), allow_None=True)
         hook_list = param.HookList(
             [_CallableObject(), _CallableObject()],
-            class_=_CallableObject,
+            item_type=_CallableObject,
             allow_None=True,
         )
         integer = param.Integer(10, allow_None=True)
-        list_ = param.List([1, 2, 3], allow_None=True, class_=int)
+        list_ = param.List([1, 2, 3], allow_None=True, item_type=int)
         list_selector = param.ListSelector([2, 2], objects=[1, 2, 3], allow_None=True)
         magnitude = param.Magnitude(0.5, allow_None=True)
         multi_file_selector = param.MultiFileSelector(
@@ -240,7 +242,7 @@ def test_deserialization_action(temp_dir, mode, capsys):
 def test_serialization_action(temp_dir, mode, capsys, yaml_loader):
     class Bar(param.Parameterized):
         dict_ = param.Dict(None)
-        list_ = param.List(None, class_=int)
+        list_ = param.List(None, item_type=int)
 
     bar_0 = Bar(name="0", dict_={"a": "b", "c": [1, 2, 3]})
     bar_1 = Bar(name="1", list_=[-1, 2, 4])
@@ -282,7 +284,6 @@ def test_serialization_action(temp_dir, mode, capsys, yaml_loader):
 
 
 def test_add_deserialization_group_to_parser(temp_dir, yaml_loader, mode):
-
     file_format = mode.split("_")[-1]
     reckless = "reckless" in mode
 
@@ -314,7 +315,6 @@ def test_add_deserialization_group_to_parser(temp_dir, yaml_loader, mode):
 
 
 def test_add_serialization_group_to_parser(temp_dir, yaml_loader, mode):
-
     file_format = mode.split("_")[-1]
     reckless = "reckless" in mode
 

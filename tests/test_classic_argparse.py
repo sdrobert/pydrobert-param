@@ -36,7 +36,7 @@ def ParamsB(**kwargs):
 class CommaListDeserializer(object):
     def deserialize(self, name, block, parameterized):
         block = block.split(",")
-        parameterized.param.set_param(name, block)
+        parameterized.param.update({name: block})
 
 
 class CommaListSerializer(object):

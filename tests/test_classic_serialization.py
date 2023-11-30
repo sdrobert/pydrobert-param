@@ -73,9 +73,11 @@ def BigDumbParams(name=None):
             array = param.Array(np.array([1.0, 2.0]), allow_None=True)
         boolean = param.Boolean(True, allow_None=True)
         callable = param.Callable(default_action, allow_None=True)
-        class_selector = param.ClassSelector(int, is_instance=False, allow_None=True)
+        class_selector = param.ClassSelector(
+            class_=int, is_instance=False, allow_None=True
+        )
         color = param.Color("#FFFFFF", allow_None=True)
-        composite = param.Composite(["action", "array"], allow_None=True)
+        composite = param.Composite(attribs=["action", "array"], allow_None=True)
         try:
             data_frame = param.DataFrame(
                 pd.DataFrame({"A": 1.0, "B": np.arange(5)}), allow_None=True
@@ -96,10 +98,12 @@ def BigDumbParams(name=None):
         )
         foldername = param.Foldername(os.path.join(FILE_DIR_DIR), allow_None=True)
         hook_list = param.HookList(
-            [CallableObject(), CallableObject()], class_=CallableObject, allow_None=True
+            [CallableObject(), CallableObject()],
+            item_type=CallableObject,
+            allow_None=True,
         )
         integer = param.Integer(10, allow_None=True)
-        list_ = param.List([1, 2, 3], allow_None=True, class_=int)
+        list_ = param.List([1, 2, 3], allow_None=True, item_type=int)
         list_selector = param.ListSelector([2, 2], objects=[1, 2, 3], allow_None=True)
         magnitude = param.Magnitude(0.5, allow_None=True)
         multi_file_selector = param.MultiFileSelector(
@@ -181,8 +185,8 @@ def BigDumbParams(name=None):
 )
 def test_can_serialize_with_defaults(name, set_to, expected):
     parameterized = BigDumbParams(name="test_can_serialize_with_defaults")
-    parameterized.param.set_param(name, set_to)
-    p = parameterized.param.params()[name]
+    parameterized.param.update({name: set_to})
+    p = parameterized.param[name]
     if type(p) in DEFAULT_SERIALIZER_DICT:
         serializer = DEFAULT_SERIALIZER_DICT[type(p)]
     else:
@@ -225,8 +229,8 @@ def test_can_serialize_with_defaults(name, set_to, expected):
 )
 def test_json_str_serializers(name, set_to, expected):
     parameterized = BigDumbParams(name="test_json_str_serializers")
-    parameterized.param.set_param(name, set_to)
-    p = parameterized.param.params()[name]
+    parameterized.param.update({name: set_to})
+    p = parameterized.param[name]
     serializer = JSON_STRING_SERIALIZER_DICT[type(p)]
     actual = serializer.serialize(name, parameterized)
     assert expected == actual
@@ -289,7 +293,8 @@ def test_serialize_to_dict():
     }
     # some corner cases
     dict_ = serial.serialize_to_dict(
-        {"a": parameterized_a, "b": parameterized_b}, only={"a": {}, "b": {}},
+        {"a": parameterized_a, "b": parameterized_b},
+        only={"a": {}, "b": {}},
     )
     assert dict_ == {"a": dict(), "b": dict()}
     dict_ = serial.serialize_to_dict(
@@ -308,7 +313,10 @@ def test_serialize_to_ini():
     parameterized_a.boolean = False
     sbuff = StringIO()
     serial.serialize_to_ini(
-        sbuff, parameterized_a, only={"number", "boolean"}, include_help=False,
+        sbuff,
+        parameterized_a,
+        only={"number", "boolean"},
+        include_help=False,
     )
     parser = ConfigParser()
     sbuff.seek(0)
@@ -444,7 +452,7 @@ def test_serialize_to_json():
 
 def test_can_deserialize_none():
     parameterized = BigDumbParams(name="test_can_deserialize_none")
-    for name, p in parameterized.param.params().items():
+    for name, p in parameterized.param.objects().items():
         if name in {
             "name",
             "composite",
@@ -477,7 +485,11 @@ def test_can_deserialize_none():
         ("class_selector", "int", int),
         ("color", "#000000", "#000000"),
         ("color", "#111111", "#111111"),
-        ("data_frame", pd.DataFrame({"foo": [1, 2]}), pd.DataFrame({"foo": [1, 2]}),),
+        (
+            "data_frame",
+            pd.DataFrame({"foo": [1, 2]}),
+            pd.DataFrame({"foo": [1, 2]}),
+        ),
         (
             "data_frame",
             FILE_DIR + "/pandas_data_frame.csv",
@@ -559,7 +571,7 @@ def test_can_deserialize_none():
 )
 def test_can_deserialize_with_defaults(name, block, expected):
     parameterized = BigDumbParams(name="test_can_deserialize_with_defaults")
-    p = parameterized.param.params()[name]
+    p = parameterized.param[name]
     if type(p) in DEFAULT_DESERIALIZER_DICT:
         deserializer = DEFAULT_DESERIALIZER_DICT[type(p)]
     else:
@@ -610,7 +622,7 @@ def test_can_deserialize_with_defaults(name, block, expected):
 )
 def test_json_str_deserializers(name, block, expected):
     parameterized = BigDumbParams(name="test_json_str_deserializers")
-    p = parameterized.param.params()[name]
+    p = parameterized.param[name]
     deserializer = JSON_STRING_DESERIALIZER_DICT[type(p)]
     deserializer.deserialize(name, block, parameterized)
     if type(expected) in {np.ndarray, pd.Series}:
@@ -643,11 +655,11 @@ def test_deserialize_from_dict():
 
     class _ThisIsFine(object):
         def deserialize(self, name, block, parameterized):
-            parameterized.param.set_param(name, another_action)
+            parameterized.param.update({name: another_action})
 
     class _AlsoFine(object):
         def deserialize(self, name, block, parameterized):
-            parameterized.param.set_param(name, datetime.min)
+            parameterized.param.update({name: datetime.min})
 
     type_dict = {
         param.Dynamic: _DontCallThis(),
@@ -664,7 +676,7 @@ def test_deserialize_from_dict():
 
     class _HereAreSomeCoordinates(object):
         def deserialize(self, name, block, parameterized):
-            parameterized.param.set_param(name, (1.0, 2.0))
+            parameterized.param.update({name: (1.0, 2.0)})
 
     parameterized_b = BigDumbParams(name="test_deserialize_from_dict_b")
     dict_ = {
