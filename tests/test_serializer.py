@@ -57,16 +57,16 @@ def test_reckless_nesting(mode):
         leaf2 = param.Boolean(False)
 
     class Parent(param.Parameterized):
-        nested = param.ClassSelector(Nested)
+        nested = param.ClassSelector(class_=Nested)
 
     parent = Parent(name="parent")
     txt = parent.param.serialize_parameters(mode=mode)
     if format == "json":
         assert txt == '{"name": "parent", "nested": null}'
     child = Parent(**Parent.param.deserialize_parameters(txt, mode=mode))
-    assert child.pprint() == parent.pprint()
+    assert child.param.pprint() == parent.param.pprint()
     parent.nested = Nested(name="nested", leaf1=2, leaf2=True)
-    assert child.pprint() != parent.pprint()
+    assert child.param.pprint() != parent.param.pprint()
     txt = parent.param.serialize_parameters(mode=mode)
     if format == "json":
         assert (
@@ -74,22 +74,22 @@ def test_reckless_nesting(mode):
             == '{"name": "parent", "nested": {"name": "nested", "leaf1": 2, "leaf2": true}}'
         )
     child = Parent(**Parent.param.deserialize_parameters(txt, mode=mode))
-    assert child.pprint() == parent.pprint()
+    assert child.param.pprint() == parent.param.pprint()
     child = Parent(
         **Parent.param.deserialize_parameters(
             txt, {"name", "nested.name", "nested.leaf1"}, mode=mode
         )
     )
-    assert child.pprint() != parent.pprint()
+    assert child.param.pprint() != parent.param.pprint()
     child.nested.leaf2 = True
-    assert child.pprint() == parent.pprint()
+    assert child.param.pprint() == parent.param.pprint()
     txt = parent.param.serialize_parameters({"name", "nested.leaf1"}, mode=mode)
     if format == "json":
         assert txt == '{"name": "parent", "nested": {"leaf1": 2}}'
     child = Parent(**Parent.param.deserialize_parameters(txt, mode=mode))
-    assert child.pprint() != parent.pprint()
+    assert child.param.pprint() != parent.param.pprint()
     child.nested.leaf2 = True
-    assert child.pprint() != parent.pprint()
+    assert child.param.pprint() != parent.param.pprint()
 
 
 def _default_action():
@@ -120,9 +120,11 @@ def test_reckless_otherwise_same(mode, yaml_loader):
         array = param.Array(np.array([1.0, 2.0]))
         boolean = param.Boolean(True, allow_None=True)
         callable = param.Callable(_default_action, allow_None=True)
-        class_selector = param.ClassSelector(int, is_instance=False, allow_None=True)
+        class_selector = param.ClassSelector(
+            class_=int, is_instance=False, allow_None=True
+        )
         color = param.Color("#FFFFFF", allow_None=True)
-        composite = param.Composite(["action", "array"], allow_None=True)
+        composite = param.Composite(attribs=["action", "array"], allow_None=True)
         try:
             data_frame = param.DataFrame(
                 pd.DataFrame({"A": 1.0, "B": np.arange(5)}), allow_None=True
@@ -147,11 +149,11 @@ def test_reckless_otherwise_same(mode, yaml_loader):
         foldername = param.Foldername(os.path.join(FILE_DIR_DIR), allow_None=True)
         hook_list = param.HookList(
             [_CallableObject(), _CallableObject()],
-            class_=_CallableObject,
+            item_type=_CallableObject,
             allow_None=True,
         )
         integer = param.Integer(10, allow_None=True)
-        list_ = param.List([1, 2, 3], allow_None=True, class_=int)
+        list_ = param.List([1, 2, 3], allow_None=True, item_type=int)
         list_selector = param.ListSelector([2, 2], objects=[1, 2, 3], allow_None=True)
         magnitude = param.Magnitude(0.5, allow_None=True)
         multi_file_selector = param.MultiFileSelector(
@@ -189,7 +191,7 @@ def test_reckless_otherwise_same(mode, yaml_loader):
         if json_a is not None:
             p_a = P(**P.param.deserialize_parameters(json_a, {pname}, safe_mode))
             p_b = P(**P.param.deserialize_parameters(json_a, {pname}, mode))
-            assert p_a.pprint() == p_b.pprint()
+            assert p_a.param.pprint() == p_b.param.pprint()
 
 
 def test_deserialization_action(temp_dir, mode, capsys):
@@ -200,7 +202,7 @@ def test_deserialization_action(temp_dir, mode, capsys):
 
     foo_0 = Foo(name="0", my_bool=True)
     foo_1 = Foo(name="1", my_int=2)
-    assert foo_0.pprint() != foo_1.pprint() != Foo().pprint()
+    assert foo_0.param.pprint() != foo_1.param.pprint() != Foo().param.pprint()
     for i, foo in enumerate((foo_0, foo_1)):
         temp_file = f"{temp_dir}/{i}.{mode}"
         txt = foo.param.serialize_parameters(mode=mode)
@@ -212,17 +214,17 @@ def test_deserialization_action(temp_dir, mode, capsys):
     options = parser.parse_args([])
     assert options.p is None
     options = parser.parse_args(["--p", f"{temp_dir}/0.{mode}"])
-    assert options.p.pprint() == foo_0.pprint()
+    assert options.p.param.pprint() == foo_0.param.pprint()
     arg.nargs = "?"
     options = parser.parse_args(["--p", f"{temp_dir}/1.{mode}"])
-    assert options.p.pprint() == foo_1.pprint()
+    assert options.p.param.pprint() == foo_1.param.pprint()
     arg.nargs = "*"
     options = parser.parse_args(["--p"])
     assert options.p == []
     options = parser.parse_args(["--p", f"{temp_dir}/0.{mode}", f"{temp_dir}/1.{mode}"])
     assert len(options.p) == 2
-    assert options.p[0].pprint() == foo_0.pprint()
-    assert options.p[1].pprint() == foo_1.pprint()
+    assert options.p[0].param.pprint() == foo_0.param.pprint()
+    assert options.p[1].param.pprint() == foo_1.param.pprint()
 
     with open(f"{temp_dir}/0.{mode}", "w") as f:
         if mode.endswith("yaml"):
@@ -240,11 +242,11 @@ def test_deserialization_action(temp_dir, mode, capsys):
 def test_serialization_action(temp_dir, mode, capsys, yaml_loader):
     class Bar(param.Parameterized):
         dict_ = param.Dict(None)
-        list_ = param.List(None, class_=int)
+        list_ = param.List(None, item_type=int)
 
     bar_0 = Bar(name="0", dict_={"a": "b", "c": [1, 2, 3]})
     bar_1 = Bar(name="1", list_=[-1, 2, 4])
-    assert bar_0.pprint() != bar_1.pprint() != Bar().pprint()
+    assert bar_0.param.pprint() != bar_1.param.pprint() != Bar().param.pprint()
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -264,25 +266,24 @@ def test_serialization_action(temp_dir, mode, capsys, yaml_loader):
     txt, err = capsys.readouterr()
     assert not err
     bar_ = Bar(**Bar.param.deserialize_parameters(txt, mode=mode))
-    assert bar_.pprint() == Bar().pprint()
+    assert bar_.param.pprint() == Bar().param.pprint()
 
     with pytest.raises(SystemExit):
         parser.parse_args(["--b0", temp_file_0])
     with open(temp_file_0) as f:
         txt = f.read()
         bar_0_ = Bar(**Bar.param.deserialize_parameters(txt, mode=mode))
-    assert bar_0_.pprint() == bar_0.pprint()
+    assert bar_0_.param.pprint() == bar_0.param.pprint()
 
     with pytest.raises(SystemExit):
         parser.parse_args(["--b1", temp_file_1])
     with open(temp_file_1) as f:
         txt = f.read()
         bar_1_ = Bar(**Bar.param.deserialize_parameters(txt, mode=mode))
-    assert bar_1_.pprint() == bar_1.pprint()
+    assert bar_1_.param.pprint() == bar_1.param.pprint()
 
 
 def test_add_deserialization_group_to_parser(temp_dir, yaml_loader, mode):
-
     file_format = mode.split("_")[-1]
     reckless = "reckless" in mode
 
@@ -310,11 +311,10 @@ def test_add_deserialization_group_to_parser(temp_dir, yaml_loader, mode):
 
     for i, (baz, temp_file) in enumerate(zip(bazs, temps)):
         options = parser.parse_args([f"--read-{file_format}", temp_file])
-        assert options.p.pprint() == baz.pprint()
+        assert options.p.param.pprint() == baz.param.pprint()
 
 
 def test_add_serialization_group_to_parser(temp_dir, yaml_loader, mode):
-
     file_format = mode.split("_")[-1]
     reckless = "reckless" in mode
 
@@ -330,10 +330,10 @@ def test_add_serialization_group_to_parser(temp_dir, yaml_loader, mode):
     with open(temp_file) as f:
         txt = f.read()
     boop = Boop(**Boop.param.deserialize_parameters(txt, mode=mode))
-    assert boop.pprint() == Boop().pprint()
+    assert boop.param.pprint() == Boop().param.pprint()
 
     boop.int = 5
-    assert boop.pprint() != Boop().pprint()
+    assert boop.param.pprint() != Boop().param.pprint()
     parser = argparse.ArgumentParser()
     add_serialization_group_to_parser(parser, boop, reckless=reckless)
     with pytest.raises(SystemExit):
@@ -341,4 +341,4 @@ def test_add_serialization_group_to_parser(temp_dir, yaml_loader, mode):
     with open(temp_file) as f:
         txt = f.read()
     boop_ = Boop(**Boop.param.deserialize_parameters(txt, mode=mode))
-    assert boop.pprint() == boop_.pprint()
+    assert boop.param.pprint() == boop_.param.pprint()

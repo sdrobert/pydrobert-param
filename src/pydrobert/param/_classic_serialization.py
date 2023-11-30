@@ -47,7 +47,6 @@ try:
         except Exception:
             return 0
 
-
 except ImportError:
 
     def _equal_array(a, b):
@@ -146,7 +145,7 @@ class DefaultArraySerializer(ParamConfigSerializer):
 
 
 def _get_name_from_param_range(name: str, parameterized: param.Parameterized, val):
-    p = parameterized.param.params()[name]
+    p = parameterized.param[name]
     val_type = type(val)
     for n, v in list(p.get_range().items()):
         if isinstance(v, val_type) and _equal(v, val):
@@ -174,7 +173,7 @@ class DefaultClassSelectorSerializer(ParamConfigSerializer):
     def help_string(
         self, name: str, parameterized: param.Parameterized
     ) -> Optional[str]:
-        p = parameterized.param.params()[name]
+        p = parameterized.param[name]
         hashes = tuple(p.get_range())
         if p.is_instance and len(hashes):
             s = "Choices: "
@@ -185,7 +184,7 @@ class DefaultClassSelectorSerializer(ParamConfigSerializer):
 
     def serialize(self, name: str, parameterized: param.Parameterized) -> Any:
         val = getattr(parameterized, name)
-        p = parameterized.param.params()[name]
+        p = parameterized.param[name]
         if val is None or p.is_instance:
             return val
         else:
@@ -400,7 +399,7 @@ class DefaultListSelectorSerializer(ParamConfigSerializer):
     def help_string(
         self, name: str, parameterized: param.Parameterized
     ) -> Optional[str]:
-        p = parameterized.param.params()[name]
+        p = parameterized.param[name]
         hashes = tuple(p.get_range())
         if len(hashes):
             s = "Element choices: "
@@ -430,7 +429,7 @@ class DefaultObjectSelectorSerializer(ParamConfigSerializer):
     def help_string(
         self, name: str, parameterized: param.Parameterized
     ) -> Optional[str]:
-        p = parameterized.param.params()[name]
+        p = parameterized.param[name]
         hashes = tuple(p.get_range())
         if len(hashes):
             s = "Choices: "
@@ -598,12 +597,12 @@ def _serialize_to_dict_flat(
     if serializer_name_dict is None:
         serializer_name_dict = dict()
     if only is None:
-        only = set(parameterized.param.params())
+        only = set(parameterized.param.values())
         only.remove("name")
     dict_ = dict()
     help_dict = dict()
     for name in only:
-        if name not in parameterized.param.params():
+        if name not in parameterized.param.values():
             msg = 'No param "{}" to read in "{}"'.format(name, parameterized.name)
             if on_missing == "warn":
                 parameterized.warning(msg)
@@ -613,14 +612,14 @@ def _serialize_to_dict_flat(
         if name in serializer_name_dict:
             serializer = serializer_name_dict[name]
         else:
-            type_ = type(parameterized.param.params()[name])
+            type_ = type(parameterized.param[name])
             if type_ in serializer_type_dict:
                 serializer = serializer_type_dict[type_]
             else:
                 serializer = DEFAULT_BACKUP_SERIALIZER
         dict_[name] = serializer.serialize(name, parameterized)
         help_string_serial = serializer.help_string(name, parameterized)
-        help_string_doc = parameterized.param.params()[name].doc
+        help_string_doc = parameterized.param[name].doc
         if help_string_doc:
             if help_string_serial:
                 help_string_doc = help_string_doc.strip(". ")
@@ -1013,9 +1012,9 @@ class ParamConfigDeserializer(object, metaclass=abc.ABCMeta):
         In ``Default*Deserializer`` documentation, a call to this method is referred to
         as a "none check".
         """
-        p = parameterized.param.params()[name]
+        p = parameterized.param[name]
         if block is None and p.allow_None:
-            parameterized.param.set_param(name, None)
+            parameterized.param.update({name: None})
             return True
         else:
             return False
@@ -1034,7 +1033,7 @@ class DefaultDeserializer(ParamConfigDeserializer):
         if self.check_if_allow_none_and_set(name, block, parameterized):
             return
         try:
-            parameterized.param.set_param(name, block)
+            parameterized.param.update({name: block})
         except ValueError as e:
             raise ParamConfigTypeError(parameterized, name) from e
 
@@ -1068,33 +1067,33 @@ class DefaultArrayDeserializer(ParamConfigDeserializer):
         import numpy as np
 
         if isinstance(block, np.ndarray):
-            parameterized.param.set_param(name, block)
+            parameterized.param.update({name: block})
             return
         if isinstance(block, str) and block.endswith(".npy"):
             try:
                 block = np.load(block, **self.kwargs)
-                parameterized.param.set_param(name, block)
+                parameterized.param.update({name: block})
                 return
             except (ValueError, IOError) as e:
                 raise ParamConfigTypeError(parameterized, name) from e
         elif isinstance(block, bytes):
             try:
                 block = np.frombuffer(block, **self.kwargs)
-                parameterized.param.set_param(name, block)
+                parameterized.param.update({name: block})
                 return
             except ValueError as e:
                 raise ParamConfigTypeError(parameterized, name) from e
         elif isinstance(block, str):
             try:
                 block = np.fromstring(block, **self.kwargs)
-                parameterized.param.set_param(name, block)
+                parameterized.param.update({name: block})
                 return
             except ValueError as e:
                 raise ParamConfigTypeError(parameterized, name) from e
         else:
             try:
                 block = np.array(block, **self.kwargs)
-                parameterized.param.set_param(name, block)
+                parameterized.param.update({name: block})
                 return
             except ValueError as e:
                 raise ParamConfigTypeError(parameterized, name) from e
@@ -1148,7 +1147,7 @@ class DefaultBooleanDeserializer(ParamConfigDeserializer):
         elif block in self.FALSE_VALUES:
             block = False
         if isinstance(block, bool):
-            parameterized.param.set_param(name, block)
+            parameterized.param.update({name: block})
         else:
             raise ParamConfigTypeError(
                 parameterized, name, 'cannot convert "{}" to bool'.format(block)
@@ -1156,7 +1155,7 @@ class DefaultBooleanDeserializer(ParamConfigDeserializer):
 
 
 def _find_object_in_object_selector(name, block, parameterized):
-    p = parameterized.param.params()[name]
+    p = parameterized.param[name]
     named_objs = p.get_range()
     for val in list(named_objs.values()):
         if _equal(val, block):
@@ -1166,7 +1165,7 @@ def _find_object_in_object_selector(name, block, parameterized):
     except Exception:
         pass
     try:
-        parameterized.param.set_param(name, block)
+        parameterized.param.update({name: block})
     except ValueError as e:
         raise ParamConfigTypeError(parameterized, name) from e
 
@@ -1198,18 +1197,18 @@ class DefaultClassSelectorDeserializer(ParamConfigDeserializer):
     ) -> None:
         if self.check_if_allow_none_and_set(name, block, parameterized):
             return
-        p = parameterized.param.params()[name]
+        p = parameterized.param[name]
         try:
             if p.is_instance:
                 if not isinstance(block, p.class_):
                     block = p.class_(block, *self.args, **self.kwargs)
-                parameterized.param.set_param(name, block)
+                parameterized.param.update({name: block})
                 return
         except ValueError as e:
             raise ParamConfigTypeError(parameterized, name) from e
         block = _find_object_in_object_selector(name, block, parameterized)
         try:
-            parameterized.param.set_param(name, block)
+            parameterized.param.update({name: block})
         except ValueError as e:
             raise ParamConfigTypeError(parameterized, name) from e
 
@@ -1247,7 +1246,7 @@ class DefaultDataFrameDeserializer(ParamConfigDeserializer):
 
         if isinstance(block, pandas.DataFrame):
             try:
-                parameterized.param.set_param(name, block)
+                parameterized.param.update({name: block})
                 return
             except ValueError as e:
                 raise ParamConfigTypeError(parameterized, name) from e
@@ -1267,19 +1266,19 @@ class DefaultDataFrameDeserializer(ParamConfigDeserializer):
                 if block.endswith(suffix):
                     try:
                         block = read_func(block, *self.args, **self.kwargs)
-                        parameterized.param.set_param(name, block)
+                        parameterized.param.update({name: block})
                         return
                     except Exception as e:
                         raise ParamConfigTypeError(parameterized, name) from e
             try:
                 block = pandas.read_table(block, *self.args, **self.kwargs)
-                parameterized.param.set_param(name, block)
+                parameterized.param.update({name: block})
                 return
             except Exception as e:
                 raise ParamConfigTypeError(parameterized, name) from e
         try:
             block = pandas.DataFrame(data=block, **self.kwargs)
-            parameterized.param.set_param(name, block)
+            parameterized.param.update({name: block})
             return
         except Exception as e:
             raise ParamConfigTypeError(parameterized, name) from e
@@ -1343,30 +1342,33 @@ class DefaultDateDeserializer(ParamConfigDeserializer):
     ) -> None:
         if self.check_if_allow_none_and_set(name, block, parameterized):
             return
-        from datetime import datetime
+        import datetime
 
-        if isinstance(block, datetime):
-            parameterized.param.set_param(name, block)
+        if isinstance(block, datetime.datetime):
+            parameterized.param.update({name: block})
             return
         if self.format is not None and isinstance(block, str):
             v = _get_datetime_from_formats(block, self.format)
             if v is not None:
-                parameterized.param.set_param(name, v)
+                parameterized.param.update({name: v})
                 return
         try:
             float_block = float(block)
-            if float_block % 1 or float_block > datetime.max.toordinal():
-                block = datetime.utcfromtimestamp(float_block)
+            if float_block % 1 or float_block > datetime.datetime.max.toordinal():
+                block = datetime.datetime.fromtimestamp(
+                    float_block, datetime.timezone.utc
+                )
+                block = block.replace(tzinfo=None)
             else:
-                block = datetime.fromordinal(int(float_block))
-            parameterized.param.set_param(name, block)
+                block = datetime.datetime.fromordinal(int(float_block))
+            parameterized.param.update({name: block})
             return
         except Exception:
             pass
         for dt_type in param.dt_types:
             try:
                 block = dt_type(block)
-                parameterized.param.set_param(name, block)
+                parameterized.param.update({name: block})
                 return
             except Exception:
                 pass
@@ -1400,11 +1402,11 @@ class DefaultDateRangeDeserializer(ParamConfigDeserializer):
     ) -> None:
         if self.check_if_allow_none_and_set(name, block, parameterized):
             return
-        from datetime import datetime
+        import datetime
 
         val = []
         for elem in block:
-            if isinstance(elem, datetime):
+            if isinstance(elem, datetime.datetime):
                 val.append(elem)
                 continue
             if self.format is not None and isinstance(elem, str):
@@ -1414,10 +1416,13 @@ class DefaultDateRangeDeserializer(ParamConfigDeserializer):
                     continue
             try:
                 float_elem = float(elem)
-                if float_elem % 1 or float_elem > datetime.max.toordinal():
-                    elem = datetime.utcfromtimestamp(float_elem)
+                if float_elem % 1 or float_elem > datetime.datetime.max.toordinal():
+                    elem = datetime.datetime.fromtimestamp(
+                        float_elem, datetime.timezone.utc
+                    )
+                    elem = elem.replace(tzinfo=None)
                 else:
-                    elem = datetime.fromordinal(int(float_elem))
+                    elem = datetime.datetime.fromordinal(int(float_elem))
                 val.append(elem)
                 continue
             except Exception:
@@ -1436,7 +1441,7 @@ class DefaultDateRangeDeserializer(ParamConfigDeserializer):
             )
         val = tuple(val)
         try:
-            parameterized.param.set_param(name, val)
+            parameterized.param.update({name: val})
         except ValueError as e:
             raise ParamConfigTypeError(parameterized, name) from e
 
@@ -1468,7 +1473,7 @@ class DefaultListDeserializer(ParamConfigDeserializer):
     ) -> None:
         if self.check_if_allow_none_and_set(name, block, parameterized):
             return
-        p = parameterized.param.params()[name]
+        p = parameterized.param[name]
         try:
             if p.class_:
                 block = [
@@ -1479,7 +1484,7 @@ class DefaultListDeserializer(ParamConfigDeserializer):
                 ]
             else:
                 block = list(block)
-            parameterized.param.set_param(name, block)
+            parameterized.param.update({name: block})
         except (TypeError, ValueError) as e:
             raise ParamConfigTypeError(parameterized, name) from e
 
@@ -1499,7 +1504,7 @@ class DefaultListSelectorDeserializer(ParamConfigDeserializer):
             block = [
                 _find_object_in_object_selector(name, x, parameterized) for x in block
             ]
-            parameterized.param.set_param(name, block)
+            parameterized.param.update({name: block})
         except TypeError as e:
             raise ParamConfigTypeError(parameterized, name) from e
 
@@ -1535,7 +1540,7 @@ class _CastDeserializer(ParamConfigDeserializer):
         try:
             if not isinstance(block, self.class_):
                 block = self.class_(block, *self.args, **self.kwargs)
-            parameterized.param.set_param(name, block)
+            parameterized.param.update({name: block})
             return
         except ValueError as e:
             raise ParamConfigTypeError(parameterized, name) from e
@@ -1567,7 +1572,7 @@ class DefaultNumericTupleDeserializer(ParamConfigDeserializer):
             return
         try:
             block = tuple(float(x) for x in block)
-            parameterized.param.set_param(name, block)
+            parameterized.param.update({name: block})
             return
         except ValueError as e:
             raise ParamConfigTypeError(parameterized, name) from e
@@ -1589,7 +1594,7 @@ class DefaultObjectSelectorDeserializer(ParamConfigDeserializer):
         if self.check_if_allow_none_and_set(name, block, parameterized):
             return
         block = _find_object_in_object_selector(name, block, parameterized)
-        parameterized.param.set_param(name, block)
+        parameterized.param.update({name: block})
 
 
 class DefaultSeriesDeserializer(_CastDeserializer):
@@ -1807,7 +1812,7 @@ def _deserialize_from_dict_flat(
     if deserializer_name_dict is None:
         deserializer_name_dict = dict()
     for name, block in list(dict_.items()):
-        if name not in parameterized.param.params():
+        if name not in parameterized.param.values():
             msg = 'No param "{}" to set in "{}"'.format(name, parameterized.name)
             if on_missing == "warn":
                 parameterized.warning(msg)
@@ -1817,7 +1822,7 @@ def _deserialize_from_dict_flat(
         if name in deserializer_name_dict:
             deserializer = deserializer_name_dict[name]
         else:
-            type_ = type(parameterized.param.params()[name])
+            type_ = type(parameterized.param[name])
             if type_ in deserializer_type_dict:
                 deserializer = deserializer_type_dict[type_]
             else:
