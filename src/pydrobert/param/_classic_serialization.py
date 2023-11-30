@@ -1422,7 +1422,7 @@ class DefaultDateRangeDeserializer(ParamConfigDeserializer):
                 val.append(elem)
                 continue
             except Exception:
-                pass
+                raise
             for dt_type in param.dt_types:
                 try:
                     elem = dt_type(elem)
