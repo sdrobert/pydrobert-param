@@ -93,7 +93,7 @@ class Serializable(Protocol):
     @abc.abstractclassmethod
     def dumps(cls, obj: Any, help: Any = None) -> str:
         """Dump object (and optional help object) to string
-        
+
         `help` should not impact the deserialization of `obj`. It can be ignored.
         """
         ...
@@ -241,7 +241,7 @@ class JsonSerialization(SerializableSerialization, JsonSerializable):
 
 class YamlSerialization(SerializableSerialization, YamlSerializable):
     """YAML (de)serialization
-    
+
     See Also
     --------
     register_serializer
@@ -289,7 +289,7 @@ class RecklessSerializableSerialization(SerializableSerialization):
 
 class RecklessJsonSerialization(RecklessSerializableSerialization, JsonSerializable):
     """Reckless JSON (de)serialization
-    
+
     See Also
     --------
     register_serializer
@@ -301,7 +301,7 @@ class RecklessJsonSerialization(RecklessSerializableSerialization, JsonSerializa
 
 class RecklessYamlSerialization(RecklessSerializableSerialization, YamlSerializable):
     """Reckless YAML (de)serialization
-    
+
     See Also
     --------
     register_serializer
@@ -338,7 +338,7 @@ def register_serializer(mode: Literal["reckless_json", "reckless_yaml", "yaml"])
 
     After calling this function, parameters can be serialized with the same `mode`
     registered via :func:`param.Parameterized.param.serialize_parameters`:
-    
+
     >>> str_ = p.param.serialize_parameters(subset, mode)
     >>> p = P.param.deserialize_parameters(str_, subset, mode)
 
@@ -360,7 +360,7 @@ def register_serializer(mode: Literal["reckless_json", "reckless_yaml", "yaml"])
     child may be of type `SomeParameterizedClass`, but may also be one of its
     subclasses. If children are sharing references to the same instance, that
     information will be lost in serialization.
-    
+
     For now (keep track of `this bug <https://github.com/holoviz/param/issues/520>`_ for
     changes), ``mode="json"`` will throw if it sees a nested parameterized instance in
     serialization or deserialization. Reckless serialization is performed recursively
@@ -387,7 +387,7 @@ def register_serializer(mode: Literal["reckless_json", "reckless_yaml", "yaml"])
 
 def unregister_serializer(mode: Literal["reckless_json", "reckless_yaml", "yaml"]):
     """Unregister a previously registered custom serializer
-    
+
     See Also
     --------
     register_serializer
@@ -416,7 +416,7 @@ class DeserializationAction(Action):
     In this example, the argument passed with the flag :obj:`--param` is treated as a
     path to a JSON file from which a serialized copy of `MyParameterized` is read and
     instantiatied.
-    
+
     Deserialization is performed with the
     :func:`param.parameterized.Parameterized.param.deserialize_parameters`. The
     deserialization `mode` and optionally the `subset` of parameters deserialized can be
@@ -487,11 +487,10 @@ class DeserializationAction(Action):
                     **self.class_.param.deserialize_parameters(value, subset, mode)
                 )
             except Exception as e:
-                msg = f": {e.args[0]}" if hasattr(e, "args") else ""
                 raise argparse.ArgumentError(
                     self,
                     f"error deserializing '{name}' as '{self.class_.__name__}' with "
-                    f"protocol '{mode}'{msg}",
+                    f"protocol '{mode}': {str(e)}",
                 )
             values_[i] = value
         if isinstance(values, list):
@@ -521,7 +520,7 @@ class SerializationAction(Action):
     changed by passing the `const` keyword argument to :func:`add_argument`. `const` can
     be either a string (just the `mode`) or a tuple of a string (`mode`) and set of
     strings (`subset`).
-    
+
     The `type` argument can be either a subclass of
     :class:`param.parameterized.Parameterized` or an instance of one. In the latter
     case, the parameter values of that instance will be serialized instead.
@@ -623,7 +622,7 @@ def add_deserialization_group_to_parser(
     register_missing: bool = True,
 ):
     """Add flags to parser for deserializing parameterized objects from file
-    
+
     A convenience function for coordinating :class:`DeserializationAction` arguments
     over multiple file formats. The usual case might look like
 
@@ -659,7 +658,7 @@ def add_deserialization_group_to_parser(
     flag_format_str
         One or more Python format strings which, after formatting, will act as the flags
         for the argument. The following keys are available for formatting:
-        
+
         - `file_format`, an entry in `file_formats`
         - `dest`
         - `pobj_name`, either :obj:`pobj.name` if `pobj` is an instance or
@@ -681,7 +680,7 @@ def add_deserialization_group_to_parser(
         Setting to :obj:`False` will restrict the dynamically chosen value of
         `file_formats`. If `file_formats` is manually specified, the parser will throw
         when it tries to deserialize using an unspecified mode.
-    
+
     Returns
     -------
     grp
@@ -691,7 +690,7 @@ def add_deserialization_group_to_parser(
     Warnings
     --------
     Functionality is in beta and subject to additions and modifications.
-    
+
     See Also
     --------
     add_parameterized_read_group
@@ -781,7 +780,7 @@ def add_serialization_group_to_parser(
     register_missing: bool = True,
 ):
     """Add flags to parser to serialize parameters to file or stdout
-    
+
     A convenience function for coordinating :class:`SerializationAction` arguments over
     multiple file formats. The usual case might look like
 
@@ -815,7 +814,7 @@ def add_serialization_group_to_parser(
     flag_format_str
         One or more Python format strings which, after formatting, will act as the flags
         for the argument. The following keys are available for formatting:
-        
+
         - `file_format`, an entry in `file_formats`
         - `pobj_name`, either :obj:`pobj.name` if `pobj` is an instance or
           :obj:`pobj.__name__` if `pobj` is a class.
@@ -834,13 +833,13 @@ def add_serialization_group_to_parser(
         Setting to :obj:`False` will restrict the dynamically chosen value of
         `file_formats`. If `file_formats` is manually specified, the parser will throw
         when it tries to serialize using an unspecified mode.
-    
+
     Returns
     -------
     grp
         The group which the flags have beed added to. Note that only the first argument
         in the group can ever be parsed as the program will try to exit after printing.
-    
+
     Warnings
     --------
     Functionality is in beta and subject to additions and modifications.
