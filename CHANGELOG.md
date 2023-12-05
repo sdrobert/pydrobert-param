@@ -2,6 +2,7 @@
 
 ## v0.4.1
 
+- Added python 3.12 support
 - Updated docs
 - Compatibility with param 2.0. Updated minimum version to 1.12
 - Made deserialization error messages more informative
