@@ -2,13 +2,21 @@
    :parser: myst_parser.sphinx_
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+   :glob:
+   :caption: Tutorials
 
-   serialization
-   hyperopt
+   tutorials/*
+
+.. toctree::
+   :caption: API
+   :maxdepth: 2
+
+   api/pydrobert/param
+
+.. toctree::
+   :caption: Other
+
    cli
-   modules
 
 Indices and tables
 ==================

@@ -2,4 +2,4 @@ Sphinx>=4.4
 sphinx-autodoc-typehints
 myst-parser
 param
-sphinx_rtd_theme>=0.5
+sphinx-rtd-theme>=0.5
